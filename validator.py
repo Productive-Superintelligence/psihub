@@ -48,6 +48,7 @@ def validate_package(path: str | Path) -> ValidationReport:
         )
 
     issues.extend(_validate_readme(manifest))
+    issues.extend(_validate_card_metadata(manifest))
     issues.extend(_validate_primary(manifest))
     issues.extend(_validate_schemas(manifest))
     issues.extend(_validate_tactics(manifest))
@@ -88,6 +89,42 @@ def _validate_readme(manifest: PackageManifest) -> list[ValidationIssue]:
             message="Package should include README.md.",
         )
     ]
+
+
+def _validate_card_metadata(manifest: PackageManifest) -> list[ValidationIssue]:
+    issues: list[ValidationIssue] = []
+    if manifest.card is None:
+        issues.append(
+            ValidationIssue(
+                level="warning",
+                code="card_metadata_missing",
+                message="Package should declare [card] metadata for generated cards.",
+                resource="card",
+            )
+        )
+    elif not manifest.card.summary and not manifest.package.description:
+        issues.append(
+            ValidationIssue(
+                level="warning",
+                code="card_summary_missing",
+                message="Package card should include a summary or package description.",
+                resource="card.summary",
+            )
+        )
+    if (
+        manifest.base_dir is not None
+        and (manifest.base_dir / "README.md").is_file()
+        and "readme" not in manifest.docs
+    ):
+        issues.append(
+            ValidationIssue(
+                level="warning",
+                code="readme_doc_missing",
+                message="Package README.md should be declared as [docs.readme].",
+                resource=manifest.ref("doc", "readme"),
+            )
+        )
+    return issues
 
 
 def _validate_primary(manifest: PackageManifest) -> list[ValidationIssue]:

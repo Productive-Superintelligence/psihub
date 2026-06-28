@@ -85,6 +85,9 @@ malformed schema refs, and catches same-package schema refs that point at
 missing declared schemas.
 Tactic examples should include an `input`, `output`, or `command`; empty
 examples produce a validation warning so cards stay useful.
+Packages should declare `[card]` metadata and `[docs.readme]` when a
+`README.md` exists; missing card/readme metadata produces validation warnings
+so generated human and agent cards stay discoverable.
 Endpoint metadata must declare one of `GET`, `POST`, `PUT`, `PATCH`, or
 `DELETE`, use a `/`-prefixed path, and use known SSSN scopes when a `scope` is
 provided.

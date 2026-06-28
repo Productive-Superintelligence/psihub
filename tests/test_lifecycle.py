@@ -65,6 +65,33 @@ def test_validate_lifecycle_package(tmp_path):
     assert report.issues == ()
 
 
+def test_validate_warns_on_missing_card_and_readme_metadata(tmp_path):
+    package = make_lifecycle_package(tmp_path)
+    text = (package / "psi.toml").read_text(encoding="utf-8")
+    text = text.replace(
+        """
+[card]
+summary = "Echo tactic package."
+tags = ["demo", "tactic"]
+suggested_commands = ["python -m demo.app"]
+
+[docs.readme]
+path = "README.md"
+title = "README"
+description = "Source-facing package guide."
+
+""".lstrip(),
+        "",
+    )
+    (package / "psi.toml").write_text(text, encoding="utf-8")
+
+    report = validate_package(package)
+
+    assert report.ok
+    assert any(issue.code == "card_metadata_missing" for issue in report.issues)
+    assert any(issue.code == "readme_doc_missing" for issue in report.issues)
+
+
 def test_validate_catches_missing_service_tactic(tmp_path):
     package = make_lifecycle_package(tmp_path)
     text = (package / "psi.toml").read_text(encoding="utf-8")
@@ -633,6 +660,16 @@ version = "0.1.0"
 kind = "tactic"
 primary = "tactics.echo"
 description = "Echo tactic package."
+
+[card]
+summary = "Echo tactic package."
+tags = ["demo", "tactic"]
+suggested_commands = ["python -m demo.app"]
+
+[docs.readme]
+path = "README.md"
+title = "README"
+description = "Source-facing package guide."
 
 [schemas.echo_input]
 entry = "demo.schemas:EchoInput"
