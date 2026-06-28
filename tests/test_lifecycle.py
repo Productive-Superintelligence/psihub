@@ -451,6 +451,25 @@ def test_local_publish_replaces_same_package_version_deterministically(tmp_path)
     assert "Updated echo package." in hub.card("demo/echo")
 
 
+def test_local_hub_reopens_published_index(tmp_path):
+    package = make_lifecycle_package(tmp_path)
+    hub_root = tmp_path / "hub"
+    hub = LocalHub(hub_root)
+
+    published = hub.publish(package)
+    reopened = LocalHub(hub_root)
+    downloaded = reopened.download("demo/echo", tmp_path / "downloaded")
+
+    assert [record.key for record in reopened.list()] == [published.key]
+    assert reopened.get("demo/echo").key == published.key
+    assert "psi://demo/echo/tactics/echo" in reopened.card("demo/echo")
+    assert "Agent Card: demo/echo" in reopened.agent_card("demo/echo")
+    assert '[refs."psi://demo/echo/services/api"]' in reopened.config_template(
+        "demo/echo"
+    )
+    assert (downloaded / "psi.toml").exists()
+
+
 def test_cli_validate_publish_get_and_card(tmp_path, capsys):
     package = make_lifecycle_package(tmp_path)
     hub = tmp_path / "hub"
