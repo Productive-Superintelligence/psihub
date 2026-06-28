@@ -323,6 +323,30 @@ def test_validate_catches_missing_declared_doc(tmp_path):
     assert any(issue.code == "doc_path_missing" for issue in report.issues)
 
 
+def test_validate_rejects_declared_files_outside_package(tmp_path):
+    replacements = [
+        ("docs/guide.md", "doc_path_outside_package"),
+        ("examples/run.py", "example_path_outside_package"),
+        ("assets/logo.txt", "asset_path_outside_package"),
+    ]
+    for path, code in replacements:
+        case_root = tmp_path / code
+        case_root.mkdir()
+        outside = case_root / "outside.txt"
+        outside.write_text("outside\n", encoding="utf-8")
+        package = make_rich_metadata_package(case_root)
+        text = (package / "psi.toml").read_text(encoding="utf-8")
+        (package / "psi.toml").write_text(
+            text.replace(f'path = "{path}"', 'path = "../outside.txt"'),
+            encoding="utf-8",
+        )
+
+        report = validate_package(package)
+
+        assert not report.ok
+        assert any(issue.code == code for issue in report.issues)
+
+
 def test_validate_isolates_entrypoint_imports_between_package_roots(tmp_path):
     first = make_entrypoint_cache_package(
         tmp_path / "first",

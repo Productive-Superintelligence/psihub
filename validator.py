@@ -438,7 +438,17 @@ def _validate_declared_file(
 ) -> list[ValidationIssue]:
     if manifest.base_dir is None:
         return []
-    target = manifest.base_dir / path
+    base_dir = manifest.base_dir.resolve()
+    target = (base_dir / path).resolve()
+    if not _is_relative_to(target, base_dir):
+        return [
+            ValidationIssue(
+                level="error",
+                code=code.replace("_missing", "_outside_package"),
+                message=f"{label} file must stay inside the package: {path}",
+                resource=resource,
+            )
+        ]
     if target.is_file():
         return []
     return [
@@ -449,6 +459,14 @@ def _validate_declared_file(
             resource=resource,
         )
     ]
+
+
+def _is_relative_to(path: Path, base_dir: Path) -> bool:
+    try:
+        path.relative_to(base_dir)
+    except ValueError:
+        return False
+    return True
 
 
 def _validate_schema_ref(
