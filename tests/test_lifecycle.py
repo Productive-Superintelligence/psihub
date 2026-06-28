@@ -284,11 +284,29 @@ def test_local_publish_download_card_and_config(tmp_path):
     assert record.key == "demo/echo@0.1.0"
     assert record.validation.ok
     assert (downloaded / "psi.toml").exists()
+    echo = next(
+        resource
+        for resource in record.resources
+        if resource.kind == "tactic" and resource.name == "echo"
+    )
+    assert echo.metadata["examples"] == [
+        {
+            "description": "Uppercase text.",
+            "input": {"text": "hello"},
+            "output": {"text": "HELLO"},
+        }
+    ]
     assert "psi://demo/echo/tactics/echo" in card
     assert "psi://demo/echo/services/api" in card
+    example_line = (
+        'Example: Uppercase text. `input={"text":"hello"}` -> '
+        '`output={"text":"HELLO"}`'
+    )
+    assert example_line in card
     assert "Agent Card: demo/echo" in agent_card
     assert "PsiHub describes packages, refs, config, and metadata" in agent_card
     assert "tactic `echo`: `psi://demo/echo/tactics/echo`" in agent_card
+    assert example_line in agent_card
     assert 'policy_url="http://policy"' in card
     assert '[refs."psi://demo/echo/tactics/echo"]' in config
     assert '[refs."psi://demo/echo/services/api"]' in config
@@ -543,6 +561,11 @@ entry = "demo.schemas:EchoOutput"
 entry = "demo.tactics:EchoTactic"
 input = "echo_input"
 output = "echo_output"
+
+[[tactics.echo.examples]]
+description = "Uppercase text."
+input = { text = "hello" }
+output = { text = "HELLO" }
 
 [services.api]
 entry = "demo.app:create_app"

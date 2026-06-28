@@ -163,6 +163,7 @@ def record_from_manifest(
                     "output": tactic.output,
                     **_resource_extra(tactic),
                     **tactic.metadata,
+                    "examples": list(tactic.examples),
                 },
             )
         )

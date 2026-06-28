@@ -65,6 +65,7 @@ class TacticResource(BaseModel):
     output: str | None = None
     runtime: str = "python"
     description: str = ""
+    examples: tuple[dict[str, Any], ...] = Field(default_factory=tuple)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 

@@ -56,6 +56,7 @@ def render_agent_card(record: PackageRecord) -> str:
         if metadata:
             lines.append(f"  - Metadata: {metadata}")
         lines.extend(_endpoint_lines(resource.metadata))
+        lines.extend(_example_lines(resource.metadata))
     template = render_config_template(record).rstrip()
     if template:
         lines.extend(["", "## Config Template", "", "```toml", template, "```"])
@@ -94,6 +95,7 @@ def render_package_card(record: PackageRecord) -> str:
         if metadata:
             lines.append(f"  - Metadata: {metadata}")
         lines.extend(_endpoint_lines(resource.metadata))
+        lines.extend(_example_lines(resource.metadata))
         if resource.kind == "config":
             defaults = _mapping_summary(resource.metadata.get("defaults"))
             if defaults:
@@ -270,7 +272,7 @@ def _toml_value(value: Any) -> str | None:
 def _metadata_summary(metadata: dict[str, Any]) -> str:
     parts: list[str] = []
     for key, value in sorted(metadata.items()):
-        if key in {"defaults", "endpoints", "schema"}:
+        if key in {"defaults", "endpoints", "examples", "schema"}:
             continue
         rendered = _toml_value(value)
         if rendered is not None:
@@ -297,6 +299,41 @@ def _endpoint_lines(metadata: dict[str, Any]) -> list[str]:
         prefix = f"{method} " if method else ""
         lines.append(f"  - Endpoint: `{prefix}{path}`{suffix}")
     return lines
+
+
+def _example_lines(metadata: dict[str, Any]) -> list[str]:
+    examples = metadata.get("examples")
+    if not isinstance(examples, list):
+        return []
+    lines: list[str] = []
+    for example in examples:
+        if not isinstance(example, dict):
+            continue
+        description = str(
+            example.get("description") or example.get("name") or ""
+        ).strip()
+        parts: list[str] = []
+        if "input" in example:
+            parts.append(f"`input={_json_inline(example['input'])}`")
+        if "output" in example:
+            parts.append(f"`output={_json_inline(example['output'])}`")
+        if "command" in example:
+            parts.append(f"`command={_json_inline(example['command'])}`")
+        if not parts:
+            continue
+        if description and description.endswith((".", "!", "?", ":")):
+            prefix = f"{description} "
+        else:
+            prefix = f"{description}: " if description else ""
+        lines.append(f"  - Example: {prefix}{' -> '.join(parts)}")
+    return lines
+
+
+def _json_inline(value: Any) -> str:
+    try:
+        return json.dumps(value, sort_keys=True, separators=(",", ":"))
+    except TypeError:
+        return json.dumps(str(value))
 
 
 def _mapping_summary(value: Any) -> str:

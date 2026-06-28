@@ -73,8 +73,9 @@ Local publish validates by default and rejects packages with validation errors.
 Use `psihub publish --local --no-validate` only when intentionally indexing an
 incomplete local package.
 
-Package and agent cards render declared endpoint metadata so custom service
-routes are visible without opening source files.
+Package and agent cards render declared endpoint and tactic example metadata so
+custom service routes and concrete calls are visible without opening source
+files.
 
 Validation accepts well-formed external `psi://.../schemas/name` refs, rejects
 malformed schema refs, and catches same-package schema refs that point at
