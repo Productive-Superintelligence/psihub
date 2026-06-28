@@ -49,6 +49,20 @@ def test_validate_catches_missing_service_tactic(tmp_path):
     assert any(issue.code == "service_tactic_missing" for issue in report.issues)
 
 
+def test_validate_catches_unbound_service(tmp_path):
+    package = make_lifecycle_package(tmp_path)
+    text = (package / "psi.toml").read_text(encoding="utf-8")
+    (package / "psi.toml").write_text(
+        text.replace('entry = "demo.app:create_app"\ntactic = "echo"\n', ""),
+        encoding="utf-8",
+    )
+
+    report = validate_package(package)
+
+    assert not report.ok
+    assert any(issue.code == "service_unbound" for issue in report.issues)
+
+
 def test_validate_checks_schema_psi_refs(tmp_path):
     package = make_lifecycle_package(tmp_path)
     original = (package / "psi.toml").read_text(encoding="utf-8")

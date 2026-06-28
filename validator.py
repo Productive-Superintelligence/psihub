@@ -189,6 +189,17 @@ def _validate_services(manifest: PackageManifest) -> list[ValidationIssue]:
     issues: list[ValidationIssue] = []
     for name, service in manifest.services.items():
         ref = manifest.ref("service", name)
+        if not service.entry and not service.tactic:
+            issues.append(
+                ValidationIssue(
+                    level="error",
+                    code="service_unbound",
+                    message=(
+                        f"Service {name!r} must declare an entrypoint or tactic."
+                    ),
+                    resource=ref,
+                )
+            )
         if service.entry:
             issues.extend(_validate_import(service.entry, manifest, ref))
         if service.tactic and service.tactic not in manifest.tactics:

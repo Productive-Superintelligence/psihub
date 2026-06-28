@@ -79,6 +79,9 @@ routes are visible without opening source files.
 Validation accepts well-formed external `psi://.../schemas/name` refs, rejects
 malformed schema refs, and catches same-package schema refs that point at
 missing declared schemas.
+Service resources must declare either an importable `entry` or a declared
+`tactic`, so package cards and config templates do not advertise unbound
+services.
 Local `.psi/config.toml` binding keys are also validated as strict
 `psi://org/package/resources/name` refs.
 
