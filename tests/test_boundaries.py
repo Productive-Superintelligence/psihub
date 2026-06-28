@@ -6,9 +6,9 @@ ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_SOURCES = sorted(
     path for path in ROOT.glob("*.py") if path.name != "__init__.py"
 )
-FORBIDDEN_IMPORTS = {
+FORBIDDEN_IMPORT_ROOTS = (
     "subprocess",
-}
+)
 FORBIDDEN_CALLS = {
     "asyncio.create_subprocess_exec",
     "asyncio.create_subprocess_shell",
@@ -45,7 +45,7 @@ def test_psihub_package_does_not_launch_dependency_services():
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         aliases = _import_aliases(tree)
         for imported in aliases.values():
-            if imported in FORBIDDEN_IMPORTS:
+            if _is_forbidden_import(imported):
                 violations.append(f"{path.name} imports {imported}")
         for call in _call_names(tree, aliases):
             if call in FORBIDDEN_CALLS:
@@ -66,6 +66,13 @@ def test_only_cli_serve_launches_the_local_hub_api():
     ]
 
     assert uvicorn_calls == ["uvicorn.run"]
+
+
+def test_boundary_scanner_rejects_subprocess_from_imports():
+    tree = ast.parse("from subprocess import run as run_process")
+    aliases = _import_aliases(tree)
+
+    assert _is_forbidden_import(aliases["run_process"])
 
 
 def _import_aliases(tree: ast.AST) -> dict[str, str]:
@@ -92,6 +99,13 @@ def _call_names(tree: ast.AST, aliases: dict[str, str]) -> list[str]:
                     name = f"{resolved}.{parts[1]}" if len(parts) > 1 else resolved
                 names.append(name)
     return names
+
+
+def _is_forbidden_import(imported: str) -> bool:
+    return any(
+        imported == root or imported.startswith(f"{root}.")
+        for root in FORBIDDEN_IMPORT_ROOTS
+    )
 
 
 def _qualified_name(node: ast.AST) -> str:
