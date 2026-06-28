@@ -47,6 +47,7 @@ def validate_package(path: str | Path) -> ValidationReport:
             ),
         )
 
+    issues.extend(_validate_resource_names(manifest))
     issues.extend(_validate_readme(manifest))
     issues.extend(_validate_card_metadata(manifest))
     issues.extend(_validate_primary(manifest))
@@ -89,6 +90,51 @@ def _validate_readme(manifest: PackageManifest) -> list[ValidationIssue]:
             message="Package should include README.md.",
         )
     ]
+
+
+def _validate_resource_names(manifest: PackageManifest) -> list[ValidationIssue]:
+    issues: list[ValidationIssue] = []
+    tables = {
+        "schemas": manifest.schemas,
+        "tactics": manifest.tactics,
+        "services": manifest.services,
+        "channels": manifest.channels,
+        "snapshots": manifest.snapshots,
+        "runs": manifest.runs,
+        "docs": manifest.docs,
+        "examples": manifest.examples,
+        "assets": manifest.assets,
+    }
+    codes = {
+        "schemas": "schema_name_invalid",
+        "tactics": "tactic_name_invalid",
+        "services": "service_name_invalid",
+        "channels": "channel_name_invalid",
+        "snapshots": "snapshot_name_invalid",
+        "runs": "run_name_invalid",
+        "docs": "doc_name_invalid",
+        "examples": "example_name_invalid",
+        "assets": "asset_name_invalid",
+    }
+    for section, table in tables.items():
+        for name in table:
+            if _invalid_segment(name):
+                issues.append(
+                    ValidationIssue(
+                        level="error",
+                        code=codes[section],
+                        message=(
+                            f"Resource name must be a non-empty path segment: "
+                            f"{section}.{name}"
+                        ),
+                        resource=f"{section}.{name}",
+                    )
+                )
+    return issues
+
+
+def _invalid_segment(value: str) -> bool:
+    return not value or value in {".", ".."} or any(ch in value for ch in "/:\\")
 
 
 def _validate_card_metadata(manifest: PackageManifest) -> list[ValidationIssue]:

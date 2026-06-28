@@ -354,6 +354,35 @@ def test_validate_rejects_path_control_package_identity_segments(tmp_path):
         assert any(issue.code == "manifest_load_failed" for issue in report.issues)
 
 
+def test_validate_rejects_path_control_resource_names(tmp_path):
+    package = tmp_path / "invalid-resource"
+    package.mkdir()
+    (package / "README.md").write_text("# Invalid resource\n", encoding="utf-8")
+    (package / "demo.py").write_text(
+        "class Echo:\n    pass\n",
+        encoding="utf-8",
+    )
+    (package / "psi.toml").write_text(
+        """
+[package]
+psi_version = "0.1"
+org = "demo"
+name = "invalid-resource"
+version = "0.1.0"
+kind = "library"
+
+[tactics."bad/name"]
+entry = "demo:Echo"
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    report = validate_package(package)
+
+    assert not report.ok
+    assert any(issue.code == "tactic_name_invalid" for issue in report.issues)
+
+
 def test_validate_catches_missing_declared_doc(tmp_path):
     package = make_rich_metadata_package(tmp_path)
     (package / "docs" / "guide.md").unlink()
