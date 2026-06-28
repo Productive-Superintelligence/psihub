@@ -86,3 +86,20 @@ def test_documented_example_paths_exist():
                 missing.append(f"{path.relative_to(ROOT)} -> {match.group(1)}")
 
     assert missing == []
+
+
+def test_public_text_does_not_use_workspace_names():
+    text_paths = [ROOT / "README.md"]
+    text_paths.extend((ROOT / "docs").rglob("*.md"))
+    text_paths.extend(
+        path
+        for path in (ROOT / "examples").rglob("*")
+        if path.suffix in {".md", ".py", ".toml", ".yaml", ".yml"}
+    )
+
+    for path in text_paths:
+        text = path.read_text(encoding="utf-8")
+        assert "LLLM v2" not in text, path
+        assert "lllmv2" not in text, path
+        assert "SSSN v2" not in text, path
+        assert "sssnv2" not in text, path
