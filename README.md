@@ -72,4 +72,7 @@ Local hub storage defaults to:
   index/
 ```
 
+Generated config templates assign multiple service refs distinct default local
+ports in manifest order.
+
 Use `--hub` to point commands at another local hub directory.

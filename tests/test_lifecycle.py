@@ -182,6 +182,7 @@ def test_lifecycle_covers_tactic_channel_and_combined_packages(tmp_path):
         "/tactics/analyze"
     )
     assert resolver.resolve("psi://demo/combo/services/analyzer").url == "http://127.0.0.1:8000"
+    assert resolver.resolve("psi://demo/combo/services/monitor").url == "http://127.0.0.1:8001"
     assert resolver.resolve("psi://demo/combo/channels/events").store == ".sssn"
 
 
@@ -354,6 +355,10 @@ class Analyze:
         """
 def create_analyzer():
     return {"service": "analyzer"}
+
+
+def create_monitor():
+    return {"service": "monitor"}
 """.lstrip(),
         encoding="utf-8",
     )
@@ -393,8 +398,13 @@ tactic = "analyze"
 subscribes = ["events"]
 publishes = ["analysis"]
 
+[services.monitor]
+entry = "combo.services:create_monitor"
+transport = "fastapi"
+subscribes = ["events"]
+
 [runs.local]
-services = ["analyzer"]
+services = ["analyzer", "monitor"]
 channels = ["events", "analysis"]
 """.lstrip(),
         encoding="utf-8",

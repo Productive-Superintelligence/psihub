@@ -108,14 +108,16 @@ def render_config_template(record: PackageRecord) -> str:
     if settings:
         lines.extend(settings)
         lines.append("")
+    service_port = 8000
     for resource in record.resources:
         if resource.kind == "service":
             lines.extend(
                 [
                     f"[refs.\"{resource.ref}\"]",
-                    'url = "http://127.0.0.1:8000"',
+                    f'url = "http://127.0.0.1:{service_port}"',
                 ]
             )
+            service_port += 1
             lines.extend(_metadata_lines(resource.metadata))
             lines.append("")
         if resource.kind == "tactic":
