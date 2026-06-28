@@ -88,6 +88,18 @@ def _validate_readme(manifest: PackageManifest) -> list[ValidationIssue]:
 def _validate_primary(manifest: PackageManifest) -> list[ValidationIssue]:
     primary = manifest.package.primary
     if not primary:
+        if manifest.package.kind in {"tactic", "channel", "service", "app"}:
+            return [
+                ValidationIssue(
+                    level="warning",
+                    code="primary_missing_for_kind",
+                    message=(
+                        f"Package kind {manifest.package.kind!r} should declare "
+                        "package.primary."
+                    ),
+                    resource="package.primary",
+                )
+            ]
         return []
     if "." not in primary:
         return [
@@ -99,6 +111,9 @@ def _validate_primary(manifest: PackageManifest) -> list[ValidationIssue]:
             )
         ]
     section, name = primary.split(".", 1)
+    kind_issue = _validate_primary_kind(manifest.package.kind, section, primary)
+    if kind_issue is not None:
+        return [kind_issue]
     table = {
         "schemas": manifest.schemas,
         "tactics": manifest.tactics,
@@ -120,6 +135,31 @@ def _validate_primary(manifest: PackageManifest) -> list[ValidationIssue]:
             )
         ]
     return []
+
+
+def _validate_primary_kind(
+    package_kind: str,
+    section: str,
+    primary: str,
+) -> ValidationIssue | None:
+    expected = {
+        "tactic": {"tactics"},
+        "channel": {"channels"},
+        "service": {"services"},
+        "app": {"services", "runs"},
+    }.get(package_kind)
+    if expected is None or section in expected:
+        return None
+    allowed = ", ".join(sorted(expected))
+    return ValidationIssue(
+        level="error",
+        code="primary_kind_mismatch",
+        message=(
+            f"Package kind {package_kind!r} expects package.primary in "
+            f"{allowed}, got {primary!r}."
+        ),
+        resource="package.primary",
+    )
 
 
 def _validate_schemas(manifest: PackageManifest) -> list[ValidationIssue]:

@@ -40,6 +40,30 @@ def test_validate_catches_missing_service_tactic(tmp_path):
     assert any(issue.code == "service_tactic_missing" for issue in report.issues)
 
 
+def test_validate_checks_package_kind_primary_metadata(tmp_path):
+    package = make_lifecycle_package(tmp_path)
+    text = (package / "psi.toml").read_text(encoding="utf-8")
+    (package / "psi.toml").write_text(
+        text.replace('primary = "tactics.echo"\n', ""),
+        encoding="utf-8",
+    )
+
+    missing_report = validate_package(package)
+
+    assert missing_report.ok
+    assert any(issue.code == "primary_missing_for_kind" for issue in missing_report.issues)
+
+    (package / "psi.toml").write_text(
+        text.replace('primary = "tactics.echo"', 'primary = "channels.events"'),
+        encoding="utf-8",
+    )
+
+    mismatch_report = validate_package(package)
+
+    assert not mismatch_report.ok
+    assert any(issue.code == "primary_kind_mismatch" for issue in mismatch_report.issues)
+
+
 def test_validate_catches_missing_declared_doc(tmp_path):
     package = make_rich_metadata_package(tmp_path)
     (package / "docs" / "guide.md").unlink()

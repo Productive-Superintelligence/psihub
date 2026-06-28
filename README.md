@@ -47,6 +47,10 @@ title = "README"
 policy_url = "http://127.0.0.1:8000"
 ```
 
+Focused package kinds should declare a matching `package.primary`: tactic
+packages point at `tactics.*`, channel packages at `channels.*`, service
+packages at `services.*`, and app packages at `services.*` or `runs.*`.
+
 ## Local Lifecycle
 
 ```bash
