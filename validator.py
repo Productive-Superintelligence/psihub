@@ -27,6 +27,18 @@ BUILTIN_SCHEMAS = {
     "array",
 }
 
+PSI_REF_SECTIONS = {
+    "schemas",
+    "tactics",
+    "services",
+    "channels",
+    "runs",
+    "configs",
+    "docs",
+    "examples",
+    "assets",
+}
+
 
 def validate_package(path: str | Path) -> ValidationReport:
     issues: list[ValidationIssue] = []
@@ -364,6 +376,42 @@ def _validate_schema_ref(
     if schema_ref in BUILTIN_SCHEMAS or schema_ref in manifest.schemas:
         return []
     if schema_ref.startswith("psi://"):
+        parsed = _parse_psi_ref(schema_ref)
+        if parsed is None:
+            return [
+                ValidationIssue(
+                    level="error",
+                    code="schema_ref_invalid",
+                    message=f"Schema ref {schema_ref!r} is not a valid psi:// ref.",
+                    resource=resource,
+                )
+            ]
+        org, package, section, name = parsed
+        if section != "schemas":
+            return [
+                ValidationIssue(
+                    level="error",
+                    code="schema_ref_kind_mismatch",
+                    message=(
+                        f"Schema ref {schema_ref!r} must point at schemas, "
+                        f"not {section!r}."
+                    ),
+                    resource=resource,
+                )
+            ]
+        if (
+            org == manifest.package.org
+            and package == manifest.package.name
+            and name not in manifest.schemas
+        ):
+            return [
+                ValidationIssue(
+                    level="error",
+                    code="schema_ref_missing",
+                    message=f"Schema ref {schema_ref!r} is not declared.",
+                    resource=resource,
+                )
+            ]
         return []
     if ":" in schema_ref:
         return _validate_import(schema_ref, manifest, resource)
@@ -375,6 +423,22 @@ def _validate_schema_ref(
             resource=resource,
         )
     ]
+
+
+def _parse_psi_ref(value: str) -> tuple[str, str, str, str] | None:
+    prefix = "psi://"
+    if not value.startswith(prefix):
+        return None
+    parts = value[len(prefix) :].split("/")
+    if len(parts) != 4 or any(not part for part in parts):
+        return None
+    org, package, section, name = parts
+    if section not in PSI_REF_SECTIONS:
+        return None
+    for segment in (org, package, section, name):
+        if any(ch in segment for ch in ":\\"):
+            return None
+    return org, package, section, name
 
 
 def _missing(ref: str, code: str, run_name: str, missing_name: str) -> ValidationIssue:

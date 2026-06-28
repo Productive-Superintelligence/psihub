@@ -49,6 +49,58 @@ def test_validate_catches_missing_service_tactic(tmp_path):
     assert any(issue.code == "service_tactic_missing" for issue in report.issues)
 
 
+def test_validate_checks_schema_psi_refs(tmp_path):
+    package = make_lifecycle_package(tmp_path)
+    original = (package / "psi.toml").read_text(encoding="utf-8")
+
+    (package / "psi.toml").write_text(
+        original.replace('input = "echo_input"', 'input = "psi://demo/echo"'),
+        encoding="utf-8",
+    )
+    invalid_report = validate_package(package)
+
+    assert not invalid_report.ok
+    assert any(issue.code == "schema_ref_invalid" for issue in invalid_report.issues)
+
+    (package / "psi.toml").write_text(
+        original.replace(
+            'input = "echo_input"',
+            'input = "psi://demo/echo/channels/events"',
+        ),
+        encoding="utf-8",
+    )
+    wrong_kind_report = validate_package(package)
+
+    assert not wrong_kind_report.ok
+    assert any(
+        issue.code == "schema_ref_kind_mismatch"
+        for issue in wrong_kind_report.issues
+    )
+
+    (package / "psi.toml").write_text(
+        original.replace(
+            'input = "echo_input"',
+            'input = "psi://demo/echo/schemas/missing"',
+        ),
+        encoding="utf-8",
+    )
+    local_missing_report = validate_package(package)
+
+    assert not local_missing_report.ok
+    assert any(issue.code == "schema_ref_missing" for issue in local_missing_report.issues)
+
+    (package / "psi.toml").write_text(
+        original.replace(
+            'input = "echo_input"',
+            'input = "psi://other/package/schemas/payload"',
+        ),
+        encoding="utf-8",
+    )
+    external_report = validate_package(package)
+
+    assert external_report.ok
+
+
 def test_local_publish_rejects_invalid_packages_by_default(tmp_path):
     package = make_lifecycle_package(tmp_path)
     text = (package / "psi.toml").read_text(encoding="utf-8")

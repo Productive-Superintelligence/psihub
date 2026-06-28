@@ -71,6 +71,10 @@ incomplete local package.
 Package and agent cards render declared endpoint metadata so custom service
 routes are visible without opening source files.
 
+Validation accepts well-formed external `psi://.../schemas/name` refs, rejects
+malformed schema refs, and catches same-package schema refs that point at
+missing declared schemas.
+
 Local hub storage defaults to:
 
 ```text
