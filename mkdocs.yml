@@ -1,0 +1,57 @@
+site_name: PsiHub
+site_description: Local-first package hub for PSI packages.
+repo_name: Productive-Superintelligence/psihub
+repo_url: https://github.com/Productive-Superintelligence/psihub
+edit_uri: edit/main/docs/
+copyright: "PsiHub"
+
+theme:
+  name: material
+  logo: assets/logo.svg
+  favicon: assets/logo.svg
+  palette:
+    - scheme: default
+      primary: black
+      accent: black
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.instant
+    - navigation.top
+    - toc.follow
+    - content.code.copy
+    - content.tabs.link
+
+nav:
+  - Overview: index.md
+  - Getting Started: getting-started.md
+  - Concepts:
+      - Packages: concepts/packages.md
+      - Refs And Config: concepts/refs-and-config.md
+  - Guides:
+      - Local Hub: guides/local-hub.md
+      - Cards And Agent Cards: guides/cards.md
+  - Tutorials:
+      - Local Package Lifecycle: tutorials/local-package-lifecycle.md
+  - Reference:
+      - Manifest: reference/manifest.md
+      - CLI: reference/cli.md
+
+extra:
+  generator: false
+  homepage: https://github.com/Productive-Superintelligence/psihub
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Productive-Superintelligence/psihub
+
+extra_css:
+  - stylesheets/custom.css
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.highlight
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.superfences
