@@ -147,6 +147,42 @@ def test_validate_warns_on_empty_tactic_examples(tmp_path):
     assert any(issue.code == "tactic_example_empty" for issue in report.issues)
 
 
+def test_validate_checks_endpoint_metadata(tmp_path):
+    package = make_combined_package(tmp_path)
+    original = (package / "psi.toml").read_text(encoding="utf-8")
+
+    (package / "psi.toml").write_text(
+        original.replace('method = "POST"', 'method = "TRACE"'),
+        encoding="utf-8",
+    )
+    method_report = validate_package(package)
+
+    assert not method_report.ok
+    assert any(
+        issue.code == "endpoint_method_invalid" for issue in method_report.issues
+    )
+
+    (package / "psi.toml").write_text(
+        original.replace('path = "/analyze"', 'path = "analyze"'),
+        encoding="utf-8",
+    )
+    path_report = validate_package(package)
+
+    assert not path_report.ok
+    assert any(issue.code == "endpoint_path_invalid" for issue in path_report.issues)
+
+    (package / "psi.toml").write_text(
+        original.replace('scope = "channel"', 'scope = "wrong"'),
+        encoding="utf-8",
+    )
+    scope_report = validate_package(package)
+
+    assert not scope_report.ok
+    assert any(
+        issue.code == "endpoint_scope_invalid" for issue in scope_report.issues
+    )
+
+
 def test_validate_checks_snapshot_refs(tmp_path):
     package = make_combined_package(tmp_path)
     original = (package / "psi.toml").read_text(encoding="utf-8")

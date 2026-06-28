@@ -27,6 +27,8 @@ BUILTIN_SCHEMAS = {
     "list",
     "array",
 }
+HTTP_METHODS = {"GET", "POST", "PUT", "PATCH", "DELETE"}
+ENDPOINT_SCOPES = {"store", "channel", "subscription", "artifact", "snapshot"}
 
 
 def validate_package(path: str | Path) -> ValidationReport:
@@ -195,6 +197,7 @@ def _validate_tactics(manifest: PackageManifest) -> list[ValidationIssue]:
                         resource=ref,
                     )
                 )
+        issues.extend(_validate_endpoint_metadata(tactic, ref))
     return issues
 
 
@@ -215,6 +218,7 @@ def _validate_services(manifest: PackageManifest) -> list[ValidationIssue]:
             )
         if service.entry:
             issues.extend(_validate_import(service.entry, manifest, ref))
+        issues.extend(_validate_endpoint_metadata(service, ref))
         if service.tactic and service.tactic not in manifest.tactics:
             issues.append(
                 ValidationIssue(
@@ -240,14 +244,16 @@ def _validate_services(manifest: PackageManifest) -> list[ValidationIssue]:
 def _validate_channels(manifest: PackageManifest) -> list[ValidationIssue]:
     issues: list[ValidationIssue] = []
     for name, channel in manifest.channels.items():
+        ref = manifest.ref("channel", name)
         if channel.schema:
             issues.extend(
                 _validate_schema_ref(
                     channel.schema,
                     manifest,
-                    manifest.ref("channel", name),
+                    ref,
                 )
             )
+        issues.extend(_validate_endpoint_metadata(channel, ref))
     return issues
 
 
@@ -269,6 +275,7 @@ def _validate_snapshots(manifest: PackageManifest) -> list[ValidationIssue]:
                     resource=ref,
                 )
             )
+        issues.extend(_validate_endpoint_metadata(snapshot, ref))
     return issues
 
 
@@ -462,6 +469,74 @@ def _validate_schema_ref(
             resource=resource,
         )
     ]
+
+
+def _validate_endpoint_metadata(
+    resource_model: Any,
+    resource: str,
+) -> list[ValidationIssue]:
+    endpoints = _resource_extra(resource_model).get("endpoints")
+    metadata = getattr(resource_model, "metadata", None)
+    if endpoints is None and isinstance(metadata, dict):
+        endpoints = metadata.get("endpoints")
+    if endpoints is None:
+        return []
+    if not isinstance(endpoints, list):
+        return [
+            ValidationIssue(
+                level="error",
+                code="endpoint_metadata_invalid",
+                message="Endpoint metadata must be a list.",
+                resource=resource,
+            )
+        ]
+    issues: list[ValidationIssue] = []
+    for index, endpoint in enumerate(endpoints, start=1):
+        if not isinstance(endpoint, dict):
+            issues.append(
+                ValidationIssue(
+                    level="error",
+                    code="endpoint_metadata_invalid",
+                    message=f"Endpoint #{index} must be a table/object.",
+                    resource=resource,
+                )
+            )
+            continue
+        method = str(endpoint.get("method") or "").upper()
+        if method not in HTTP_METHODS:
+            issues.append(
+                ValidationIssue(
+                    level="error",
+                    code="endpoint_method_invalid",
+                    message=f"Endpoint #{index} declares invalid method {method!r}.",
+                    resource=resource,
+                )
+            )
+        path = endpoint.get("path")
+        if not isinstance(path, str) or not path.startswith("/"):
+            issues.append(
+                ValidationIssue(
+                    level="error",
+                    code="endpoint_path_invalid",
+                    message=f"Endpoint #{index} path must start with '/'.",
+                    resource=resource,
+                )
+            )
+        scope = endpoint.get("scope")
+        if scope is not None and scope not in ENDPOINT_SCOPES:
+            issues.append(
+                ValidationIssue(
+                    level="error",
+                    code="endpoint_scope_invalid",
+                    message=f"Endpoint #{index} declares invalid scope {scope!r}.",
+                    resource=resource,
+                )
+            )
+    return issues
+
+
+def _resource_extra(resource_model: Any) -> dict[str, Any]:
+    return dict(getattr(resource_model, "model_extra", None) or {})
 
 
 def _missing(ref: str, code: str, run_name: str, missing_name: str) -> ValidationIssue:

@@ -82,6 +82,9 @@ malformed schema refs, and catches same-package schema refs that point at
 missing declared schemas.
 Tactic examples should include an `input`, `output`, or `command`; empty
 examples produce a validation warning so cards stay useful.
+Endpoint metadata must declare one of `GET`, `POST`, `PUT`, `PATCH`, or
+`DELETE`, use a `/`-prefixed path, and use known SSSN scopes when a `scope` is
+provided.
 Service resources must declare either an importable `entry` or a declared
 `tactic`, so package cards and config templates do not advertise unbound
 services.
