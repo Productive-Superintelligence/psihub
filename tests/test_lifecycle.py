@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from psihub import LocalHub, init_package, load_manifest, validate_package
+from psihub import LocalConfigResolver, LocalHub, init_package, load_manifest, validate_package
 from psihub.cli import main
 
 
@@ -87,6 +87,7 @@ def test_lifecycle_covers_tactic_channel_and_combined_packages(tmp_path):
     downloaded = hub.download("demo/combo", tmp_path / "downloaded")
     card = hub.card("demo/combo")
     config = hub.config_template("demo/combo")
+    resolver = LocalConfigResolver.from_text(config, root=tmp_path / "workspace")
 
     assert validate_package(downloaded).ok
     assert "demo/echo@0.1.0" in [record.key for record in hub.list()]
@@ -97,6 +98,20 @@ def test_lifecycle_covers_tactic_channel_and_combined_packages(tmp_path):
     assert "psi://demo/combo/services/analyzer" in card
     assert '[refs."psi://demo/combo/tactics/analyze"]' in config
     assert '[refs."psi://demo/combo/channels/events"]' in config
+    assert resolver.resolve("psi://demo/combo/tactics/analyze").url.endswith(
+        "/tactics/analyze"
+    )
+    assert resolver.resolve("psi://demo/combo/services/analyzer").url == "http://127.0.0.1:8000"
+    assert resolver.resolve("psi://demo/combo/channels/events").store == ".sssn"
+
+
+def test_local_config_resolver_supports_registered_objects():
+    resolver = LocalConfigResolver()
+    obj = object()
+
+    resolver.bind("psi://demo/pkg/tactics/local", object=obj)
+
+    assert resolver.resolve("psi://demo/pkg/tactics/local").object is obj
 
 
 def make_lifecycle_package(tmp_path: Path) -> Path:

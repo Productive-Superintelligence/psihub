@@ -1,6 +1,7 @@
 """PsiHub local-first package hub."""
 
 from .cards import render_config_template, render_package_card
+from .config import LocalConfigResolver, ResolvedRef
 from .local import LocalHub, record_from_manifest
 from .manifest import init_package, load_manifest, manifest_path
 from .models import (
@@ -18,10 +19,12 @@ __version__ = "0.1.0"
 
 __all__ = [
     "HubResource",
+    "LocalConfigResolver",
     "LocalHub",
     "PackageInfo",
     "PackageManifest",
     "PackageRecord",
+    "ResolvedRef",
     "ValidationIssue",
     "ValidationReport",
     "__version__",
