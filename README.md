@@ -76,6 +76,7 @@ Local hub storage defaults to:
 ```
 
 Generated config templates assign multiple service refs distinct default local
-ports in manifest order.
+ports in manifest order. Tactic refs point at the local port for the service
+that declares the tactic, falling back to port 8000 when no service declares it.
 
 Use `--hub` to point commands at another local hub directory.

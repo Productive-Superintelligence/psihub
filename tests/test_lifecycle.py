@@ -181,12 +181,20 @@ def test_lifecycle_covers_tactic_channel_and_combined_packages(tmp_path):
     assert "Endpoint: `GET /channels/events/range`" in card
     assert "Endpoint: `POST /analyze`" in agent_card
     assert '[refs."psi://demo/combo/tactics/analyze"]' in config
+    assert '[refs."psi://demo/combo/tactics/monitor"]' in config
     assert '[refs."psi://demo/combo/channels/events"]' in config
-    assert resolver.resolve("psi://demo/combo/tactics/analyze").url.endswith(
-        "/tactics/analyze"
+    assert resolver.resolve("psi://demo/combo/tactics/analyze").url == (
+        "http://127.0.0.1:8000/tactics/analyze"
     )
-    assert resolver.resolve("psi://demo/combo/services/analyzer").url == "http://127.0.0.1:8000"
-    assert resolver.resolve("psi://demo/combo/services/monitor").url == "http://127.0.0.1:8001"
+    assert resolver.resolve("psi://demo/combo/tactics/monitor").url == (
+        "http://127.0.0.1:8001/tactics/monitor"
+    )
+    assert resolver.resolve("psi://demo/combo/services/analyzer").url == (
+        "http://127.0.0.1:8000"
+    )
+    assert resolver.resolve("psi://demo/combo/services/monitor").url == (
+        "http://127.0.0.1:8001"
+    )
     assert resolver.resolve("psi://demo/combo/channels/events").store == ".sssn"
 
 
@@ -394,6 +402,11 @@ method = "POST"
 path = "/analyze"
 mode = "run"
 
+[tactics.monitor]
+entry = "combo.tactics:Analyze"
+input = "analysis_input"
+output = "analysis_output"
+
 [channels.events]
 schema = "analysis_input"
 form = "log"
@@ -416,6 +429,7 @@ publishes = ["analysis"]
 
 [services.monitor]
 entry = "combo.services:create_monitor"
+tactic = "monitor"
 transport = "fastapi"
 subscribes = ["events"]
 

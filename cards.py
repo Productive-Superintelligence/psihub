@@ -110,23 +110,25 @@ def render_config_template(record: PackageRecord) -> str:
     if settings:
         lines.extend(settings)
         lines.append("")
-    service_port = 8000
+    resources = tuple(record.resources)
+    service_ports = _service_ports(resources)
+    tactic_ports = _tactic_ports(resources, service_ports)
     for resource in record.resources:
         if resource.kind == "service":
             lines.extend(
                 [
                     f"[refs.\"{resource.ref}\"]",
-                    f'url = "http://127.0.0.1:{service_port}"',
+                    f'url = "http://127.0.0.1:{service_ports[resource.name]}"',
                 ]
             )
-            service_port += 1
             lines.extend(_metadata_lines(resource.metadata))
             lines.append("")
         if resource.kind == "tactic":
+            tactic_port = tactic_ports.get(resource.name, 8000)
             lines.extend(
                 [
                     f"[refs.\"{resource.ref}\"]",
-                    'url = "http://127.0.0.1:8000/tactics/'
+                    f'url = "http://127.0.0.1:{tactic_port}/tactics/'
                     f'{resource.name}"',
                 ]
             )
@@ -142,6 +144,30 @@ def render_config_template(record: PackageRecord) -> str:
             lines.extend(_metadata_lines(resource.metadata))
             lines.append("")
     return "\n".join(lines).rstrip() + ("\n" if lines else "")
+
+
+def _service_ports(resources: tuple[Any, ...]) -> dict[str, int]:
+    ports: dict[str, int] = {}
+    next_port = 8000
+    for resource in resources:
+        if resource.kind != "service":
+            continue
+        ports[resource.name] = next_port
+        next_port += 1
+    return ports
+
+
+def _tactic_ports(
+    resources: tuple[Any, ...], service_ports: dict[str, int]
+) -> dict[str, int]:
+    ports: dict[str, int] = {}
+    for resource in resources:
+        if resource.kind != "service":
+            continue
+        tactic = resource.metadata.get("tactic")
+        if isinstance(tactic, str) and tactic:
+            ports.setdefault(tactic, service_ports[resource.name])
+    return ports
 
 
 def _card_metadata_lines(record: PackageRecord) -> list[str]:
