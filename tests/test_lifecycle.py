@@ -577,6 +577,17 @@ def test_local_hub_rejects_path_control_record_identity_on_load(tmp_path):
         LocalHub(hub_root)
 
 
+def test_local_hub_rejects_invalid_package_identifiers(tmp_path):
+    hub = LocalHub(tmp_path / "hub")
+
+    for identifier in ("demo", "demo/", "/pkg", "../pkg", "demo/.."):
+        with pytest.raises(ValueError, match="path segment|org/name"):
+            hub.get(identifier)
+
+    with pytest.raises(ValueError, match="org/name"):
+        hub.get("demo/pkg/extra")
+
+
 def test_cli_validate_publish_get_and_card(tmp_path, capsys):
     package = make_lifecycle_package(tmp_path)
     hub = tmp_path / "hub"

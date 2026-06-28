@@ -314,7 +314,15 @@ def _resource_extra(resource: Any) -> dict[str, Any]:
 
 
 def _split_identifier(identifier: str) -> tuple[str, str]:
-    if "/" not in identifier:
+    parts = identifier.split("/")
+    if len(parts) != 2:
         raise ValueError("Package identifier must have shape org/name.")
-    org, name = identifier.split("/", 1)
+    org, name = parts
+    _validate_identifier_segment(org, "package identifier org")
+    _validate_identifier_segment(name, "package identifier name")
     return org, name
+
+
+def _validate_identifier_segment(value: str, field_name: str) -> None:
+    if not value or value in {".", ".."} or any(ch in value for ch in "/:\\"):
+        raise ValueError(f"{field_name} must be a non-empty path segment.")
