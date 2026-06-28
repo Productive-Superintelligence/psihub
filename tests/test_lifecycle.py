@@ -431,6 +431,26 @@ def test_local_publish_download_card_and_config(tmp_path):
     assert resolver.service("api") == {"port": 8000}
 
 
+def test_local_publish_replaces_same_package_version_deterministically(tmp_path):
+    package = make_lifecycle_package(tmp_path)
+    hub = LocalHub(tmp_path / "hub")
+
+    first = hub.publish(package)
+    text = (package / "psi.toml").read_text(encoding="utf-8")
+    (package / "psi.toml").write_text(
+        text.replace(
+            'summary = "Echo tactic package."',
+            'summary = "Updated echo package."',
+        ),
+        encoding="utf-8",
+    )
+    second = hub.publish(package)
+
+    assert first.key == second.key == "demo/echo@0.1.0"
+    assert [record.key for record in hub.list()] == ["demo/echo@0.1.0"]
+    assert "Updated echo package." in hub.card("demo/echo")
+
+
 def test_cli_validate_publish_get_and_card(tmp_path, capsys):
     package = make_lifecycle_package(tmp_path)
     hub = tmp_path / "hub"
