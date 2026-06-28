@@ -11,6 +11,7 @@ PSI_REF_SECTIONS = {
     "tactics",
     "services",
     "channels",
+    "snapshots",
     "runs",
     "configs",
     "docs",

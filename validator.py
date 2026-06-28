@@ -51,6 +51,7 @@ def validate_package(path: str | Path) -> ValidationReport:
     issues.extend(_validate_tactics(manifest))
     issues.extend(_validate_services(manifest))
     issues.extend(_validate_channels(manifest))
+    issues.extend(_validate_snapshots(manifest))
     issues.extend(_validate_runs(manifest))
     issues.extend(_validate_config(manifest))
     issues.extend(_validate_docs(manifest))
@@ -121,6 +122,7 @@ def _validate_primary(manifest: PackageManifest) -> list[ValidationIssue]:
         "tactics": manifest.tactics,
         "services": manifest.services,
         "channels": manifest.channels,
+        "snapshots": manifest.snapshots,
         "runs": manifest.runs,
         "config": {"default": manifest.config} if manifest.config is not None else {},
         "docs": manifest.docs,
@@ -146,7 +148,7 @@ def _validate_primary_kind(
 ) -> ValidationIssue | None:
     expected = {
         "tactic": {"tactics"},
-        "channel": {"channels"},
+        "channel": {"channels", "snapshots"},
         "service": {"services"},
         "app": {"services", "runs"},
     }.get(package_kind)
@@ -225,6 +227,27 @@ def _validate_channels(manifest: PackageManifest) -> list[ValidationIssue]:
     return issues
 
 
+def _validate_snapshots(manifest: PackageManifest) -> list[ValidationIssue]:
+    issues: list[ValidationIssue] = []
+    for name, snapshot in manifest.snapshots.items():
+        ref = manifest.ref("snapshot", name)
+        if snapshot.schema:
+            issues.extend(_validate_schema_ref(snapshot.schema, manifest, ref))
+        if snapshot.channel and snapshot.channel not in manifest.channels:
+            issues.append(
+                ValidationIssue(
+                    level="error",
+                    code="snapshot_channel_missing",
+                    message=(
+                        f"Snapshot {name!r} references missing channel "
+                        f"{snapshot.channel!r}."
+                    ),
+                    resource=ref,
+                )
+            )
+    return issues
+
+
 def _validate_runs(manifest: PackageManifest) -> list[ValidationIssue]:
     issues: list[ValidationIssue] = []
     for name, run in manifest.runs.items():
@@ -238,6 +261,9 @@ def _validate_runs(manifest: PackageManifest) -> list[ValidationIssue]:
         for channel in run.channels:
             if channel not in manifest.channels:
                 issues.append(_missing(ref, "run_channel_missing", name, channel))
+        for snapshot in run.snapshots:
+            if snapshot not in manifest.snapshots:
+                issues.append(_missing(ref, "run_snapshot_missing", name, snapshot))
     return issues
 
 

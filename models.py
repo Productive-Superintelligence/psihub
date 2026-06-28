@@ -13,6 +13,7 @@ ResourceKind = Literal[
     "tactic",
     "service",
     "channel",
+    "snapshot",
     "run",
     "config",
     "doc",
@@ -92,12 +93,26 @@ class ChannelResource(BaseModel):
         return self.schema_ref
 
 
+class SnapshotResource(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    schema_ref: str | None = Field(default=None, alias="schema")
+    channel: str | None = None
+    description: str = ""
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @property
+    def schema(self) -> str | None:
+        return self.schema_ref
+
+
 class RunResource(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     services: tuple[str, ...] = Field(default_factory=tuple)
     tactics: tuple[str, ...] = Field(default_factory=tuple)
     channels: tuple[str, ...] = Field(default_factory=tuple)
+    snapshots: tuple[str, ...] = Field(default_factory=tuple)
     description: str = ""
     metadata: dict[str, Any] = Field(default_factory=dict)
 
@@ -163,6 +178,7 @@ class PackageManifest(BaseModel):
     tactics: dict[str, TacticResource] = Field(default_factory=dict)
     services: dict[str, ServiceResource] = Field(default_factory=dict)
     channels: dict[str, ChannelResource] = Field(default_factory=dict)
+    snapshots: dict[str, SnapshotResource] = Field(default_factory=dict)
     runs: dict[str, RunResource] = Field(default_factory=dict)
     config: ConfigResource | None = None
     docs: dict[str, DocResource] = Field(default_factory=dict)

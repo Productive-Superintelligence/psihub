@@ -199,6 +199,21 @@ def record_from_manifest(
                 },
             )
         )
+    for name, snapshot in manifest.snapshots.items():
+        resources.append(
+            HubResource(
+                kind="snapshot",
+                name=name,
+                ref=manifest.ref("snapshot", name),
+                description=snapshot.description,
+                metadata={
+                    "schema": snapshot.schema,
+                    "channel": snapshot.channel,
+                    **_resource_extra(snapshot),
+                    **snapshot.metadata,
+                },
+            )
+        )
     for name, run in manifest.runs.items():
         resources.append(
             HubResource(
@@ -210,6 +225,7 @@ def record_from_manifest(
                     "services": list(run.services),
                     "tactics": list(run.tactics),
                     "channels": list(run.channels),
+                    "snapshots": list(run.snapshots),
                     **_resource_extra(run),
                     **run.metadata,
                 },

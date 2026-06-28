@@ -14,6 +14,7 @@ from .models import (
     PackageInfo,
     PackageManifest,
     PackageRecord,
+    SnapshotResource,
     ValidationIssue,
     ValidationReport,
 )
@@ -36,6 +37,7 @@ __all__ = [
     "PackageRecord",
     "PublishValidationError",
     "ResolvedRef",
+    "SnapshotResource",
     "ValidationIssue",
     "ValidationReport",
     "__version__",

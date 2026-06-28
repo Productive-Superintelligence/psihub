@@ -31,8 +31,13 @@ output = "echo_output"
 tactic = "echo"
 transport = "fastapi"
 
+[snapshots.latest]
+schema = "echo_output"
+description = "Latest echo result."
+
 [runs.local]
 services = ["api"]
+snapshots = ["latest"]
 
 [card]
 summary = "Echo tactic package."
@@ -91,6 +96,8 @@ that declares the tactic, falling back to port 8000 when no service declares it.
 Templates also include passive `[services.*]` port tables and `[stores.*]` path
 tables for humans or future runners to inspect without asking PsiHub to launch
 anything.
+Snapshot resources render as `psi://.../snapshots/name` refs and bind to the
+same local store path convention as channels.
 Config defaults render under `[settings]`; `LocalConfigResolver.settings()`
 and `setting(name, default)` expose those local values alongside ref bindings,
 `services()/service(name)`, and `stores()/store(name)`.

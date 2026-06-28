@@ -116,6 +116,35 @@ def test_validate_checks_schema_psi_refs(tmp_path):
     assert external_report.ok
 
 
+def test_validate_checks_snapshot_refs(tmp_path):
+    package = make_combined_package(tmp_path)
+    original = (package / "psi.toml").read_text(encoding="utf-8")
+
+    (package / "psi.toml").write_text(
+        original.replace('channel = "analysis"', 'channel = "missing"'),
+        encoding="utf-8",
+    )
+    missing_channel_report = validate_package(package)
+
+    assert not missing_channel_report.ok
+    assert any(
+        issue.code == "snapshot_channel_missing"
+        for issue in missing_channel_report.issues
+    )
+
+    (package / "psi.toml").write_text(
+        original.replace('snapshots = ["latest_analysis"]', 'snapshots = ["missing"]'),
+        encoding="utf-8",
+    )
+    missing_snapshot_report = validate_package(package)
+
+    assert not missing_snapshot_report.ok
+    assert any(
+        issue.code == "run_snapshot_missing"
+        for issue in missing_snapshot_report.issues
+    )
+
+
 def test_local_publish_rejects_invalid_packages_by_default(tmp_path):
     package = make_lifecycle_package(tmp_path)
     text = (package / "psi.toml").read_text(encoding="utf-8")
@@ -320,6 +349,7 @@ def test_lifecycle_covers_tactic_channel_and_combined_packages(tmp_path):
     assert "demo/combo@0.1.0" in [record.key for record in hub.list()]
     assert "psi://demo/combo/tactics/analyze" in card
     assert "psi://demo/combo/channels/events" in card
+    assert "psi://demo/combo/snapshots/latest_analysis" in card
     assert "psi://demo/combo/services/analyzer" in card
     assert "Endpoint: `POST /analyze`" in card
     assert "Endpoint: `GET /channels/events/range`" in card
@@ -327,6 +357,7 @@ def test_lifecycle_covers_tactic_channel_and_combined_packages(tmp_path):
     assert '[refs."psi://demo/combo/tactics/analyze"]' in config
     assert '[refs."psi://demo/combo/tactics/monitor"]' in config
     assert '[refs."psi://demo/combo/channels/events"]' in config
+    assert '[refs."psi://demo/combo/snapshots/latest_analysis"]' in config
     assert "[services.analyzer]" in config
     assert "[services.monitor]" in config
     assert "[stores.default]" in config
@@ -343,6 +374,9 @@ def test_lifecycle_covers_tactic_channel_and_combined_packages(tmp_path):
         "http://127.0.0.1:8001"
     )
     assert resolver.resolve("psi://demo/combo/channels/events").store == ".sssn"
+    assert (
+        resolver.resolve("psi://demo/combo/snapshots/latest_analysis").store == ".sssn"
+    )
     assert resolver.service("analyzer") == {"port": 8000}
     assert resolver.service("monitor") == {"port": 8001}
     assert resolver.store("default") == {"path": ".sssn"}
@@ -673,6 +707,11 @@ scope = "channel"
 schema = "analysis_output"
 form = "log"
 
+[snapshots.latest_analysis]
+schema = "analysis_output"
+channel = "analysis"
+description = "Latest analysis result."
+
 [services.analyzer]
 entry = "combo.services:create_analyzer"
 tactic = "analyze"
@@ -688,6 +727,7 @@ subscribes = ["events"]
 [runs.local]
 services = ["analyzer", "monitor"]
 channels = ["events", "analysis"]
+snapshots = ["latest_analysis"]
 """.lstrip(),
         encoding="utf-8",
     )

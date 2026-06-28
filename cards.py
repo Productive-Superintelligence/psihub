@@ -142,7 +142,7 @@ def render_config_template(record: PackageRecord) -> str:
             )
             lines.extend(_metadata_lines(resource.metadata))
             lines.append("")
-        if resource.kind == "channel":
+        if resource.kind in {"channel", "snapshot"}:
             lines.extend(
                 [
                     f"[refs.\"{resource.ref}\"]",
@@ -164,7 +164,7 @@ def _service_settings_lines(service_ports: dict[str, int]) -> list[str]:
 
 
 def _store_settings_lines(resources: tuple[Any, ...]) -> list[str]:
-    if not any(resource.kind == "channel" for resource in resources):
+    if not any(resource.kind in {"channel", "snapshot"} for resource in resources):
         return []
     return ["[stores.default]", 'path = ".sssn"']
 
