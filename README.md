@@ -69,6 +69,9 @@ psihub agent-card demo/echo
 psihub config-template demo/echo
 ```
 
+For a step-by-step local package walkthrough, see
+`docs/tutorials/local-package-lifecycle.md`.
+
 Local publish validates by default and rejects packages with validation errors.
 Use `psihub publish --local --no-validate` only when intentionally indexing an
 incomplete local package.
