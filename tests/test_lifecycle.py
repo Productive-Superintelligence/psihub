@@ -74,6 +74,30 @@ def test_validate_catches_missing_declared_doc(tmp_path):
     assert any(issue.code == "doc_path_missing" for issue in report.issues)
 
 
+def test_validate_isolates_entrypoint_imports_between_package_roots(tmp_path):
+    first = make_entrypoint_cache_package(
+        tmp_path / "first",
+        module_body="""
+def create_app():
+    return {"service": "first"}
+""".lstrip(),
+    )
+    second = make_entrypoint_cache_package(
+        tmp_path / "second",
+        module_body="""
+def other_app():
+    return {"service": "second"}
+""".lstrip(),
+    )
+
+    assert validate_package(first).ok
+
+    report = validate_package(second)
+
+    assert not report.ok
+    assert any(issue.code == "entrypoint_import_failed" for issue in report.issues)
+
+
 def test_local_publish_indexes_rich_package_metadata(tmp_path):
     package = make_rich_metadata_package(tmp_path)
     hub = LocalHub(tmp_path / "hub")
@@ -326,6 +350,36 @@ form = "log"
 
 [runs.local]
 channels = ["events"]
+""".lstrip(),
+        encoding="utf-8",
+    )
+    return package
+
+
+def make_entrypoint_cache_package(
+    package: Path,
+    *,
+    module_body: str,
+) -> Path:
+    module = package / "sharedpkg"
+    module.mkdir(parents=True)
+    (package / "README.md").write_text("# Shared\n\nShared package.\n", encoding="utf-8")
+    (module / "__init__.py").write_text("", encoding="utf-8")
+    (module / "app.py").write_text(module_body, encoding="utf-8")
+    (package / "psi.toml").write_text(
+        """
+[package]
+psi_version = "0.1"
+org = "demo"
+name = "shared"
+version = "0.1.0"
+kind = "service"
+primary = "services.api"
+description = "Shared module-name package."
+
+[services.api]
+entry = "sharedpkg.app:create_app"
+transport = "fastapi"
 """.lstrip(),
         encoding="utf-8",
     )

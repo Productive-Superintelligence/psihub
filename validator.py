@@ -65,7 +65,8 @@ def import_entrypoint(entry: str, *, base_dir: Path | None = None) -> Any:
     module_name, sep, attr_path = entry.partition(":")
     if not sep or not module_name or not attr_path:
         raise ValueError(f"Entrypoint must have shape module:attribute: {entry}")
-    with _import_path(base_dir):
+    root_module = module_name.split(".", 1)[0]
+    with _import_path(base_dir, root_module=root_module):
         module = importlib.import_module(module_name)
         value: Any = module
         for part in attr_path.split("."):
@@ -386,12 +387,25 @@ def _missing(ref: str, code: str, run_name: str, missing_name: str) -> Validatio
 
 
 @contextmanager
-def _import_path(base_dir: Path | None) -> Iterator[None]:
+def _import_path(
+    base_dir: Path | None,
+    *,
+    root_module: str | None = None,
+) -> Iterator[None]:
     if base_dir is None:
         yield
         return
     value = str(base_dir)
+    isolated_modules: dict[str, Any] = {}
+    isolate = root_module is not None and (
+        (base_dir / root_module).exists() or (base_dir / f"{root_module}.py").exists()
+    )
+    if isolate:
+        for name in list(sys.modules):
+            if name == root_module or name.startswith(f"{root_module}."):
+                isolated_modules[name] = sys.modules.pop(name)
     sys.path.insert(0, value)
+    importlib.invalidate_caches()
     try:
         yield
     finally:
@@ -399,3 +413,9 @@ def _import_path(base_dir: Path | None) -> Iterator[None]:
             sys.path.remove(value)
         except ValueError:
             pass
+        if isolate:
+            for name in list(sys.modules):
+                if name == root_module or name.startswith(f"{root_module}."):
+                    sys.modules.pop(name, None)
+            sys.modules.update(isolated_modules)
+        importlib.invalidate_caches()
