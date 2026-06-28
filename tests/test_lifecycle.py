@@ -92,6 +92,21 @@ def test_validate_checks_schema_psi_refs(tmp_path):
     (package / "psi.toml").write_text(
         original.replace(
             'input = "echo_input"',
+            'input = "psi://other/package/schemas/payload?env=dev"',
+        ),
+        encoding="utf-8",
+    )
+    external_invalid_report = validate_package(package)
+
+    assert not external_invalid_report.ok
+    assert any(
+        issue.code == "schema_ref_invalid"
+        for issue in external_invalid_report.issues
+    )
+
+    (package / "psi.toml").write_text(
+        original.replace(
+            'input = "echo_input"',
             'input = "psi://other/package/schemas/payload"',
         ),
         encoding="utf-8",

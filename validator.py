@@ -7,6 +7,7 @@ import sys
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Iterator
+from urllib.parse import urlparse
 
 from .manifest import load_manifest, manifest_path
 from .models import PackageManifest, ValidationIssue, ValidationReport
@@ -426,16 +427,19 @@ def _validate_schema_ref(
 
 
 def _parse_psi_ref(value: str) -> tuple[str, str, str, str] | None:
-    prefix = "psi://"
-    if not value.startswith(prefix):
+    parsed = urlparse(value)
+    if parsed.scheme != "psi":
         return None
-    parts = value[len(prefix) :].split("/")
-    if len(parts) != 4 or any(not part for part in parts):
+    if parsed.params or parsed.query or parsed.fragment:
         return None
-    org, package, section, name = parts
+    org = parsed.netloc.strip()
+    parts = [part for part in parsed.path.split("/") if part]
+    if len(parts) != 3 or any(not part for part in parts):
+        return None
+    package, section, name = parts
     if section not in PSI_REF_SECTIONS:
         return None
-    for segment in (org, package, section, name):
+    for segment in (org, package, name):
         if any(ch in segment for ch in ":\\"):
             return None
     return org, package, section, name
