@@ -26,6 +26,11 @@ def render_package_card(record: PackageRecord) -> str:
         lines.append("No resources declared.")
     for resource in record.resources:
         lines.append(f"- `{resource.ref}` ({resource.kind})")
+        if resource.description:
+            lines.append(f"  - {resource.description}")
+        metadata = _metadata_summary(resource.metadata)
+        if metadata:
+            lines.append(f"  - Metadata: {metadata}")
     lines.extend(["", "## Local Config Template", "", "```toml"])
     lines.append(render_config_template(record).rstrip())
     lines.extend(["```", ""])
@@ -96,3 +101,12 @@ def _toml_value(value: Any) -> str | None:
             return None
         return "[" + ", ".join(rendered_item for rendered_item in rendered if rendered_item) + "]"
     return None
+
+
+def _metadata_summary(metadata: dict[str, Any]) -> str:
+    parts: list[str] = []
+    for key, value in sorted(metadata.items()):
+        rendered = _toml_value(value)
+        if rendered is not None:
+            parts.append(f"`{key}={rendered}`")
+    return ", ".join(parts)

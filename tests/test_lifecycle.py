@@ -52,6 +52,7 @@ def test_local_publish_download_card_and_config(tmp_path):
     assert (downloaded / "psi.toml").exists()
     assert "psi://demo/echo/tactics/echo" in card
     assert "psi://demo/echo/services/api" in card
+    assert 'policy_url="http://policy"' in card
     assert '[refs."psi://demo/echo/tactics/echo"]' in config
     assert '[refs."psi://demo/echo/services/api"]' in config
     assert 'policy_url = "http://policy"' in config
