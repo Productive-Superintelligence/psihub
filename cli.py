@@ -45,6 +45,11 @@ def main(argv: list[str] | None = None) -> int:
     config.add_argument("identifier")
     config.add_argument("--version")
 
+    serve = subcommands.add_parser("serve", help="Serve the local package hub API")
+    serve.add_argument("--host", default="127.0.0.1")
+    serve.add_argument("--port", type=int, default=8787)
+    serve.add_argument("--log-level", default="info")
+
     args = parser.parse_args(argv)
 
     if args.command == "init":
@@ -88,6 +93,19 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "config-template":
         print(hub.config_template(args.identifier, version=args.version), end="")
+        return 0
+
+    if args.command == "serve":
+        import uvicorn
+
+        from .server import create_app
+
+        uvicorn.run(
+            create_app(hub=hub),
+            host=args.host,
+            port=args.port,
+            log_level=args.log_level,
+        )
         return 0
 
     parser.error(f"Unknown command: {args.command}")

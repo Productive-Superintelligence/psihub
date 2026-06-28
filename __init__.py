@@ -12,6 +12,7 @@ from .models import (
     ValidationReport,
 )
 from .validator import import_entrypoint, validate_package
+from .server import create_app
 
 __version__ = "0.1.0"
 
@@ -24,6 +25,7 @@ __all__ = [
     "ValidationIssue",
     "ValidationReport",
     "__version__",
+    "create_app",
     "import_entrypoint",
     "init_package",
     "load_manifest",

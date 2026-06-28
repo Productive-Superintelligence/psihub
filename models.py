@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
 
 PackageKind = Literal["tactic", "channel", "service", "app", "library", "mixed"]
 ResourceKind = Literal["schema", "tactic", "service", "channel", "run"]
@@ -32,6 +32,7 @@ class PackageInfo(BaseModel):
         _validate_segment(self.name, "package.name")
         return self
 
+    @computed_field
     @property
     def identifier(self) -> str:
         return f"{self.org}/{self.name}"
@@ -159,10 +160,12 @@ class PackageRecord(BaseModel):
         default_factory=lambda: ValidationReport(ok=False)
     )
 
+    @computed_field
     @property
     def identifier(self) -> str:
         return f"{self.org}/{self.name}"
 
+    @computed_field
     @property
     def key(self) -> str:
         return f"{self.identifier}@{self.version}"
