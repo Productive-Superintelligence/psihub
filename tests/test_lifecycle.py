@@ -634,6 +634,14 @@ url = "http://service"
     with pytest.raises(ValueError, match="unknown resource"):
         resolver.bind("psi://demo/pkg/widgets/local", url="http://service")
 
+    for ref in (
+        "psi://../pkg/tactics/local",
+        "psi://demo/./tactics/local",
+        "psi://demo/pkg/tactics/..",
+    ):
+        with pytest.raises(ValueError, match="invalid segment"):
+            resolver.bind(ref, url="http://service")
+
 
 def test_local_config_resolver_requires_one_concrete_target(tmp_path):
     with pytest.raises(ValueError, match="one concrete target"):

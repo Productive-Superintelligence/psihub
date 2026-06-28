@@ -44,7 +44,7 @@ def parse_psi_ref(ref: str) -> PsiRef:
     if resource_kind not in PSI_REF_SECTIONS:
         raise ValueError(f"Ref uses unknown resource section {resource_kind!r}: {ref}")
     for segment in (org, package, name):
-        if any(ch in segment for ch in ":\\"):
+        if segment in {".", ".."} or any(ch in segment for ch in ":\\"):
             raise ValueError(f"Ref contains an invalid segment: {ref}")
     return PsiRef(org=org, package=package, resource_kind=resource_kind, name=name)
 
