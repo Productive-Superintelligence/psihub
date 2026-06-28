@@ -38,6 +38,26 @@ def test_init_creates_manifest_and_readme(tmp_path):
     assert "readme" in manifest.docs
 
 
+def test_init_escapes_manifest_identity_strings(tmp_path):
+    target = tmp_path / "quoted"
+    init_package(target, org='demo"org', name='quote"pkg', kind="tactic")
+
+    manifest = load_manifest(target)
+
+    assert manifest.package.org == 'demo"org'
+    assert manifest.package.name == 'quote"pkg'
+
+
+def test_init_rejects_invalid_manifest_identity_before_write(tmp_path):
+    target = tmp_path / "invalid"
+
+    with pytest.raises(ValueError, match="path segment"):
+        init_package(target, org="..", name="pkg")
+    with pytest.raises(ValueError, match="Input should be"):
+        init_package(target, org="demo", name="pkg", kind="unknown")
+    assert not (target / "psi.toml").exists()
+
+
 def test_local_package_lifecycle_example_runs(tmp_path):
     module = load_module(
         ROOT / "examples" / "local_package_lifecycle" / "workflow.py",

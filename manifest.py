@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import json
 import textwrap
 from pathlib import Path
 from typing import Any
 
-from .models import PackageManifest
+from .models import PackageInfo, PackageManifest
 
 
 def manifest_path(path: str | Path) -> Path:
@@ -38,15 +39,16 @@ def init_package(
     if target.exists() and not force:
         return target
     package_name = name or root.resolve().name
+    package = PackageInfo(org=org, name=package_name, kind=kind)
     target.write_text(
         textwrap.dedent(
             f"""
             [package]
             psi_version = "0.1"
-            org = "{org}"
-            name = "{package_name}"
-            version = "0.1.0"
-            kind = "{kind}"
+            org = {_toml_string(package.org)}
+            name = {_toml_string(package.name)}
+            version = {_toml_string(package.version)}
+            kind = {_toml_string(package.kind)}
             description = ""
 
             [card]
@@ -61,7 +63,7 @@ def init_package(
     )
     readme = root / "README.md"
     if not readme.exists():
-        readme.write_text(f"# {package_name}\n\nPsi package.\n", encoding="utf-8")
+        readme.write_text(f"# {package.name}\n\nPsi package.\n", encoding="utf-8")
     return target
 
 
@@ -72,3 +74,7 @@ def _load_toml(path: Path) -> dict[str, Any]:
         import tomli as tomllib  # type: ignore[no-redef]
     with path.open("rb") as handle:
         return tomllib.load(handle)
+
+
+def _toml_string(value: str) -> str:
+    return json.dumps(value)
