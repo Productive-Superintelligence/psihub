@@ -54,6 +54,12 @@ def test_local_publish_download_card_and_config(tmp_path):
     assert "psi://demo/echo/services/api" in card
     assert '[refs."psi://demo/echo/tactics/echo"]' in config
     assert '[refs."psi://demo/echo/services/api"]' in config
+    assert 'policy_url = "http://policy"' in config
+    resolver = LocalConfigResolver.from_text(config, root=tmp_path / "workspace")
+    assert (
+        resolver.resolve("psi://demo/echo/services/api").metadata["policy_url"]
+        == "http://policy"
+    )
 
 
 def test_cli_validate_publish_get_and_card(tmp_path, capsys):
@@ -185,6 +191,9 @@ output = "echo_output"
 entry = "demo.app:create_app"
 tactic = "echo"
 transport = "fastapi"
+
+[services.api.metadata]
+policy_url = "http://policy"
 
 [runs.local]
 services = ["api"]
