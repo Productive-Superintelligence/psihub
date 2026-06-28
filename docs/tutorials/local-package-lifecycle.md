@@ -3,6 +3,9 @@
 Create, validate, publish, inspect, and download a local Psi package without a
 hosted hub.
 
+The same flow is available as an executable example at
+`examples/local_package_lifecycle/workflow.py`.
+
 ## Prerequisites
 
 ```bash

@@ -1,3 +1,4 @@
+import importlib.util
 from pathlib import Path
 
 import pytest
@@ -13,6 +14,17 @@ from psihub import (
 from psihub.cli import main
 
 
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def load_module(path: Path, name: str):
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
 def test_init_creates_manifest_and_readme(tmp_path):
     target = tmp_path / "new-package"
     manifest_path = init_package(target, org="demo", name="new-package", kind="tactic")
@@ -24,6 +36,24 @@ def test_init_creates_manifest_and_readme(tmp_path):
     assert manifest.package.kind == "tactic"
     assert manifest.card is not None
     assert "readme" in manifest.docs
+
+
+def test_local_package_lifecycle_example_runs(tmp_path):
+    module = load_module(
+        ROOT / "examples" / "local_package_lifecycle" / "workflow.py",
+        "local_package_lifecycle_workflow",
+    )
+
+    result = module.run_workflow(tmp_path)
+
+    assert result["manifest_path"] == tmp_path / "demo-package" / "psi.toml"
+    assert result["report"].ok
+    assert result["record"].key == "demo/echo@0.1.0"
+    assert [record.key for record in result["listed"]] == ["demo/echo@0.1.0"]
+    assert (result["downloaded"] / "psi.toml").exists()
+    assert "# demo/echo" in result["card"]
+    assert "Agent Card: demo/echo" in result["agent_card"]
+    assert isinstance(result["config"], str)
 
 
 def test_validate_lifecycle_package(tmp_path):
