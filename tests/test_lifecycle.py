@@ -704,6 +704,8 @@ url = "http://service"
     ):
         with pytest.raises(ValueError, match="invalid segment"):
             resolver.bind(ref, url="http://service")
+        with pytest.raises(ValueError, match="invalid segment"):
+            resolver.resolve(ref)
 
 
 def test_local_config_resolver_requires_one_concrete_target(tmp_path):

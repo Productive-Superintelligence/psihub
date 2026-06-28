@@ -86,6 +86,7 @@ class LocalConfigResolver:
         )
 
     def resolve(self, ref: str) -> ResolvedRef:
+        validate_psi_ref(ref)
         try:
             return self._bindings[ref]
         except KeyError as exc:
