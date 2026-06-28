@@ -7,10 +7,10 @@ import sys
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Iterator
-from urllib.parse import urlparse
 
 from .manifest import load_manifest, manifest_path
 from .models import PackageManifest, ValidationIssue, ValidationReport
+from .refs import parse_psi_ref
 
 BUILTIN_SCHEMAS = {
     "Any",
@@ -26,18 +26,6 @@ BUILTIN_SCHEMAS = {
     "object",
     "list",
     "array",
-}
-
-PSI_REF_SECTIONS = {
-    "schemas",
-    "tactics",
-    "services",
-    "channels",
-    "runs",
-    "configs",
-    "docs",
-    "examples",
-    "assets",
 }
 
 
@@ -377,8 +365,9 @@ def _validate_schema_ref(
     if schema_ref in BUILTIN_SCHEMAS or schema_ref in manifest.schemas:
         return []
     if schema_ref.startswith("psi://"):
-        parsed = _parse_psi_ref(schema_ref)
-        if parsed is None:
+        try:
+            parsed = parse_psi_ref(schema_ref)
+        except ValueError:
             return [
                 ValidationIssue(
                     level="error",
@@ -387,23 +376,22 @@ def _validate_schema_ref(
                     resource=resource,
                 )
             ]
-        org, package, section, name = parsed
-        if section != "schemas":
+        if parsed.resource_kind != "schemas":
             return [
                 ValidationIssue(
                     level="error",
                     code="schema_ref_kind_mismatch",
                     message=(
                         f"Schema ref {schema_ref!r} must point at schemas, "
-                        f"not {section!r}."
+                        f"not {parsed.resource_kind!r}."
                     ),
                     resource=resource,
                 )
             ]
         if (
-            org == manifest.package.org
-            and package == manifest.package.name
-            and name not in manifest.schemas
+            parsed.org == manifest.package.org
+            and parsed.package == manifest.package.name
+            and parsed.name not in manifest.schemas
         ):
             return [
                 ValidationIssue(
@@ -424,25 +412,6 @@ def _validate_schema_ref(
             resource=resource,
         )
     ]
-
-
-def _parse_psi_ref(value: str) -> tuple[str, str, str, str] | None:
-    parsed = urlparse(value)
-    if parsed.scheme != "psi":
-        return None
-    if parsed.params or parsed.query or parsed.fragment:
-        return None
-    org = parsed.netloc.strip()
-    parts = [part for part in parsed.path.split("/") if part]
-    if len(parts) != 3 or any(not part for part in parts):
-        return None
-    package, section, name = parts
-    if section not in PSI_REF_SECTIONS:
-        return None
-    for segment in (org, package, name):
-        if any(ch in segment for ch in ":\\"):
-            return None
-    return org, package, section, name
 
 
 def _missing(ref: str, code: str, run_name: str, missing_name: str) -> ValidationIssue:
