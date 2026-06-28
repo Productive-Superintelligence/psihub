@@ -130,6 +130,23 @@ def test_validate_checks_schema_psi_refs(tmp_path):
     assert external_report.ok
 
 
+def test_validate_warns_on_empty_tactic_examples(tmp_path):
+    package = make_lifecycle_package(tmp_path)
+    text = (package / "psi.toml").read_text(encoding="utf-8")
+    (package / "psi.toml").write_text(
+        text.replace(
+            'input = { text = "hello" }\noutput = { text = "HELLO" }\n',
+            "",
+        ),
+        encoding="utf-8",
+    )
+
+    report = validate_package(package)
+
+    assert report.ok
+    assert any(issue.code == "tactic_example_empty" for issue in report.issues)
+
+
 def test_validate_checks_snapshot_refs(tmp_path):
     package = make_combined_package(tmp_path)
     original = (package / "psi.toml").read_text(encoding="utf-8")

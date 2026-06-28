@@ -80,6 +80,8 @@ files.
 Validation accepts well-formed external `psi://.../schemas/name` refs, rejects
 malformed schema refs, and catches same-package schema refs that point at
 missing declared schemas.
+Tactic examples should include an `input`, `output`, or `command`; empty
+examples produce a validation warning so cards stay useful.
 Service resources must declare either an importable `entry` or a declared
 `tactic`, so package cards and config templates do not advertise unbound
 services.

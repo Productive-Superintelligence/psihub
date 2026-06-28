@@ -182,6 +182,19 @@ def _validate_tactics(manifest: PackageManifest) -> list[ValidationIssue]:
         for schema_ref in (tactic.input, tactic.output):
             if schema_ref:
                 issues.extend(_validate_schema_ref(schema_ref, manifest, ref))
+        for index, example in enumerate(tactic.examples, start=1):
+            if not any(key in example for key in ("input", "output", "command")):
+                issues.append(
+                    ValidationIssue(
+                        level="warning",
+                        code="tactic_example_empty",
+                        message=(
+                            f"Tactic {name!r} example #{index} should declare "
+                            "input, output, or command."
+                        ),
+                        resource=ref,
+                    )
+                )
     return issues
 
 
