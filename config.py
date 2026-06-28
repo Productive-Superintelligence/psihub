@@ -25,6 +25,8 @@ class LocalConfigResolver:
     def __init__(self) -> None:
         self._bindings: dict[str, ResolvedRef] = {}
         self._settings: dict[str, Any] = {}
+        self._services: dict[str, dict[str, Any]] = {}
+        self._stores: dict[str, dict[str, Any]] = {}
 
     @classmethod
     def from_file(cls, path: str | Path) -> "LocalConfigResolver":
@@ -40,6 +42,8 @@ class LocalConfigResolver:
         if not isinstance(settings, dict):
             raise ValueError("[settings] must be a TOML table.")
         resolver._settings = dict(settings)
+        resolver._services = _table_of_tables(data.get("services", {}), "services")
+        resolver._stores = _table_of_tables(data.get("stores", {}), "stores")
         for ref, binding in refs.items():
             if not isinstance(binding, dict):
                 raise ValueError(f"Ref binding must be a table: {ref}")
@@ -95,6 +99,24 @@ class LocalConfigResolver:
     def setting(self, key: str, default: Any = None) -> Any:
         return self._settings.get(key, default)
 
+    def services(self) -> dict[str, dict[str, Any]]:
+        return {name: dict(value) for name, value in self._services.items()}
+
+    def service(self, name: str) -> dict[str, Any]:
+        try:
+            return dict(self._services[name])
+        except KeyError as exc:
+            raise KeyError(f"Service config is not bound: {name}") from exc
+
+    def stores(self) -> dict[str, dict[str, Any]]:
+        return {name: dict(value) for name, value in self._stores.items()}
+
+    def store(self, name: str) -> dict[str, Any]:
+        try:
+            return dict(self._stores[name])
+        except KeyError as exc:
+            raise KeyError(f"Store config is not bound: {name}") from exc
+
 
 def _load_toml(path: Path) -> dict[str, Any]:
     try:
@@ -103,3 +125,14 @@ def _load_toml(path: Path) -> dict[str, Any]:
         import tomli as tomllib  # type: ignore[no-redef]
     with path.open("rb") as handle:
         return tomllib.load(handle)
+
+
+def _table_of_tables(value: Any, name: str) -> dict[str, dict[str, Any]]:
+    if not isinstance(value, dict):
+        raise ValueError(f"[{name}] must be a TOML table.")
+    result: dict[str, dict[str, Any]] = {}
+    for key, item in value.items():
+        if not isinstance(item, dict):
+            raise ValueError(f"[{name}.{key}] must be a TOML table.")
+        result[str(key)] = dict(item)
+    return result

@@ -88,7 +88,11 @@ Local hub storage defaults to:
 Generated config templates assign multiple service refs distinct default local
 ports in manifest order. Tactic refs point at the local port for the service
 that declares the tactic, falling back to port 8000 when no service declares it.
+Templates also include passive `[services.*]` port tables and `[stores.*]` path
+tables for humans or future runners to inspect without asking PsiHub to launch
+anything.
 Config defaults render under `[settings]`; `LocalConfigResolver.settings()`
-and `setting(name, default)` expose those local values alongside ref bindings.
+and `setting(name, default)` expose those local values alongside ref bindings,
+`services()/service(name)`, and `stores()/store(name)`.
 
 Use `--hub` to point commands at another local hub directory.

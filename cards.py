@@ -113,6 +113,14 @@ def render_config_template(record: PackageRecord) -> str:
     resources = tuple(record.resources)
     service_ports = _service_ports(resources)
     tactic_ports = _tactic_ports(resources, service_ports)
+    service_settings = _service_settings_lines(service_ports)
+    if service_settings:
+        lines.extend(service_settings)
+        lines.append("")
+    store_settings = _store_settings_lines(resources)
+    if store_settings:
+        lines.extend(store_settings)
+        lines.append("")
     for resource in record.resources:
         if resource.kind == "service":
             lines.extend(
@@ -144,6 +152,21 @@ def render_config_template(record: PackageRecord) -> str:
             lines.extend(_metadata_lines(resource.metadata))
             lines.append("")
     return "\n".join(lines).rstrip() + ("\n" if lines else "")
+
+
+def _service_settings_lines(service_ports: dict[str, int]) -> list[str]:
+    lines: list[str] = []
+    for name, port in service_ports.items():
+        lines.extend([f"[services.{_toml_key(name)}]", f"port = {port}", ""])
+    if lines and lines[-1] == "":
+        lines.pop()
+    return lines
+
+
+def _store_settings_lines(resources: tuple[Any, ...]) -> list[str]:
+    if not any(resource.kind == "channel" for resource in resources):
+        return []
+    return ["[stores.default]", 'path = ".sssn"']
 
 
 def _service_ports(resources: tuple[Any, ...]) -> dict[str, int]:

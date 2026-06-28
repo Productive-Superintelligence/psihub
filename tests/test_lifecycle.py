@@ -249,12 +249,15 @@ def test_local_publish_download_card_and_config(tmp_path):
     assert 'policy_url="http://policy"' in card
     assert '[refs."psi://demo/echo/tactics/echo"]' in config
     assert '[refs."psi://demo/echo/services/api"]' in config
+    assert "[services.api]" in config
+    assert "port = 8000" in config
     assert 'policy_url = "http://policy"' in config
     resolver = LocalConfigResolver.from_text(config, root=tmp_path / "workspace")
     assert (
         resolver.resolve("psi://demo/echo/services/api").metadata["policy_url"]
         == "http://policy"
     )
+    assert resolver.service("api") == {"port": 8000}
 
 
 def test_cli_validate_publish_get_and_card(tmp_path, capsys):
@@ -324,6 +327,9 @@ def test_lifecycle_covers_tactic_channel_and_combined_packages(tmp_path):
     assert '[refs."psi://demo/combo/tactics/analyze"]' in config
     assert '[refs."psi://demo/combo/tactics/monitor"]' in config
     assert '[refs."psi://demo/combo/channels/events"]' in config
+    assert "[services.analyzer]" in config
+    assert "[services.monitor]" in config
+    assert "[stores.default]" in config
     assert resolver.resolve("psi://demo/combo/tactics/analyze").url == (
         "http://127.0.0.1:8000/tactics/analyze"
     )
@@ -337,6 +343,9 @@ def test_lifecycle_covers_tactic_channel_and_combined_packages(tmp_path):
         "http://127.0.0.1:8001"
     )
     assert resolver.resolve("psi://demo/combo/channels/events").store == ".sssn"
+    assert resolver.service("analyzer") == {"port": 8000}
+    assert resolver.service("monitor") == {"port": 8001}
+    assert resolver.store("default") == {"path": ".sssn"}
 
 
 def test_local_config_resolver_supports_registered_objects():
@@ -372,6 +381,49 @@ def test_local_config_resolver_rejects_invalid_settings_table(tmp_path):
         LocalConfigResolver.from_text(
             """
 settings = "not-a-table"
+""".lstrip(),
+            root=tmp_path / "workspace",
+        )
+
+
+def test_local_config_resolver_reads_service_and_store_tables(tmp_path):
+    resolver = LocalConfigResolver.from_text(
+        """
+[services.api]
+port = 8000
+
+[stores.default]
+path = ".sssn"
+""".lstrip(),
+        root=tmp_path / "workspace",
+    )
+
+    assert resolver.services() == {"api": {"port": 8000}}
+    assert resolver.service("api") == {"port": 8000}
+    assert resolver.stores() == {"default": {"path": ".sssn"}}
+    assert resolver.store("default") == {"path": ".sssn"}
+
+    with pytest.raises(KeyError):
+        resolver.service("missing")
+    with pytest.raises(KeyError):
+        resolver.store("missing")
+
+
+def test_local_config_resolver_rejects_invalid_service_store_tables(tmp_path):
+    with pytest.raises(ValueError, match=r"\[services\.api\]"):
+        LocalConfigResolver.from_text(
+            """
+[services]
+api = "not-a-table"
+""".lstrip(),
+            root=tmp_path / "workspace",
+        )
+
+    with pytest.raises(ValueError, match=r"\[stores\.default\]"):
+        LocalConfigResolver.from_text(
+            """
+[stores]
+default = ".sssn"
 """.lstrip(),
             root=tmp_path / "workspace",
         )
