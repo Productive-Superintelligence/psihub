@@ -37,6 +37,9 @@ def test_docs_site_builds_core_pages(tmp_path):
     lifecycle_html = (
         site_dir / "tutorials" / "local-package-lifecycle" / "index.html"
     ).read_text(encoding="utf-8")
+    local_hub_api_html = (
+        site_dir / "reference" / "local-hub-api" / "index.html"
+    ).read_text(encoding="utf-8")
     custom_css = (site_dir / "stylesheets" / "custom.css").read_text(
         encoding="utf-8"
     )
@@ -45,5 +48,9 @@ def test_docs_site_builds_core_pages(tmp_path):
     assert "does not launch services" in index_html
     assert "Local Package Lifecycle" in lifecycle_html
     assert "agent-card" in lifecycle_html
+    assert "Local Hub API" in local_hub_api_html
+    assert "/packages/{org}/{name}/download" in local_hub_api_html
+    assert "does not launch package services" in local_hub_api_html
+    assert "test_server.py" in local_hub_api_html
     assert ".md-header," in custom_css
     assert "background-color: #ffffff;" in custom_css

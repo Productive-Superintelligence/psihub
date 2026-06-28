@@ -36,6 +36,7 @@ nav:
   - Reference:
       - Manifest: reference/manifest.md
       - CLI: reference/cli.md
+      - Local Hub API: reference/local-hub-api.md
 
 extra:
   generator: false
