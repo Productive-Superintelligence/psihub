@@ -245,6 +245,13 @@ class PackageRecord(BaseModel):
     )
     card: CardResource | None = None
 
+    @model_validator(mode="after")
+    def _validate_identity(self) -> "PackageRecord":
+        _validate_segment(self.org, "record.org")
+        _validate_segment(self.name, "record.name")
+        _validate_segment(self.version, "record.version")
+        return self
+
     @computed_field
     @property
     def identifier(self) -> str:

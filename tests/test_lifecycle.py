@@ -1,4 +1,5 @@
 import importlib.util
+import json
 from pathlib import Path
 
 import pytest
@@ -532,6 +533,19 @@ def test_local_hub_reopens_published_index(tmp_path):
         "demo/echo"
     )
     assert (downloaded / "psi.toml").exists()
+
+
+def test_local_hub_rejects_path_control_record_identity_on_load(tmp_path):
+    package = make_lifecycle_package(tmp_path)
+    hub_root = tmp_path / "hub"
+    LocalHub(hub_root).publish(package)
+    index_path = hub_root / "index" / "packages.json"
+    payload = json.loads(index_path.read_text(encoding="utf-8"))
+    payload["records"][0]["record"]["name"] = ".."
+    index_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="path segment"):
+        LocalHub(hub_root)
 
 
 def test_cli_validate_publish_get_and_card(tmp_path, capsys):
