@@ -75,6 +75,7 @@ class LocalConfigResolver:
         metadata: dict[str, Any] | None = None,
     ) -> None:
         validate_psi_ref(ref)
+        _validate_target(ref, url=url, store=store, path=path, object=object)
         self._bindings[ref] = ResolvedRef(
             ref=ref,
             url=url,
@@ -136,3 +137,29 @@ def _table_of_tables(value: Any, name: str) -> dict[str, dict[str, Any]]:
             raise ValueError(f"[{name}.{key}] must be a TOML table.")
         result[str(key)] = dict(item)
     return result
+
+
+def _validate_target(
+    ref: str,
+    *,
+    url: str | None,
+    store: str | None,
+    path: str | None,
+    object: Any,
+) -> None:
+    targets = {
+        "url": url,
+        "store": store,
+        "path": path,
+        "object": object,
+    }
+    active = [name for name, value in targets.items() if value is not None]
+    if len(active) == 1:
+        return
+    if not active:
+        raise ValueError(f"Ref binding must declare one concrete target: {ref}")
+    targets_text = ", ".join(active)
+    raise ValueError(
+        "Ref binding must declare only one concrete target, "
+        f"got {targets_text}: {ref}"
+    )

@@ -95,7 +95,8 @@ Service resources must declare either an importable `entry` or a declared
 `tactic`, so package cards and config templates do not advertise unbound
 services.
 Local `.psi/config.toml` binding keys are also validated as strict
-`psi://org/package/resources/name` refs.
+`psi://org/package/resources/name` refs. Each binding must declare exactly one
+concrete target: `url`, `store`, or `path`; other keys are kept as metadata.
 
 Local hub storage defaults to:
 

@@ -552,6 +552,39 @@ url = "http://service"
         resolver.bind("psi://demo/pkg/widgets/local", url="http://service")
 
 
+def test_local_config_resolver_requires_one_concrete_target(tmp_path):
+    with pytest.raises(ValueError, match="one concrete target"):
+        LocalConfigResolver.from_text(
+            """
+[refs."psi://demo/pkg/tactics/local"]
+""".lstrip(),
+            root=tmp_path / "workspace",
+        )
+
+    with pytest.raises(ValueError, match="only one concrete target"):
+        LocalConfigResolver.from_text(
+            """
+[refs."psi://demo/pkg/tactics/local"]
+url = "http://service"
+store = ".sssn"
+""".lstrip(),
+            root=tmp_path / "workspace",
+        )
+
+    resolver = LocalConfigResolver.from_text(
+        """
+[refs."psi://demo/pkg/tactics/local"]
+url = "http://service"
+policy_url = "http://policy"
+""".lstrip(),
+        root=tmp_path / "workspace",
+    )
+
+    binding = resolver.resolve("psi://demo/pkg/tactics/local")
+    assert binding.url == "http://service"
+    assert binding.metadata == {"policy_url": "http://policy"}
+
+
 def test_local_config_resolver_rejects_invalid_settings_table(tmp_path):
     with pytest.raises(ValueError, match=r"\[settings\]"):
         LocalConfigResolver.from_text(
