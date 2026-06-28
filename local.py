@@ -13,6 +13,14 @@ from .models import HubResource, PackageManifest, PackageRecord, ValidationRepor
 from .validator import validate_package
 
 
+class PublishValidationError(ValueError):
+    """Raised when validated publish receives an invalid package."""
+
+    def __init__(self, report: ValidationReport) -> None:
+        self.report = report
+        super().__init__("Package validation failed.")
+
+
 class LocalHub:
     """A deterministic local package hub."""
 
@@ -29,6 +37,8 @@ class LocalHub:
     def publish(self, package_path: str | Path, *, validate: bool = True) -> PackageRecord:
         source_manifest = load_manifest(package_path)
         report = validate_package(package_path) if validate else ValidationReport(ok=True)
+        if validate and not report.ok:
+            raise PublishValidationError(report)
         destination = self._package_destination(source_manifest)
         if destination.exists():
             shutil.rmtree(destination)

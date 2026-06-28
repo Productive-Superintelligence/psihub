@@ -1,6 +1,15 @@
 from pathlib import Path
 
-from psihub import LocalConfigResolver, LocalHub, init_package, load_manifest, validate_package
+import pytest
+
+from psihub import (
+    LocalConfigResolver,
+    LocalHub,
+    PublishValidationError,
+    init_package,
+    load_manifest,
+    validate_package,
+)
 from psihub.cli import main
 
 
@@ -38,6 +47,26 @@ def test_validate_catches_missing_service_tactic(tmp_path):
 
     assert not report.ok
     assert any(issue.code == "service_tactic_missing" for issue in report.issues)
+
+
+def test_local_publish_rejects_invalid_packages_by_default(tmp_path):
+    package = make_lifecycle_package(tmp_path)
+    text = (package / "psi.toml").read_text(encoding="utf-8")
+    (package / "psi.toml").write_text(
+        text.replace('tactic = "echo"', 'tactic = "missing"'),
+        encoding="utf-8",
+    )
+    hub = LocalHub(tmp_path / "hub")
+
+    with pytest.raises(PublishValidationError) as exc_info:
+        hub.publish(package)
+
+    assert any(
+        issue.code == "service_tactic_missing" for issue in exc_info.value.report.issues
+    )
+    assert hub.list() == ()
+    record = hub.publish(package, validate=False)
+    assert record.key == "demo/echo@0.1.0"
 
 
 def test_validate_checks_package_kind_primary_metadata(tmp_path):
@@ -176,6 +205,23 @@ def test_cli_validate_publish_get_and_card(tmp_path, capsys):
 
     assert main(["--hub", str(hub), "agent-card", "demo/echo"]) == 0
     assert "Agent Card: demo/echo" in capsys.readouterr().out
+
+
+def test_cli_publish_rejects_invalid_package(tmp_path, capsys):
+    package = make_lifecycle_package(tmp_path)
+    text = (package / "psi.toml").read_text(encoding="utf-8")
+    (package / "psi.toml").write_text(
+        text.replace('tactic = "echo"', 'tactic = "missing"'),
+        encoding="utf-8",
+    )
+    hub = tmp_path / "hub"
+
+    assert main(["--hub", str(hub), "publish", str(package), "--local"]) == 1
+    output = capsys.readouterr()
+
+    assert "failed" in output.out
+    assert "service_tactic_missing" in output.err
+    assert LocalHub(hub).list() == ()
 
 
 def test_lifecycle_covers_tactic_channel_and_combined_packages(tmp_path):

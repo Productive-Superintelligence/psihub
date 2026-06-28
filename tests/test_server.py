@@ -46,3 +46,33 @@ def test_local_hub_server_lifecycle(tmp_path):
     assert download.headers["content-type"] == "application/zip"
     with zipfile.ZipFile(io.BytesIO(download.content)) as archive:
         assert "psi.toml" in archive.namelist()
+
+
+def test_local_hub_server_rejects_invalid_publish(tmp_path):
+    package = make_lifecycle_package(tmp_path)
+    text = (package / "psi.toml").read_text(encoding="utf-8")
+    (package / "psi.toml").write_text(
+        text.replace('tactic = "echo"', 'tactic = "missing"'),
+        encoding="utf-8",
+    )
+    app = create_app(hub=LocalHub(tmp_path / "hub"))
+
+    async def run():
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url="http://testserver",
+        ) as client:
+            publish = await client.post(
+                "/publish",
+                json={"path": str(package), "validate": True},
+            )
+            listed = await client.get("/packages")
+        return publish, listed
+
+    publish, listed = asyncio.run(run())
+
+    assert publish.status_code == 400
+    assert publish.json()["detail"]["ok"] is False
+    assert publish.json()["detail"]["issues"][0]["code"] == "service_tactic_missing"
+    assert listed.json() == []

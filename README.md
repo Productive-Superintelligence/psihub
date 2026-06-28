@@ -64,6 +64,10 @@ psihub agent-card demo/echo
 psihub config-template demo/echo
 ```
 
+Local publish validates by default and rejects packages with validation errors.
+Use `psihub publish --local --no-validate` only when intentionally indexing an
+incomplete local package.
+
 Package and agent cards render declared endpoint metadata so custom service
 routes are visible without opening source files.
 

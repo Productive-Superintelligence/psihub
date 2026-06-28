@@ -9,7 +9,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from .local import LocalHub
+from .local import LocalHub, PublishValidationError
 from .validator import validate_package
 
 
@@ -47,7 +47,13 @@ def create_app(*, hub: LocalHub | None = None, hub_root: str | Path = ".psihub")
 
     @app.post("/publish")
     async def publish(request: PublishRequest) -> dict[str, Any]:
-        record = local_hub.publish(request.path, validate=request.run_validation)
+        try:
+            record = local_hub.publish(request.path, validate=request.run_validation)
+        except PublishValidationError as exc:
+            raise HTTPException(
+                status_code=400,
+                detail=exc.report.model_dump(mode="json"),
+            ) from exc
         return jsonable_encoder(record)
 
     @app.get("/packages")

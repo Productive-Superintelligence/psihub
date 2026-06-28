@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import sys
 
-from .local import LocalHub
+from .local import LocalHub, PublishValidationError
 from .manifest import init_package
 from .validator import validate_package
 
@@ -78,7 +78,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "publish":
         if not args.local:
             parser.error("Only local publish is supported in this phase. Use --local.")
-        record = hub.publish(args.path, validate=not args.no_validate)
+        try:
+            record = hub.publish(args.path, validate=not args.no_validate)
+        except PublishValidationError as exc:
+            for issue in exc.report.issues:
+                print(f"{issue.level}: {issue.code}: {issue.message}", file=sys.stderr)
+            print("failed")
+            return 1
         print(record.key)
         return 0 if record.validation.ok or args.no_validate else 1
 
