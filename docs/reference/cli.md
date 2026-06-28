@@ -33,5 +33,11 @@ Download a package folder:
 psihub --hub .psihub get ORG/NAME --dest downloaded
 ```
 
+Serve the local hub API:
+
+```bash
+psihub --hub .psihub serve --host 127.0.0.1 --port 8787
+```
+
 `--hub` selects the local hub root. Without it, PsiHub uses `.psihub` in the
 current workspace.

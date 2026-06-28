@@ -36,6 +36,9 @@ def build_docs(tmp_path: Path) -> Path:
 def test_docs_site_builds_core_pages(tmp_path):
     site_dir = build_docs(tmp_path)
     index_html = (site_dir / "index.html").read_text(encoding="utf-8")
+    cli_html = (site_dir / "reference" / "cli" / "index.html").read_text(
+        encoding="utf-8"
+    )
     lifecycle_html = (
         site_dir / "tutorials" / "local-package-lifecycle" / "index.html"
     ).read_text(encoding="utf-8")
@@ -48,6 +51,8 @@ def test_docs_site_builds_core_pages(tmp_path):
 
     assert "PsiHub is the local-first package hub" in index_html
     assert "does not launch services" in index_html
+    assert "serve" in cli_html
+    assert "8787" in cli_html
     assert "Local Package Lifecycle" in lifecycle_html
     assert "agent-card" in lifecycle_html
     assert "Local Hub API" in local_hub_api_html
@@ -56,6 +61,26 @@ def test_docs_site_builds_core_pages(tmp_path):
     assert "test_server.py" in local_hub_api_html
     assert ".md-header," in custom_css
     assert "background-color: #ffffff;" in custom_css
+
+
+def test_cli_reference_lists_local_lifecycle_commands():
+    reference = (ROOT / "docs" / "reference" / "cli.md").read_text(
+        encoding="utf-8"
+    )
+    expected = [
+        "psihub init PATH --org ORG --name NAME --kind KIND",
+        "psihub validate PATH",
+        "psihub --hub .psihub publish PATH --local",
+        "psihub --hub .psihub list",
+        "psihub --hub .psihub card ORG/NAME",
+        "psihub --hub .psihub agent-card ORG/NAME",
+        "psihub --hub .psihub config-template ORG/NAME",
+        "psihub --hub .psihub get ORG/NAME --dest downloaded",
+        "psihub --hub .psihub serve --host 127.0.0.1 --port 8787",
+    ]
+
+    for command in expected:
+        assert command in reference
 
 
 def test_tutorials_keep_step_by_step_shape():
