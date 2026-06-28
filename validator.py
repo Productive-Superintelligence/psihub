@@ -51,6 +51,10 @@ def validate_package(path: str | Path) -> ValidationReport:
     issues.extend(_validate_services(manifest))
     issues.extend(_validate_channels(manifest))
     issues.extend(_validate_runs(manifest))
+    issues.extend(_validate_config(manifest))
+    issues.extend(_validate_docs(manifest))
+    issues.extend(_validate_examples(manifest))
+    issues.extend(_validate_assets(manifest))
     return ValidationReport(
         ok=not any(issue.level == "error" for issue in issues),
         issues=tuple(issues),
@@ -101,6 +105,10 @@ def _validate_primary(manifest: PackageManifest) -> list[ValidationIssue]:
         "services": manifest.services,
         "channels": manifest.channels,
         "runs": manifest.runs,
+        "config": {"default": manifest.config} if manifest.config is not None else {},
+        "docs": manifest.docs,
+        "examples": manifest.examples,
+        "assets": manifest.assets,
     }.get(section)
     if table is None or name not in table:
         return [
@@ -191,6 +199,80 @@ def _validate_runs(manifest: PackageManifest) -> list[ValidationIssue]:
     return issues
 
 
+def _validate_config(manifest: PackageManifest) -> list[ValidationIssue]:
+    config = manifest.config
+    if config is None or not config.schema:
+        return []
+    issues: list[ValidationIssue] = []
+    unknown_defaults = sorted(set(config.defaults) - set(config.schema))
+    for key in unknown_defaults:
+        issues.append(
+            ValidationIssue(
+                level="warning",
+                code="config_default_without_schema",
+                message=f"Config default {key!r} has no schema entry.",
+                resource=manifest.ref("config", "default"),
+            )
+        )
+    return issues
+
+
+def _validate_docs(manifest: PackageManifest) -> list[ValidationIssue]:
+    issues: list[ValidationIssue] = []
+    for name, doc in manifest.docs.items():
+        issues.extend(
+            _validate_declared_file(
+                manifest,
+                path=doc.path,
+                resource=manifest.ref("doc", name),
+                code="doc_path_missing",
+                label=f"Doc {name!r}",
+            )
+        )
+    return issues
+
+
+def _validate_examples(manifest: PackageManifest) -> list[ValidationIssue]:
+    issues: list[ValidationIssue] = []
+    for name, example in manifest.examples.items():
+        ref = manifest.ref("example", name)
+        if not example.path and not example.command:
+            issues.append(
+                ValidationIssue(
+                    level="warning",
+                    code="example_empty",
+                    message=f"Example {name!r} should declare a path or command.",
+                    resource=ref,
+                )
+            )
+        if example.path:
+            issues.extend(
+                _validate_declared_file(
+                    manifest,
+                    path=example.path,
+                    resource=ref,
+                    code="example_path_missing",
+                    label=f"Example {name!r}",
+                )
+            )
+    return issues
+
+
+def _validate_assets(manifest: PackageManifest) -> list[ValidationIssue]:
+    issues: list[ValidationIssue] = []
+    for name, asset in manifest.assets.items():
+        issues.extend(
+            _validate_declared_file(
+                manifest,
+                path=asset.path,
+                resource=manifest.ref("asset", name),
+                code="asset_path_missing",
+                label=f"Asset {name!r}",
+            )
+        )
+    return issues
+
+
 def _validate_import(
     entry: str,
     manifest: PackageManifest,
@@ -208,6 +290,29 @@ def _validate_import(
             )
         ]
     return []
+
+
+def _validate_declared_file(
+    manifest: PackageManifest,
+    *,
+    path: str,
+    resource: str,
+    code: str,
+    label: str,
+) -> list[ValidationIssue]:
+    if manifest.base_dir is None:
+        return []
+    target = manifest.base_dir / path
+    if target.is_file():
+        return []
+    return [
+        ValidationIssue(
+            level="error",
+            code=code,
+            message=f"{label} file does not exist: {path}",
+            resource=resource,
+        )
+    ]
 
 
 def _validate_schema_ref(

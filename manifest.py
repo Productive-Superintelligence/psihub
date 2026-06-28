@@ -48,6 +48,13 @@ def init_package(
             version = "0.1.0"
             kind = "{kind}"
             description = ""
+
+            [card]
+            summary = ""
+
+            [docs.readme]
+            path = "README.md"
+            title = "README"
             """
         ).lstrip(),
         encoding="utf-8",

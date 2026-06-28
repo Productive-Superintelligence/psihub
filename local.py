@@ -198,6 +198,65 @@ def record_from_manifest(
                 },
             )
         )
+    if manifest.config is not None:
+        resources.append(
+            HubResource(
+                kind="config",
+                name="default",
+                ref=manifest.ref("config", "default"),
+                description=manifest.config.description,
+                metadata={
+                    "schema": manifest.config.schema,
+                    "defaults": manifest.config.defaults,
+                    **manifest.config.metadata,
+                },
+            )
+        )
+    for name, doc in manifest.docs.items():
+        resources.append(
+            HubResource(
+                kind="doc",
+                name=name,
+                ref=manifest.ref("doc", name),
+                entry=doc.path,
+                description=doc.description,
+                metadata={
+                    "title": doc.title,
+                    "path": doc.path,
+                    **doc.metadata,
+                },
+            )
+        )
+    for name, example in manifest.examples.items():
+        resources.append(
+            HubResource(
+                kind="example",
+                name=name,
+                ref=manifest.ref("example", name),
+                entry=example.path,
+                description=example.description,
+                metadata={
+                    "path": example.path,
+                    "command": example.command,
+                    **example.metadata,
+                },
+            )
+        )
+    for name, asset in manifest.assets.items():
+        resources.append(
+            HubResource(
+                kind="asset",
+                name=name,
+                ref=manifest.ref("asset", name),
+                entry=asset.path,
+                description=asset.description,
+                metadata={
+                    "path": asset.path,
+                    "media_type": asset.media_type,
+                    **asset.metadata,
+                },
+            )
+        )
     return PackageRecord(
         org=manifest.package.org,
         name=manifest.package.name,
@@ -208,6 +267,7 @@ def record_from_manifest(
         manifest_path=(manifest.base_dir or Path.cwd()) / "psi.toml",
         resources=tuple(resources),
         validation=validation or ValidationReport(ok=False),
+        card=manifest.card,
     )
 
 

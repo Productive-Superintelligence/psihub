@@ -33,6 +33,18 @@ transport = "fastapi"
 
 [runs.local]
 services = ["api"]
+
+[card]
+summary = "Echo tactic package."
+tags = ["demo"]
+suggested_commands = ["uvicorn demo.app:create_app --reload"]
+
+[docs.readme]
+path = "README.md"
+title = "README"
+
+[config.defaults]
+policy_url = "http://127.0.0.1:8000"
 ```
 
 ## Local Lifecycle

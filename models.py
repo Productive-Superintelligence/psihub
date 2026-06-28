@@ -8,7 +8,17 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
 
 PackageKind = Literal["tactic", "channel", "service", "app", "library", "mixed"]
-ResourceKind = Literal["schema", "tactic", "service", "channel", "run"]
+ResourceKind = Literal[
+    "schema",
+    "tactic",
+    "service",
+    "channel",
+    "run",
+    "config",
+    "doc",
+    "example",
+    "asset",
+]
 
 
 class PackageInfo(BaseModel):
@@ -92,6 +102,57 @@ class RunResource(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class ConfigResource(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    config_schema: dict[str, Any] = Field(default_factory=dict, alias="schema")
+    defaults: dict[str, Any] = Field(default_factory=dict)
+    description: str = ""
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @property
+    def schema(self) -> dict[str, Any]:
+        return self.config_schema
+
+
+class DocResource(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    path: str
+    title: str = ""
+    description: str = ""
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ExampleResource(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    path: str | None = None
+    command: str | None = None
+    description: str = ""
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class AssetResource(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    path: str
+    media_type: str = "application/octet-stream"
+    description: str = ""
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class CardResource(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    summary: str = ""
+    tags: tuple[str, ...] = Field(default_factory=tuple)
+    safety: str = ""
+    latency: str = ""
+    suggested_commands: tuple[str, ...] = Field(default_factory=tuple)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 class PackageManifest(BaseModel):
     """Machine-readable `psi.toml` package contract."""
 
@@ -103,6 +164,11 @@ class PackageManifest(BaseModel):
     services: dict[str, ServiceResource] = Field(default_factory=dict)
     channels: dict[str, ChannelResource] = Field(default_factory=dict)
     runs: dict[str, RunResource] = Field(default_factory=dict)
+    config: ConfigResource | None = None
+    docs: dict[str, DocResource] = Field(default_factory=dict)
+    examples: dict[str, ExampleResource] = Field(default_factory=dict)
+    assets: dict[str, AssetResource] = Field(default_factory=dict)
+    card: CardResource | None = None
     base_dir: Path | None = None
 
     @property
@@ -159,6 +225,7 @@ class PackageRecord(BaseModel):
     validation: ValidationReport = Field(
         default_factory=lambda: ValidationReport(ok=False)
     )
+    card: CardResource | None = None
 
     @computed_field
     @property

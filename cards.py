@@ -10,18 +10,26 @@ from .models import PackageRecord
 
 
 def render_package_card(record: PackageRecord) -> str:
+    summary = (
+        record.card.summary
+        if record.card is not None and record.card.summary
+        else record.description
+    )
     lines = [
         f"# {record.identifier}",
         "",
-        record.description or f"Psi package `{record.identifier}`.",
+        summary or f"Psi package `{record.identifier}`.",
         "",
         f"- Version: `{record.version}`",
         f"- Kind: `{record.kind}`",
         f"- Validation: `{'ok' if record.validation.ok else 'failed'}`",
         "",
+    ]
+    lines.extend(_card_metadata_lines(record))
+    lines.extend([
         "## Resources",
         "",
-    ]
+    ])
     if not record.resources:
         lines.append("No resources declared.")
     for resource in record.resources:
@@ -31,6 +39,10 @@ def render_package_card(record: PackageRecord) -> str:
         metadata = _metadata_summary(resource.metadata)
         if metadata:
             lines.append(f"  - Metadata: {metadata}")
+        if resource.kind == "config":
+            defaults = _mapping_summary(resource.metadata.get("defaults"))
+            if defaults:
+                lines.append(f"  - Defaults: {defaults}")
     lines.extend(["", "## Local Config Template", "", "```toml"])
     lines.append(render_config_template(record).rstrip())
     lines.extend(["```", ""])
@@ -39,6 +51,10 @@ def render_package_card(record: PackageRecord) -> str:
 
 def render_config_template(record: PackageRecord) -> str:
     lines: list[str] = []
+    settings = _settings_lines(record)
+    if settings:
+        lines.extend(settings)
+        lines.append("")
     for resource in record.resources:
         if resource.kind == "service":
             lines.extend(
@@ -69,6 +85,48 @@ def render_config_template(record: PackageRecord) -> str:
             lines.extend(_metadata_lines(resource.metadata))
             lines.append("")
     return "\n".join(lines).rstrip() + ("\n" if lines else "")
+
+
+def _card_metadata_lines(record: PackageRecord) -> list[str]:
+    card = record.card
+    if card is None:
+        return []
+    lines: list[str] = []
+    if card.tags:
+        lines.append(f"- Tags: {', '.join(f'`{tag}`' for tag in card.tags)}")
+    if card.safety:
+        lines.append(f"- Safety: {card.safety}")
+    if card.latency:
+        lines.append(f"- Latency: {card.latency}")
+    if card.suggested_commands:
+        lines.extend(["", "## Suggested Commands", ""])
+        for command in card.suggested_commands:
+            lines.append(f"- `{command}`")
+    if lines and lines[-1] != "":
+        lines.append("")
+    return lines
+
+
+def _settings_lines(record: PackageRecord) -> list[str]:
+    settings: list[str] = []
+    for resource in record.resources:
+        if resource.kind != "config":
+            continue
+        defaults = resource.metadata.get("defaults")
+        if not isinstance(defaults, dict):
+            continue
+        rendered = [
+            f"{_toml_key(key)} = {value}"
+            for key, value in (
+                (key, _toml_value(value)) for key, value in sorted(defaults.items())
+            )
+            if value is not None
+        ]
+        if rendered:
+            if not settings:
+                settings.append("[settings]")
+            settings.extend(rendered)
+    return settings
 
 
 def _metadata_lines(metadata: dict[str, Any]) -> list[str]:
@@ -106,7 +164,20 @@ def _toml_value(value: Any) -> str | None:
 def _metadata_summary(metadata: dict[str, Any]) -> str:
     parts: list[str] = []
     for key, value in sorted(metadata.items()):
+        if key in {"defaults", "schema"}:
+            continue
         rendered = _toml_value(value)
+        if rendered is not None:
+            parts.append(f"`{key}={rendered}`")
+    return ", ".join(parts)
+
+
+def _mapping_summary(value: Any) -> str:
+    if not isinstance(value, dict):
+        return ""
+    parts: list[str] = []
+    for key, item in sorted(value.items()):
+        rendered = _toml_value(item)
         if rendered is not None:
             parts.append(f"`{key}={rendered}`")
     return ", ".join(parts)

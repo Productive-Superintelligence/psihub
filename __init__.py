@@ -5,6 +5,11 @@ from .config import LocalConfigResolver, ResolvedRef
 from .local import LocalHub, record_from_manifest
 from .manifest import init_package, load_manifest, manifest_path
 from .models import (
+    AssetResource,
+    CardResource,
+    ConfigResource,
+    DocResource,
+    ExampleResource,
     HubResource,
     PackageInfo,
     PackageManifest,
@@ -18,6 +23,11 @@ from .server import create_app
 __version__ = "0.1.0"
 
 __all__ = [
+    "AssetResource",
+    "CardResource",
+    "ConfigResource",
+    "DocResource",
+    "ExampleResource",
     "HubResource",
     "LocalConfigResolver",
     "LocalHub",

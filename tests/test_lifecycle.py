@@ -13,6 +13,8 @@ def test_init_creates_manifest_and_readme(tmp_path):
     manifest = load_manifest(target)
     assert manifest.package.identifier == "demo/new-package"
     assert manifest.package.kind == "tactic"
+    assert manifest.card is not None
+    assert "readme" in manifest.docs
 
 
 def test_validate_lifecycle_package(tmp_path):
@@ -36,6 +38,43 @@ def test_validate_catches_missing_service_tactic(tmp_path):
 
     assert not report.ok
     assert any(issue.code == "service_tactic_missing" for issue in report.issues)
+
+
+def test_validate_catches_missing_declared_doc(tmp_path):
+    package = make_rich_metadata_package(tmp_path)
+    (package / "docs" / "guide.md").unlink()
+
+    report = validate_package(package)
+
+    assert not report.ok
+    assert any(issue.code == "doc_path_missing" for issue in report.issues)
+
+
+def test_local_publish_indexes_rich_package_metadata(tmp_path):
+    package = make_rich_metadata_package(tmp_path)
+    hub = LocalHub(tmp_path / "hub")
+
+    record = hub.publish(package)
+    card = hub.card("demo/rich")
+    config = hub.config_template("demo/rich")
+
+    assert record.validation.ok
+    assert record.card is not None
+    assert record.card.summary == "Rich package card."
+    assert {resource.kind for resource in record.resources} >= {
+        "config",
+        "doc",
+        "example",
+        "asset",
+    }
+    assert "Safety: Offline demo only." in card
+    assert "Latency: Local call under 10 ms." in card
+    assert "`python examples/run.py`" in card
+    assert "psi://demo/rich/docs/guide" in card
+    assert "psi://demo/rich/examples/quickstart" in card
+    assert "psi://demo/rich/assets/logo" in card
+    assert "[settings]" in config
+    assert "sample_rate = 2" in config
 
 
 def test_local_publish_download_card_and_config(tmp_path):
@@ -323,6 +362,59 @@ publishes = ["analysis"]
 [runs.local]
 services = ["analyzer"]
 channels = ["events", "analysis"]
+""".lstrip(),
+        encoding="utf-8",
+    )
+    return package
+
+
+def make_rich_metadata_package(tmp_path: Path) -> Path:
+    package = tmp_path / "rich"
+    (package / "docs").mkdir(parents=True)
+    (package / "examples").mkdir()
+    (package / "assets").mkdir()
+    (package / "README.md").write_text("# Rich\n\nRich package.\n", encoding="utf-8")
+    (package / "docs" / "guide.md").write_text("# Guide\n", encoding="utf-8")
+    (package / "examples" / "run.py").write_text("print('rich')\n", encoding="utf-8")
+    (package / "assets" / "logo.txt").write_text("rich\n", encoding="utf-8")
+    (package / "psi.toml").write_text(
+        """
+[package]
+psi_version = "0.1"
+org = "demo"
+name = "rich"
+version = "0.1.0"
+kind = "library"
+primary = "docs.guide"
+description = "Rich metadata package."
+
+[card]
+summary = "Rich package card."
+tags = ["docs", "demo"]
+safety = "Offline demo only."
+latency = "Local call under 10 ms."
+suggested_commands = ["python examples/run.py"]
+
+[config.schema]
+sample_rate = "int"
+
+[config.defaults]
+sample_rate = 2
+
+[docs.guide]
+path = "docs/guide.md"
+title = "Guide"
+description = "Package guide."
+
+[examples.quickstart]
+path = "examples/run.py"
+command = "python examples/run.py"
+description = "Run the quickstart."
+
+[assets.logo]
+path = "assets/logo.txt"
+media_type = "text/plain"
+description = "Text logo."
 """.lstrip(),
         encoding="utf-8",
     )
