@@ -16,3 +16,9 @@ jobs:
       - run: python -m pip install -e ".[dev]"
       - run: pytest
       - run: python -m build
+      - run: |
+          python -m venv /tmp/psihub-wheel-smoke
+          /tmp/psihub-wheel-smoke/bin/python -m pip install -U pip
+          /tmp/psihub-wheel-smoke/bin/python -m pip install dist/*.whl
+          cd /tmp
+          /tmp/psihub-wheel-smoke/bin/python -c "from psihub import LocalHub; print(LocalHub.__name__)"
