@@ -313,6 +313,26 @@ def test_validate_checks_package_kind_primary_metadata(tmp_path):
     assert any(issue.code == "primary_kind_mismatch" for issue in mismatch_report.issues)
 
 
+def test_validate_rejects_path_control_package_identity_segments(tmp_path):
+    replacements = [
+        ("org", 'org = "demo"', 'org = ".."'),
+        ("name", 'name = "echo"', 'name = "."'),
+        ("version", 'version = "0.1.0"', 'version = ".."'),
+    ]
+    for field, original, replacement in replacements:
+        package = make_lifecycle_package(tmp_path / field)
+        manifest_path = package / "psi.toml"
+        manifest_path.write_text(
+            manifest_path.read_text(encoding="utf-8").replace(original, replacement),
+            encoding="utf-8",
+        )
+
+        report = validate_package(package)
+
+        assert not report.ok
+        assert any(issue.code == "manifest_load_failed" for issue in report.issues)
+
+
 def test_validate_catches_missing_declared_doc(tmp_path):
     package = make_rich_metadata_package(tmp_path)
     (package / "docs" / "guide.md").unlink()

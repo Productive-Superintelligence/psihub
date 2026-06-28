@@ -41,6 +41,7 @@ class PackageInfo(BaseModel):
     def _validate_identity(self) -> "PackageInfo":
         _validate_segment(self.org, "package.org")
         _validate_segment(self.name, "package.name")
+        _validate_segment(self.version, "package.version")
         return self
 
     @computed_field
@@ -259,5 +260,5 @@ class PackageRecord(BaseModel):
 
 
 def _validate_segment(value: str, field_name: str) -> None:
-    if not value or any(ch in value for ch in "/:\\"):
+    if not value or value in {".", ".."} or any(ch in value for ch in "/:\\"):
         raise ValueError(f"{field_name} must be a non-empty path segment.")
