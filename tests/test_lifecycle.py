@@ -166,6 +166,7 @@ def test_lifecycle_covers_tactic_channel_and_combined_packages(tmp_path):
 
     downloaded = hub.download("demo/combo", tmp_path / "downloaded")
     card = hub.card("demo/combo")
+    agent_card = hub.agent_card("demo/combo")
     config = hub.config_template("demo/combo")
     resolver = LocalConfigResolver.from_text(config, root=tmp_path / "workspace")
 
@@ -176,6 +177,9 @@ def test_lifecycle_covers_tactic_channel_and_combined_packages(tmp_path):
     assert "psi://demo/combo/tactics/analyze" in card
     assert "psi://demo/combo/channels/events" in card
     assert "psi://demo/combo/services/analyzer" in card
+    assert "Endpoint: `POST /analyze`" in card
+    assert "Endpoint: `GET /channels/events/range`" in card
+    assert "Endpoint: `POST /analyze`" in agent_card
     assert '[refs."psi://demo/combo/tactics/analyze"]' in config
     assert '[refs."psi://demo/combo/channels/events"]' in config
     assert resolver.resolve("psi://demo/combo/tactics/analyze").url.endswith(
@@ -384,9 +388,21 @@ entry = "combo.tactics:Analyze"
 input = "analysis_input"
 output = "analysis_output"
 
+[[tactics.analyze.endpoints]]
+name = "analyze"
+method = "POST"
+path = "/analyze"
+mode = "run"
+
 [channels.events]
 schema = "analysis_input"
 form = "log"
+
+[[channels.events.endpoints]]
+name = "event_range"
+method = "GET"
+path = "/channels/events/range"
+scope = "channel"
 
 [channels.analysis]
 schema = "analysis_output"

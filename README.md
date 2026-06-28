@@ -64,6 +64,9 @@ psihub agent-card demo/echo
 psihub config-template demo/echo
 ```
 
+Package and agent cards render declared endpoint metadata so custom service
+routes are visible without opening source files.
+
 Local hub storage defaults to:
 
 ```text

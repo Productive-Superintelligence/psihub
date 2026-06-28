@@ -55,6 +55,7 @@ def render_agent_card(record: PackageRecord) -> str:
         metadata = _metadata_summary(resource.metadata)
         if metadata:
             lines.append(f"  - Metadata: {metadata}")
+        lines.extend(_endpoint_lines(resource.metadata))
     template = render_config_template(record).rstrip()
     if template:
         lines.extend(["", "## Config Template", "", "```toml", template, "```"])
@@ -92,6 +93,7 @@ def render_package_card(record: PackageRecord) -> str:
         metadata = _metadata_summary(resource.metadata)
         if metadata:
             lines.append(f"  - Metadata: {metadata}")
+        lines.extend(_endpoint_lines(resource.metadata))
         if resource.kind == "config":
             defaults = _mapping_summary(resource.metadata.get("defaults"))
             if defaults:
@@ -219,12 +221,33 @@ def _toml_value(value: Any) -> str | None:
 def _metadata_summary(metadata: dict[str, Any]) -> str:
     parts: list[str] = []
     for key, value in sorted(metadata.items()):
-        if key in {"defaults", "schema"}:
+        if key in {"defaults", "endpoints", "schema"}:
             continue
         rendered = _toml_value(value)
         if rendered is not None:
             parts.append(f"`{key}={rendered}`")
     return ", ".join(parts)
+
+
+def _endpoint_lines(metadata: dict[str, Any]) -> list[str]:
+    endpoints = metadata.get("endpoints")
+    if not isinstance(endpoints, list):
+        return []
+    lines: list[str] = []
+    for endpoint in endpoints:
+        if not isinstance(endpoint, dict):
+            continue
+        method = str(endpoint.get("method") or "").upper()
+        path = endpoint.get("path")
+        if not path:
+            continue
+        name = endpoint.get("name")
+        mode = endpoint.get("mode") or endpoint.get("scope")
+        suffix_parts = [str(value) for value in (name, mode) if value]
+        suffix = f" ({', '.join(suffix_parts)})" if suffix_parts else ""
+        prefix = f"{method} " if method else ""
+        lines.append(f"  - Endpoint: `{prefix}{path}`{suffix}")
+    return lines
 
 
 def _mapping_summary(value: Any) -> str:

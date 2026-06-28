@@ -136,7 +136,7 @@ def record_from_manifest(
                 ref=manifest.ref("schema", name),
                 entry=schema.entry,
                 description=schema.description,
-                metadata=schema.metadata,
+                metadata={**_resource_extra(schema), **schema.metadata},
             )
         )
     for name, tactic in manifest.tactics.items():
@@ -151,6 +151,7 @@ def record_from_manifest(
                     "runtime": tactic.runtime,
                     "input": tactic.input,
                     "output": tactic.output,
+                    **_resource_extra(tactic),
                     **tactic.metadata,
                 },
             )
@@ -168,6 +169,7 @@ def record_from_manifest(
                     "transport": service.transport,
                     "subscribes": list(service.subscribes),
                     "publishes": list(service.publishes),
+                    **_resource_extra(service),
                     **service.metadata,
                 },
             )
@@ -182,6 +184,7 @@ def record_from_manifest(
                 metadata={
                     "schema": channel.schema,
                     "form": channel.form,
+                    **_resource_extra(channel),
                     **channel.metadata,
                 },
             )
@@ -197,6 +200,7 @@ def record_from_manifest(
                     "services": list(run.services),
                     "tactics": list(run.tactics),
                     "channels": list(run.channels),
+                    **_resource_extra(run),
                     **run.metadata,
                 },
             )
@@ -211,6 +215,7 @@ def record_from_manifest(
                 metadata={
                     "schema": manifest.config.schema,
                     "defaults": manifest.config.defaults,
+                    **_resource_extra(manifest.config),
                     **manifest.config.metadata,
                 },
             )
@@ -226,6 +231,7 @@ def record_from_manifest(
                 metadata={
                     "title": doc.title,
                     "path": doc.path,
+                    **_resource_extra(doc),
                     **doc.metadata,
                 },
             )
@@ -241,6 +247,7 @@ def record_from_manifest(
                 metadata={
                     "path": example.path,
                     "command": example.command,
+                    **_resource_extra(example),
                     **example.metadata,
                 },
             )
@@ -256,6 +263,7 @@ def record_from_manifest(
                 metadata={
                     "path": asset.path,
                     "media_type": asset.media_type,
+                    **_resource_extra(asset),
                     **asset.metadata,
                 },
             )
@@ -272,6 +280,10 @@ def record_from_manifest(
         validation=validation or ValidationReport(ok=False),
         card=manifest.card,
     )
+
+
+def _resource_extra(resource: Any) -> dict[str, Any]:
+    return dict(getattr(resource, "model_extra", None) or {})
 
 
 def _split_identifier(identifier: str) -> tuple[str, str]:
