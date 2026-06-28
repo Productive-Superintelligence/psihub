@@ -1,4 +1,8 @@
 import ast
+import os
+import subprocess
+import sys
+import textwrap
 from pathlib import Path
 
 
@@ -75,6 +79,14 @@ def test_boundary_scanner_rejects_subprocess_from_imports():
     assert _is_forbidden_import(aliases["run_process"])
 
 
+def test_top_level_import_does_not_require_optional_service_dependencies(tmp_path):
+    _assert_import_while_blocking(
+        tmp_path,
+        "psihub",
+        ("fastapi", "httpx", "uvicorn"),
+    )
+
+
 def _import_aliases(tree: ast.AST) -> dict[str, str]:
     aliases: dict[str, str] = {}
     for node in ast.walk(tree):
@@ -115,3 +127,47 @@ def _qualified_name(node: ast.AST) -> str:
         parent = _qualified_name(node.value)
         return f"{parent}.{node.attr}" if parent else node.attr
     return ""
+
+
+def _assert_import_while_blocking(
+    tmp_path: Path,
+    package: str,
+    optional_modules: tuple[str, ...],
+) -> None:
+    code = textwrap.dedent(
+        f"""
+        import importlib
+        import importlib.abc
+        import sys
+
+        blocked = {optional_modules!r}
+
+        class BlockOptional(importlib.abc.MetaPathFinder):
+            def find_spec(self, fullname, path=None, target=None):
+                if fullname.split(".", 1)[0] in blocked:
+                    raise ModuleNotFoundError(
+                        f"blocked optional dependency: {{fullname}}"
+                    )
+                return None
+
+        sys.meta_path.insert(0, BlockOptional())
+        module = importlib.import_module({package!r})
+        print(module.__version__)
+        """
+    )
+    env = os.environ.copy()
+    env["PYTHONPATH"] = (
+        str(ROOT)
+        if not env.get("PYTHONPATH")
+        else f"{ROOT}{os.pathsep}{env['PYTHONPATH']}"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        cwd=tmp_path,
+        env=env,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
