@@ -88,5 +88,7 @@ Local hub storage defaults to:
 Generated config templates assign multiple service refs distinct default local
 ports in manifest order. Tactic refs point at the local port for the service
 that declares the tactic, falling back to port 8000 when no service declares it.
+Config defaults render under `[settings]`; `LocalConfigResolver.settings()`
+and `setting(name, default)` expose those local values alongside ref bindings.
 
 Use `--hub` to point commands at another local hub directory.

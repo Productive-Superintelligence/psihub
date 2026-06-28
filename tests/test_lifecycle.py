@@ -222,6 +222,10 @@ def test_local_publish_indexes_rich_package_metadata(tmp_path):
     assert "example `quickstart`: `psi://demo/rich/examples/quickstart`" in agent_card
     assert "[settings]" in config
     assert "sample_rate = 2" in config
+    resolver = LocalConfigResolver.from_text(config, root=tmp_path / "workspace")
+    assert resolver.settings() == {"sample_rate": 2}
+    assert resolver.setting("sample_rate") == 2
+    assert resolver.setting("missing", "fallback") == "fallback"
 
 
 def test_local_publish_download_card_and_config(tmp_path):
@@ -361,6 +365,16 @@ url = "http://service"
 
     with pytest.raises(ValueError, match="unknown resource"):
         resolver.bind("psi://demo/pkg/widgets/local", url="http://service")
+
+
+def test_local_config_resolver_rejects_invalid_settings_table(tmp_path):
+    with pytest.raises(ValueError, match=r"\[settings\]"):
+        LocalConfigResolver.from_text(
+            """
+settings = "not-a-table"
+""".lstrip(),
+            root=tmp_path / "workspace",
+        )
 
 
 def make_lifecycle_package(tmp_path: Path) -> Path:

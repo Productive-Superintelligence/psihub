@@ -24,6 +24,7 @@ class LocalConfigResolver:
 
     def __init__(self) -> None:
         self._bindings: dict[str, ResolvedRef] = {}
+        self._settings: dict[str, Any] = {}
 
     @classmethod
     def from_file(cls, path: str | Path) -> "LocalConfigResolver":
@@ -35,6 +36,10 @@ class LocalConfigResolver:
         refs = data.get("refs", {})
         if not isinstance(refs, dict):
             raise ValueError("[refs] must be a TOML table.")
+        settings = data.get("settings", {})
+        if not isinstance(settings, dict):
+            raise ValueError("[settings] must be a TOML table.")
+        resolver._settings = dict(settings)
         for ref, binding in refs.items():
             if not isinstance(binding, dict):
                 raise ValueError(f"Ref binding must be a table: {ref}")
@@ -83,6 +88,12 @@ class LocalConfigResolver:
 
     def refs(self) -> tuple[str, ...]:
         return tuple(sorted(self._bindings))
+
+    def settings(self) -> dict[str, Any]:
+        return dict(self._settings)
+
+    def setting(self, key: str, default: Any = None) -> Any:
+        return self._settings.get(key, default)
 
 
 def _load_toml(path: Path) -> dict[str, Any]:
