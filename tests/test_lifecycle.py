@@ -329,6 +329,25 @@ def test_local_config_resolver_supports_registered_objects():
     assert resolver.resolve("psi://demo/pkg/tactics/local").object is obj
 
 
+def test_local_config_resolver_rejects_invalid_refs(tmp_path):
+    with pytest.raises(ValueError, match="psi://"):
+        LocalConfigResolver.from_text(
+            """
+[refs."not-a-ref"]
+url = "http://service"
+""".lstrip(),
+            root=tmp_path / "workspace",
+        )
+
+    resolver = LocalConfigResolver()
+
+    with pytest.raises(ValueError, match="query"):
+        resolver.bind("psi://demo/pkg/tactics/local?env=dev", url="http://service")
+
+    with pytest.raises(ValueError, match="unknown resource"):
+        resolver.bind("psi://demo/pkg/widgets/local", url="http://service")
+
+
 def make_lifecycle_package(tmp_path: Path) -> Path:
     package = tmp_path / "echo"
     module = package / "demo"

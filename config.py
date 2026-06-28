@@ -5,6 +5,20 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
+
+
+PSI_REF_SECTIONS = {
+    "schemas",
+    "tactics",
+    "services",
+    "channels",
+    "runs",
+    "configs",
+    "docs",
+    "examples",
+    "assets",
+}
 
 
 @dataclass(frozen=True)
@@ -63,6 +77,7 @@ class LocalConfigResolver:
         object: Any = None,
         metadata: dict[str, Any] | None = None,
     ) -> None:
+        _validate_psi_ref(ref)
         self._bindings[ref] = ResolvedRef(
             ref=ref,
             url=url,
@@ -89,3 +104,23 @@ def _load_toml(path: Path) -> dict[str, Any]:
         import tomli as tomllib  # type: ignore[no-redef]
     with path.open("rb") as handle:
         return tomllib.load(handle)
+
+
+def _validate_psi_ref(ref: str) -> None:
+    parsed = urlparse(ref)
+    if parsed.scheme != "psi":
+        raise ValueError(f"Ref must use psi:// scheme: {ref}")
+    if parsed.params or parsed.query or parsed.fragment:
+        raise ValueError(f"Ref must not include params, query, or fragment: {ref}")
+    org = parsed.netloc.strip()
+    parts = [part for part in parsed.path.split("/") if part]
+    if len(parts) != 3:
+        raise ValueError(f"Ref must have shape psi://org/package/resources/name: {ref}")
+    package, resource_kind, name = parts
+    if not org or not package or not name:
+        raise ValueError(f"Ref contains an empty segment: {ref}")
+    if resource_kind not in PSI_REF_SECTIONS:
+        raise ValueError(f"Ref uses unknown resource section {resource_kind!r}: {ref}")
+    for segment in (org, package, name):
+        if any(ch in segment for ch in ":\\"):
+            raise ValueError(f"Ref contains an invalid segment: {ref}")
