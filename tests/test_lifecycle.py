@@ -74,6 +74,31 @@ def test_cli_validate_publish_get_and_card(tmp_path, capsys):
     assert "psi://demo/echo/tactics/echo" in capsys.readouterr().out
 
 
+def test_lifecycle_covers_tactic_channel_and_combined_packages(tmp_path):
+    tactic_package = make_lifecycle_package(tmp_path)
+    channel_package = make_channel_package(tmp_path)
+    combined_package = make_combined_package(tmp_path)
+    hub = LocalHub(tmp_path / "hub")
+
+    for package in (tactic_package, channel_package, combined_package):
+        assert validate_package(package).ok
+        hub.publish(package)
+
+    downloaded = hub.download("demo/combo", tmp_path / "downloaded")
+    card = hub.card("demo/combo")
+    config = hub.config_template("demo/combo")
+
+    assert validate_package(downloaded).ok
+    assert "demo/echo@0.1.0" in [record.key for record in hub.list()]
+    assert "demo/events@0.1.0" in [record.key for record in hub.list()]
+    assert "demo/combo@0.1.0" in [record.key for record in hub.list()]
+    assert "psi://demo/combo/tactics/analyze" in card
+    assert "psi://demo/combo/channels/events" in card
+    assert "psi://demo/combo/services/analyzer" in card
+    assert '[refs."psi://demo/combo/tactics/analyze"]' in config
+    assert '[refs."psi://demo/combo/channels/events"]' in config
+
+
 def make_lifecycle_package(tmp_path: Path) -> Path:
     package = tmp_path / "echo"
     module = package / "demo"
@@ -148,6 +173,131 @@ transport = "fastapi"
 
 [runs.local]
 services = ["api"]
+""".lstrip(),
+        encoding="utf-8",
+    )
+    return package
+
+
+def make_channel_package(tmp_path: Path) -> Path:
+    package = tmp_path / "events"
+    module = package / "demo_events"
+    module.mkdir(parents=True)
+    (package / "README.md").write_text("# Events\n\nChannel package.\n", encoding="utf-8")
+    (module / "__init__.py").write_text("", encoding="utf-8")
+    (module / "schemas.py").write_text(
+        """
+from pydantic import BaseModel
+
+
+class EventPayload(BaseModel):
+    text: str
+""".lstrip(),
+        encoding="utf-8",
+    )
+    (package / "psi.toml").write_text(
+        """
+[package]
+psi_version = "0.1"
+org = "demo"
+name = "events"
+version = "0.1.0"
+kind = "channel"
+primary = "channels.events"
+description = "Events channel package."
+
+[schemas.event_payload]
+entry = "demo_events.schemas:EventPayload"
+
+[channels.events]
+schema = "event_payload"
+form = "log"
+
+[runs.local]
+channels = ["events"]
+""".lstrip(),
+        encoding="utf-8",
+    )
+    return package
+
+
+def make_combined_package(tmp_path: Path) -> Path:
+    package = tmp_path / "combo"
+    module = package / "combo"
+    module.mkdir(parents=True)
+    (package / "README.md").write_text("# Combo\n\nCombined package.\n", encoding="utf-8")
+    (module / "__init__.py").write_text("", encoding="utf-8")
+    (module / "schemas.py").write_text(
+        """
+from pydantic import BaseModel
+
+
+class AnalysisInput(BaseModel):
+    text: str
+
+
+class AnalysisOutput(BaseModel):
+    summary: str
+""".lstrip(),
+        encoding="utf-8",
+    )
+    (module / "tactics.py").write_text(
+        """
+from .schemas import AnalysisOutput
+
+
+class Analyze:
+    def run(self, task, *, context=None):
+        return AnalysisOutput(summary=task.text.upper())
+""".lstrip(),
+        encoding="utf-8",
+    )
+    (module / "services.py").write_text(
+        """
+def create_analyzer():
+    return {"service": "analyzer"}
+""".lstrip(),
+        encoding="utf-8",
+    )
+    (package / "psi.toml").write_text(
+        """
+[package]
+psi_version = "0.1"
+org = "demo"
+name = "combo"
+version = "0.1.0"
+kind = "app"
+primary = "services.analyzer"
+description = "Combined tactic/channel package."
+
+[schemas.analysis_input]
+entry = "combo.schemas:AnalysisInput"
+
+[schemas.analysis_output]
+entry = "combo.schemas:AnalysisOutput"
+
+[tactics.analyze]
+entry = "combo.tactics:Analyze"
+input = "analysis_input"
+output = "analysis_output"
+
+[channels.events]
+schema = "analysis_input"
+form = "log"
+
+[channels.analysis]
+schema = "analysis_output"
+form = "log"
+
+[services.analyzer]
+entry = "combo.services:create_analyzer"
+tactic = "analyze"
+subscribes = ["events"]
+publishes = ["analysis"]
+
+[runs.local]
+services = ["analyzer"]
+channels = ["events", "analysis"]
 """.lstrip(),
         encoding="utf-8",
     )
