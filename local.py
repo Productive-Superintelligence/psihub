@@ -7,7 +7,7 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-from .cards import render_config_template, render_package_card
+from .cards import render_agent_card, render_config_template, render_package_card
 from .manifest import load_manifest, manifest_path
 from .models import HubResource, PackageManifest, PackageRecord, ValidationReport
 from .validator import validate_package
@@ -82,6 +82,9 @@ class LocalHub:
 
     def card(self, identifier: str, *, version: str | None = None) -> str:
         return render_package_card(self.get(identifier, version=version))
+
+    def agent_card(self, identifier: str, *, version: str | None = None) -> str:
+        return render_agent_card(self.get(identifier, version=version))
 
     def config_template(self, identifier: str, *, version: str | None = None) -> str:
         return render_config_template(self.get(identifier, version=version))

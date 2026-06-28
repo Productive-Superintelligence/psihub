@@ -28,11 +28,12 @@ def test_local_hub_server_lifecycle(tmp_path):
             listed = await client.get("/packages")
             metadata = await client.get("/packages/demo/echo")
             card = await client.get("/packages/demo/echo/card")
+            agent_card = await client.get("/packages/demo/echo/agent-card")
             config = await client.get("/packages/demo/echo/config-template")
             download = await client.get("/packages/demo/echo/download")
-        return health, validation, publish, listed, metadata, card, config, download
+        return health, validation, publish, listed, metadata, card, agent_card, config, download
 
-    health, validation, publish, listed, metadata, card, config, download = asyncio.run(run())
+    health, validation, publish, listed, metadata, card, agent_card, config, download = asyncio.run(run())
 
     assert health.json() == {"ok": True}
     assert validation.json()["ok"] is True
@@ -40,6 +41,7 @@ def test_local_hub_server_lifecycle(tmp_path):
     assert listed.json()[0]["identifier"] == "demo/echo"
     assert metadata.json()["key"] == "demo/echo@0.1.0"
     assert "psi://demo/echo/tactics/echo" in card.text
+    assert "Agent Card: demo/echo" in agent_card.text
     assert '[refs."psi://demo/echo/tactics/echo"]' in config.text
     assert download.headers["content-type"] == "application/zip"
     with zipfile.ZipFile(io.BytesIO(download.content)) as archive:

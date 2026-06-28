@@ -68,6 +68,13 @@ def create_app(*, hub: LocalHub | None = None, hub_root: str | Path = ".psihub")
         except KeyError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
 
+    @app.get("/packages/{org}/{name}/agent-card")
+    async def agent_card(org: str, name: str, version: str | None = None) -> str:
+        try:
+            return PlainTextResponse(local_hub.agent_card(f"{org}/{name}", version=version))
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
     @app.get("/packages/{org}/{name}/config-template")
     async def config_template(org: str, name: str, version: str | None = None) -> str:
         try:

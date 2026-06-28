@@ -1,6 +1,6 @@
 """PsiHub local-first package hub."""
 
-from .cards import render_config_template, render_package_card
+from .cards import render_agent_card, render_config_template, render_package_card
 from .config import LocalConfigResolver, ResolvedRef
 from .local import LocalHub, record_from_manifest
 from .manifest import init_package, load_manifest, manifest_path
@@ -44,6 +44,7 @@ __all__ = [
     "load_manifest",
     "manifest_path",
     "record_from_manifest",
+    "render_agent_card",
     "render_config_template",
     "render_package_card",
     "validate_package",

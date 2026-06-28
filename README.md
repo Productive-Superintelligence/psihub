@@ -56,6 +56,7 @@ psihub publish . --local
 psihub list
 psihub get demo/echo --dest ./downloaded
 psihub card demo/echo
+psihub agent-card demo/echo
 psihub config-template demo/echo
 ```
 

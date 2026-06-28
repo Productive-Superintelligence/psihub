@@ -9,6 +9,59 @@ from typing import Any
 from .models import PackageRecord
 
 
+def render_agent_card(record: PackageRecord) -> str:
+    """Render concise package instructions for coding agents."""
+
+    card = record.card
+    summary = (
+        card.summary
+        if card is not None and card.summary
+        else record.description
+        or f"Psi package `{record.identifier}`."
+    )
+    lines = [
+        f"# Agent Card: {record.identifier}",
+        "",
+        summary,
+        "",
+        "## Operating Notes",
+        "",
+        "- PsiHub describes packages, refs, config, and metadata; it does not launch services.",
+        "- Resolve required services/channels through local `.psi/config.toml` bindings.",
+        "- Prefer declared refs and resource metadata over guessing paths or URLs.",
+        "",
+    ]
+    if card is not None:
+        if card.safety:
+            lines.append(f"- Safety: {card.safety}")
+        if card.latency:
+            lines.append(f"- Latency: {card.latency}")
+        if card.tags:
+            lines.append(f"- Tags: {', '.join(card.tags)}")
+        if card.suggested_commands:
+            lines.extend(["", "## Suggested Commands", ""])
+            for command in card.suggested_commands:
+                lines.append(f"- `{command}`")
+            lines.append("")
+    lines.extend(["## Resources", ""])
+    if not record.resources:
+        lines.append("No resources declared.")
+    for resource in record.resources:
+        lines.append(f"- {resource.kind} `{resource.name}`: `{resource.ref}`")
+        if resource.entry:
+            lines.append(f"  - entry/path: `{resource.entry}`")
+        if resource.description:
+            lines.append(f"  - {resource.description}")
+        metadata = _metadata_summary(resource.metadata)
+        if metadata:
+            lines.append(f"  - Metadata: {metadata}")
+    template = render_config_template(record).rstrip()
+    if template:
+        lines.extend(["", "## Config Template", "", "```toml", template, "```"])
+    lines.append("")
+    return "\n".join(lines).rstrip() + "\n"
+
+
 def render_package_card(record: PackageRecord) -> str:
     summary = (
         record.card.summary

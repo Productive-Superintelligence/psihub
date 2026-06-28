@@ -41,6 +41,10 @@ def main(argv: list[str] | None = None) -> int:
     card.add_argument("identifier")
     card.add_argument("--version")
 
+    agent_card = subcommands.add_parser("agent-card", help="Render a package agent card")
+    agent_card.add_argument("identifier")
+    agent_card.add_argument("--version")
+
     config = subcommands.add_parser("config-template", help="Render .psi/config.toml")
     config.add_argument("identifier")
     config.add_argument("--version")
@@ -89,6 +93,10 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "card":
         print(hub.card(args.identifier, version=args.version), end="")
+        return 0
+
+    if args.command == "agent-card":
+        print(hub.agent_card(args.identifier, version=args.version), end="")
         return 0
 
     if args.command == "config-template":

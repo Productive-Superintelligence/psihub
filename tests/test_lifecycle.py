@@ -56,6 +56,7 @@ def test_local_publish_indexes_rich_package_metadata(tmp_path):
 
     record = hub.publish(package)
     card = hub.card("demo/rich")
+    agent_card = hub.agent_card("demo/rich")
     config = hub.config_template("demo/rich")
 
     assert record.validation.ok
@@ -73,6 +74,8 @@ def test_local_publish_indexes_rich_package_metadata(tmp_path):
     assert "psi://demo/rich/docs/guide" in card
     assert "psi://demo/rich/examples/quickstart" in card
     assert "psi://demo/rich/assets/logo" in card
+    assert "Safety: Offline demo only." in agent_card
+    assert "example `quickstart`: `psi://demo/rich/examples/quickstart`" in agent_card
     assert "[settings]" in config
     assert "sample_rate = 2" in config
 
@@ -84,6 +87,7 @@ def test_local_publish_download_card_and_config(tmp_path):
     record = hub.publish(package)
     downloaded = hub.download("demo/echo", tmp_path / "downloaded")
     card = hub.card("demo/echo")
+    agent_card = hub.agent_card("demo/echo")
     config = hub.config_template("demo/echo")
 
     assert record.key == "demo/echo@0.1.0"
@@ -91,6 +95,9 @@ def test_local_publish_download_card_and_config(tmp_path):
     assert (downloaded / "psi.toml").exists()
     assert "psi://demo/echo/tactics/echo" in card
     assert "psi://demo/echo/services/api" in card
+    assert "Agent Card: demo/echo" in agent_card
+    assert "PsiHub describes packages, refs, config, and metadata" in agent_card
+    assert "tactic `echo`: `psi://demo/echo/tactics/echo`" in agent_card
     assert 'policy_url="http://policy"' in card
     assert '[refs."psi://demo/echo/tactics/echo"]' in config
     assert '[refs."psi://demo/echo/services/api"]' in config
@@ -118,6 +125,9 @@ def test_cli_validate_publish_get_and_card(tmp_path, capsys):
 
     assert main(["--hub", str(hub), "card", "demo/echo"]) == 0
     assert "psi://demo/echo/tactics/echo" in capsys.readouterr().out
+
+    assert main(["--hub", str(hub), "agent-card", "demo/echo"]) == 0
+    assert "Agent Card: demo/echo" in capsys.readouterr().out
 
 
 def test_lifecycle_covers_tactic_channel_and_combined_packages(tmp_path):
