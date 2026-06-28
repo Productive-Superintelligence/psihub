@@ -54,3 +54,19 @@ def test_docs_site_builds_core_pages(tmp_path):
     assert "test_server.py" in local_hub_api_html
     assert ".md-header," in custom_css
     assert "background-color: #ffffff;" in custom_css
+
+
+def test_tutorials_keep_step_by_step_shape():
+    required = [
+        "Goal:",
+        "## Prerequisites",
+        "## Files Used",
+        "## Verify",
+        "Expected output:",
+        "Next,",
+    ]
+
+    for path in sorted((ROOT / "docs" / "tutorials").glob("*.md")):
+        text = path.read_text(encoding="utf-8")
+        for marker in required:
+            assert marker in text, f"{path.relative_to(ROOT)} missing {marker}"
