@@ -33,6 +33,7 @@ def test_sdist_includes_repo_materials(tmp_path):
         "SECURITY.md",
         "mkdocs.yml",
         "docs/index.md",
+        "docs/assets/logo.svg",
         "docs/tutorials/local-package-lifecycle.md",
         "examples/local_package_lifecycle/README.md",
     ]
