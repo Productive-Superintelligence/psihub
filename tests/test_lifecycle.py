@@ -960,6 +960,8 @@ def other_app():
         "sharedpkg.app:",
         "sharedpkg..app:create_app",
         "sharedpkg.app:create app",
+        "sharedpkg%2Fapp:create_app",
+        "sharedpkg.app:create%2Fapp",
         " sharedpkg.app:create_app ",
     ],
 )
