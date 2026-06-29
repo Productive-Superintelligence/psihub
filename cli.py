@@ -82,7 +82,10 @@ def main(argv: list[str] | None = None) -> int:
         print("ok" if report.ok else "failed")
         return 0 if report.ok else 1
 
-    hub = LocalHub(args.hub)
+    try:
+        hub = LocalHub(args.hub)
+    except ValueError as exc:
+        parser.error(str(exc))
     if args.command == "publish":
         if not args.local:
             parser.error("Only local publish is supported in this phase. Use --local.")

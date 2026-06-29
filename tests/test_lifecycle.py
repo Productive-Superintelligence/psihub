@@ -916,6 +916,17 @@ def test_cli_serve_rejects_malformed_bindings_before_hub(tmp_path, capsys, args)
     assert not hub.exists()
 
 
+def test_cli_rejects_blank_hub_without_traceback(capsys):
+    with pytest.raises(SystemExit) as exc_info:
+        main(["--hub", "   ", "list"])
+
+    assert exc_info.value.code == 2
+    output = capsys.readouterr()
+    assert output.out == ""
+    assert "hub root must be a non-empty path string" in output.err
+    assert "Traceback" not in output.err
+
+
 def test_cli_publish_rejects_invalid_package(tmp_path, capsys):
     package = make_lifecycle_package(tmp_path)
     text = (package / "psi.toml").read_text(encoding="utf-8")
