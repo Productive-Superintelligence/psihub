@@ -119,6 +119,7 @@ class LocalConfigResolver:
         return deepcopy(self._services)
 
     def service(self, name: str) -> dict[str, Any]:
+        _validate_table_name(name, f"services.{name}")
         try:
             return deepcopy(self._services[name])
         except KeyError as exc:
@@ -128,6 +129,7 @@ class LocalConfigResolver:
         return deepcopy(self._stores)
 
     def store(self, name: str) -> dict[str, Any]:
+        _validate_table_name(name, f"stores.{name}")
         try:
             return deepcopy(self._stores[name])
         except KeyError as exc:

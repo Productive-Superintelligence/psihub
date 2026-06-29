@@ -253,6 +253,14 @@ def test_package_identity_models_reject_whitespace_segments(factory):
         factory()
 
 
+def test_package_manifest_ref_rejects_invalid_resource_kind():
+    manifest = PackageManifest(package=PackageInfo(org="demo", name="pkg"))
+
+    for kind in ("widget", "", None, 123):
+        with pytest.raises(ValueError, match="resource kind"):
+            manifest.ref(kind, "local")  # type: ignore[arg-type]
+
+
 def test_local_package_lifecycle_example_runs(tmp_path):
     module = load_module(
         ROOT / "examples" / "local_package_lifecycle" / "workflow.py",
@@ -1618,6 +1626,12 @@ path = ".sssn"
         resolver.service("missing")
     with pytest.raises(KeyError):
         resolver.store("missing")
+
+    for invalid_name in (None, 123, "", "   ", ".", "..", "bad/name", "bad name"):
+        with pytest.raises(ValueError, match="path-segment"):
+            resolver.service(invalid_name)  # type: ignore[arg-type]
+        with pytest.raises(ValueError, match="path-segment"):
+            resolver.store(invalid_name)  # type: ignore[arg-type]
 
 
 def test_local_config_resolver_returns_isolated_nested_config_tables(tmp_path):

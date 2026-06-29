@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, get_args
 
 from pydantic import BaseModel, ConfigDict, Field, StrictStr, computed_field, model_validator
 
@@ -21,6 +21,7 @@ ResourceKind = Literal[
     "example",
     "asset",
 ]
+RESOURCE_KIND_VALUES = frozenset(get_args(ResourceKind))
 
 
 class PackageInfo(BaseModel):
@@ -254,6 +255,7 @@ class PackageManifest(BaseModel):
         )
 
     def ref(self, kind: ResourceKind, name: str) -> str:
+        _validate_resource_kind(kind)
         _validate_segment(name, f"{kind}.name")
         plural = f"{kind}s" if kind != "schema" else "schemas"
         return f"psi://{self.package.org}/{self.package.name}/{plural}/{name}"
@@ -349,6 +351,12 @@ def _validate_segment(value: str, field_name: str) -> None:
         or any(ch in value for ch in "/:\\")
     ):
         raise ValueError(f"{field_name} must be a non-empty path segment.")
+
+
+def _validate_resource_kind(value: str) -> None:
+    if not isinstance(value, str) or value not in RESOURCE_KIND_VALUES:
+        expected = ", ".join(sorted(RESOURCE_KIND_VALUES))
+        raise ValueError(f"resource kind must be one of: {expected}.")
 
 
 def _isolate_fields(model: BaseModel, *field_names: str) -> None:
