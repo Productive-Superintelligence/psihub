@@ -994,6 +994,21 @@ default = ".sssn"
             root=tmp_path / "workspace",
         )
 
+    for section, name in (
+        ("services", "../api"),
+        ("services", "."),
+        ("stores", "bad/name"),
+        ("stores", ".."),
+    ):
+        with pytest.raises(ValueError, match="path-segment"):
+            LocalConfigResolver.from_text(
+                f"""
+[{section}."{name}"]
+path = ".sssn"
+""".lstrip(),
+                root=tmp_path / f"{section}-{name.replace('/', '-')}",
+            )
+
 
 def make_lifecycle_package(tmp_path: Path) -> Path:
     package = tmp_path / "echo"
