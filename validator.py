@@ -85,8 +85,18 @@ def _looks_like_duplicate_toml_name(message: str) -> bool:
 
 
 def import_entrypoint(entry: str, *, base_dir: Path | None = None) -> Any:
+    if (
+        not isinstance(entry, str)
+        or not entry
+        or entry != entry.strip()
+    ):
+        raise ValueError(f"Entrypoint must have shape module:attribute: {entry}")
     module_name, sep, attr_path = entry.partition(":")
-    if not sep or not module_name or not attr_path:
+    if (
+        not sep
+        or not _entrypoint_segments(module_name)
+        or not _entrypoint_segments(attr_path)
+    ):
         raise ValueError(f"Entrypoint must have shape module:attribute: {entry}")
     root_module = module_name.split(".", 1)[0]
     with _import_path(base_dir, root_module=root_module):
@@ -95,6 +105,13 @@ def import_entrypoint(entry: str, *, base_dir: Path | None = None) -> Any:
         for part in attr_path.split("."):
             value = getattr(value, part)
         return value
+
+
+def _entrypoint_segments(value: str) -> bool:
+    return all(
+        part and not any(ch.isspace() for ch in part)
+        for part in value.split(".")
+    )
 
 
 def _validate_readme(manifest: PackageManifest) -> list[ValidationIssue]:

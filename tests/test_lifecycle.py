@@ -9,6 +9,7 @@ from psihub import (
     LocalConfigResolver,
     LocalHub,
     PublishValidationError,
+    import_entrypoint,
     init_package,
     load_manifest,
     manifest_path,
@@ -914,6 +915,53 @@ def other_app():
 
     assert not report.ok
     assert any(issue.code == "entrypoint_import_failed" for issue in report.issues)
+
+
+@pytest.mark.parametrize(
+    "entrypoint",
+    [
+        None,
+        123,
+        "",
+        "   ",
+        "sharedpkg.app",
+        ":create_app",
+        "sharedpkg.app:",
+        "sharedpkg..app:create_app",
+        "sharedpkg.app:create app",
+        " sharedpkg.app:create_app ",
+    ],
+)
+def test_import_entrypoint_rejects_malformed_values(entrypoint):
+    with pytest.raises(ValueError, match="Entrypoint"):
+        import_entrypoint(entrypoint)  # type: ignore[arg-type]
+
+
+def test_validate_reports_malformed_entrypoints_as_import_issues(tmp_path):
+    package = make_entrypoint_cache_package(
+        tmp_path / "malformed-entrypoint",
+        module_body="""
+def create_app():
+    return {"service": "demo"}
+""".lstrip(),
+    )
+    text = (package / "psi.toml").read_text(encoding="utf-8")
+    (package / "psi.toml").write_text(
+        text.replace(
+            'entry = "sharedpkg.app:create_app"',
+            'entry = " sharedpkg.app:create_app "',
+        ),
+        encoding="utf-8",
+    )
+
+    report = validate_package(package)
+
+    assert not report.ok
+    assert any(
+        issue.code == "entrypoint_import_failed"
+        and "Entrypoint must have shape" in issue.message
+        for issue in report.issues
+    )
 
 
 def test_local_publish_indexes_rich_package_metadata(tmp_path):
