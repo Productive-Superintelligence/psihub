@@ -516,7 +516,7 @@ def _validate_examples(manifest: PackageManifest) -> list[ValidationIssue]:
                     resource=ref,
                 )
             )
-        if example.path:
+        if example.path is not None:
             issues.extend(
                 _validate_declared_file(
                     manifest,
@@ -575,12 +575,38 @@ def _validate_declared_file(
 ) -> list[ValidationIssue]:
     if manifest.base_dir is None:
         return []
+    if _invalid_portable_file_path(path):
+        return [
+            ValidationIssue(
+                level="error",
+                code=code.replace("_missing", "_invalid"),
+                message=(
+                    f"{label} file path must be a portable relative path "
+                    f"without whitespace, percent escapes, URL syntax, "
+                    f"network-path prefixes, backslashes, or colon separators: {path}"
+                ),
+                resource=resource,
+            )
+        ]
     if Path(path).is_absolute() or PureWindowsPath(path).is_absolute():
         return [
             ValidationIssue(
                 level="error",
                 code=code.replace("_missing", "_absolute_path"),
                 message=f"{label} file path must be relative to the package: {path}",
+                resource=resource,
+            )
+        ]
+    if ":" in path:
+        return [
+            ValidationIssue(
+                level="error",
+                code=code.replace("_missing", "_invalid"),
+                message=(
+                    f"{label} file path must be a portable relative path "
+                    f"without whitespace, percent escapes, URL syntax, "
+                    f"network-path prefixes, backslashes, or colon separators: {path}"
+                ),
                 resource=resource,
             )
         ]
@@ -605,6 +631,18 @@ def _validate_declared_file(
             resource=resource,
         )
     ]
+
+
+def _invalid_portable_file_path(path: Any) -> bool:
+    if not isinstance(path, str) or not path or path != path.strip():
+        return True
+    return (
+        path.startswith("//")
+        or "%" in path
+        or "\\" in path
+        or "://" in path
+        or any(ch.isspace() for ch in path)
+    )
 
 
 def _is_relative_to(path: Path, base_dir: Path) -> bool:

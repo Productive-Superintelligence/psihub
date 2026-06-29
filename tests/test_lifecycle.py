@@ -1013,6 +1013,41 @@ def test_validate_rejects_absolute_declared_file_paths(tmp_path):
         assert any(issue.code == code for issue in windows_report.issues)
 
 
+@pytest.mark.parametrize(
+    "bad_path",
+    [
+        "",
+        "   ",
+        " docs/guide.md ",
+        "docs/bad guide.md",
+        "docs/bad%2Fguide.md",
+        "docs\\guide.md",
+        "docs:guide.md",
+        "//host/guide.md",
+        "http://example.com/guide.md",
+    ],
+)
+def test_validate_rejects_malformed_declared_file_paths(tmp_path, bad_path):
+    case_name = f"case-{len(bad_path)}-{sum(ord(ch) for ch in bad_path)}"
+    replacements = [
+        ("docs/guide.md", "doc_path_invalid"),
+        ("examples/run.py", "example_path_invalid"),
+        ("assets/logo.txt", "asset_path_invalid"),
+    ]
+    for path, code in replacements:
+        package = make_rich_metadata_package(tmp_path / code / case_name)
+        text = (package / "psi.toml").read_text(encoding="utf-8")
+        (package / "psi.toml").write_text(
+            text.replace(f'path = "{path}"', f"path = {json.dumps(bad_path)}"),
+            encoding="utf-8",
+        )
+
+        report = validate_package(package)
+
+        assert not report.ok
+        assert any(issue.code == code for issue in report.issues)
+
+
 def test_validate_isolates_entrypoint_imports_between_package_roots(tmp_path):
     first = make_entrypoint_cache_package(
         tmp_path / "first",
