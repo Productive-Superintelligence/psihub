@@ -25,6 +25,10 @@ app = create_app(hub=LocalHub(".psihub"))
 | `GET` | `/packages/{org}/{name}/config-template` | Render local `.psi/config.toml` bindings. |
 | `GET` | `/packages/{org}/{name}/download` | Download the package folder as a zip archive. |
 
+Package lookup, card, config-template, and download endpoints accept an optional
+`?version=...` query parameter. Without it, the local hub returns the highest
+numeric release it has indexed, so `0.10.0` sorts after `0.2.0`.
+
 ## Validate
 
 ```bash
@@ -55,6 +59,12 @@ metadata under `.psihub/index`.
 
 ```bash
 curl -L http://127.0.0.1:8710/packages/demo/echo/download -o echo.zip
+```
+
+Download an exact version:
+
+```bash
+curl -L 'http://127.0.0.1:8710/packages/demo/echo/download?version=0.2.0' -o echo-0.2.0.zip
 ```
 
 The response body is an `application/zip` archive of the package folder.

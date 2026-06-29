@@ -61,6 +61,8 @@ def test_docs_site_builds_core_pages(tmp_path):
     assert "agent-card" in lifecycle_html
     assert "Local Hub API" in local_hub_api_html
     assert "/packages/{org}/{name}/download" in local_hub_api_html
+    assert "?version=0.2.0" in local_hub_api_html
+    assert "0.10.0" in local_hub_api_html
     assert "does not launch package services" in local_hub_api_html
     assert "test_server.py" in local_hub_api_html
     assert "Downloaded Package Contracts" in refs_html
