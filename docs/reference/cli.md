@@ -33,6 +33,8 @@ Download a package folder:
 psihub --hub .psihub get ORG/NAME --dest downloaded
 ```
 
+The download destination should be outside the selected local hub root.
+
 Serve the local hub API:
 
 ```bash

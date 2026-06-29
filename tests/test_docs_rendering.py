@@ -39,6 +39,9 @@ def test_docs_site_builds_core_pages(tmp_path):
     cli_html = (site_dir / "reference" / "cli" / "index.html").read_text(
         encoding="utf-8"
     )
+    local_hub_html = (site_dir / "guides" / "local-hub" / "index.html").read_text(
+        encoding="utf-8"
+    )
     lifecycle_html = (
         site_dir / "tutorials" / "local-package-lifecycle" / "index.html"
     ).read_text(encoding="utf-8")
@@ -60,6 +63,8 @@ def test_docs_site_builds_core_pages(tmp_path):
     assert "assets/logo.svg" in index_html
     assert "serve" in cli_html
     assert "8787" in cli_html
+    assert "outside the selected local hub root" in cli_html
+    assert "outside <code>.psihub</code>" in local_hub_html
     assert "Local Package Lifecycle" in lifecycle_html
     assert "agent-card" in lifecycle_html
     assert "Local Hub API" in local_hub_api_html

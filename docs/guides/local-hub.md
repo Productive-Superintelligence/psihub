@@ -26,6 +26,9 @@ Download a package:
 psihub --hub .psihub get demo/echo --dest downloaded
 ```
 
+Choose a download destination outside `.psihub` so downloaded copies never
+overwrite hub storage.
+
 Publishing validates by default and rejects packages with validation errors.
 Use `--no-validate` only for intentionally incomplete local experiments.
 

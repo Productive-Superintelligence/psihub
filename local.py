@@ -106,7 +106,16 @@ class LocalHub:
         ).expanduser()
         record = self.get(identifier, version=version)
         target = destination_root / record.name
-        if target.exists():
+        target_resolved = target.resolve(strict=False)
+        if _is_relative_to(target_resolved, self.root):
+            raise ValueError(
+                "download destination must resolve outside the local hub root."
+            )
+        if target.exists() or target.is_symlink():
+            if target.is_symlink() or not target.is_dir():
+                raise ValueError(
+                    "download target already exists and is not a directory."
+                )
             shutil.rmtree(target)
         shutil.copytree(record.root, target)
         return target
@@ -390,6 +399,14 @@ def _should_ignore_publish_name(name: str) -> bool:
         or name.endswith(".pyo")
         or name == ".coverage"
     )
+
+
+def _is_relative_to(path: Path, base: Path) -> bool:
+    try:
+        path.relative_to(base)
+    except ValueError:
+        return False
+    return True
 
 
 def _split_identifier(identifier: str) -> tuple[str, str]:

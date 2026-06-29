@@ -114,6 +114,35 @@ def test_public_path_helpers_reject_blank_or_non_path_values(tmp_path):
     assert manifest_path(spaced_root) == created
 
 
+def test_local_hub_rejects_download_destinations_inside_hub_root(tmp_path):
+    package = make_lifecycle_package(tmp_path)
+    hub_root = tmp_path / "hub"
+    hub = LocalHub(hub_root)
+    record = hub.publish(package)
+    stored_manifest = record.root / "psi.toml"
+
+    with pytest.raises(ValueError, match="outside the local hub root"):
+        hub.download("demo/echo", hub_root / "packages" / "demo")
+
+    assert stored_manifest.exists()
+    assert hub.get("demo/echo").key == "demo/echo@0.1.0"
+
+
+def test_local_hub_rejects_download_file_target_collisions(tmp_path):
+    package = make_lifecycle_package(tmp_path)
+    hub = LocalHub(tmp_path / "hub")
+    hub.publish(package)
+    destination = tmp_path / "downloaded"
+    destination.mkdir()
+    existing_target = destination / "echo"
+    existing_target.write_text("not a directory", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="not a directory"):
+        hub.download("demo/echo", destination)
+
+    assert existing_target.read_text(encoding="utf-8") == "not a directory"
+
+
 def test_local_config_resolver_from_text_rejects_non_string_text(tmp_path):
     for index, value in enumerate((None, 123, b"[refs]\n"), start=1):
         root = tmp_path / f"workspace-{index}"
