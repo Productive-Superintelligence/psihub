@@ -923,6 +923,25 @@ policy_url = "http://policy"
     assert binding.metadata == {"policy_url": "http://policy"}
 
 
+def test_local_config_resolver_rejects_non_string_targets(tmp_path):
+    for target_line in (
+        "url = 123",
+        "url = \"\"",
+        "store = false",
+        "store = \"\"",
+        'path = ["x"]',
+        "path = \"\"",
+    ):
+        with pytest.raises(ValueError, match="non-empty string"):
+            LocalConfigResolver.from_text(
+                f"""
+[refs."psi://demo/pkg/tactics/local"]
+{target_line}
+""".lstrip(),
+                root=tmp_path / target_line.split(" ", 1)[0],
+            )
+
+
 def test_local_config_resolver_rejects_invalid_settings_table(tmp_path):
     with pytest.raises(ValueError, match=r"\[settings\]"):
         LocalConfigResolver.from_text(

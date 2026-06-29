@@ -155,12 +155,23 @@ def _validate_target(
         "object": object,
     }
     active = [name for name, value in targets.items() if value is not None]
-    if len(active) == 1:
-        return
     if not active:
         raise ValueError(f"Ref binding must declare one concrete target: {ref}")
+    if len(active) == 1:
+        _validate_text_target(ref, active[0], targets[active[0]])
+        return
     targets_text = ", ".join(active)
     raise ValueError(
         "Ref binding must declare only one concrete target, "
         f"got {targets_text}: {ref}"
+    )
+
+
+def _validate_text_target(ref: str, name: str, value: Any) -> None:
+    if name == "object":
+        return
+    if isinstance(value, str) and value:
+        return
+    raise ValueError(
+        f"Ref binding target {name!r} must be a non-empty string: {ref}"
     )
