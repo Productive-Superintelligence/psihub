@@ -45,6 +45,9 @@ def test_docs_site_builds_core_pages(tmp_path):
     local_hub_api_html = (
         site_dir / "reference" / "local-hub-api" / "index.html"
     ).read_text(encoding="utf-8")
+    refs_html = (
+        site_dir / "concepts" / "refs-and-config" / "index.html"
+    ).read_text(encoding="utf-8")
     custom_css = (site_dir / "stylesheets" / "custom.css").read_text(
         encoding="utf-8"
     )
@@ -59,6 +62,9 @@ def test_docs_site_builds_core_pages(tmp_path):
     assert "/packages/{org}/{name}/download" in local_hub_api_html
     assert "does not launch package services" in local_hub_api_html
     assert "test_server.py" in local_hub_api_html
+    assert "Downloaded Package Contracts" in refs_html
+    assert "psi://demo/events/schemas/event_payload" in refs_html
+    assert "psi://demo/echo/schemas/echo_output" in refs_html
     assert ".md-header," in custom_css
     assert "background-color: #ffffff;" in custom_css
 
