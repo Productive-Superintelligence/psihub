@@ -401,9 +401,12 @@ def test_local_package_lifecycle_example_runs(tmp_path):
     assert "Agent Card: demo/echo" in result["agent_card"]
     assert isinstance(result["config"], str)
 
-    for bad_root in ("", "   ", 123):
+    padded_root = tmp_path / "padded-workflow"
+    for bad_root in ("", "   ", 123, f" {padded_root} "):
         with pytest.raises(ValueError, match="workflow root"):
             module.run_workflow(bad_root)
+
+    assert not padded_root.exists()
 
 
 def test_validate_lifecycle_package(tmp_path):
