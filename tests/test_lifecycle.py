@@ -261,6 +261,34 @@ def test_validate_checks_endpoint_metadata(tmp_path):
     )
 
 
+def test_validate_checks_service_port_metadata(tmp_path):
+    cases = [
+        (
+            "direct-extra",
+            "[services.api]\n",
+            '[services.api]\nport = "bad"\n',
+        ),
+        (
+            "metadata",
+            '[services.api.metadata]\npolicy_url = "http://policy"',
+            '[services.api.metadata]\nport = 70000\npolicy_url = "http://policy"',
+        ),
+    ]
+
+    for name, old, new in cases:
+        package = make_lifecycle_package(tmp_path / name)
+        manifest = package / "psi.toml"
+        manifest.write_text(
+            manifest.read_text(encoding="utf-8").replace(old, new),
+            encoding="utf-8",
+        )
+
+        report = validate_package(package)
+
+        assert not report.ok
+        assert any(issue.code == "service_port_invalid" for issue in report.issues)
+
+
 def test_validate_checks_snapshot_refs(tmp_path):
     package = make_combined_package(tmp_path)
     original = (package / "psi.toml").read_text(encoding="utf-8")

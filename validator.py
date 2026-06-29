@@ -302,6 +302,7 @@ def _validate_services(manifest: PackageManifest) -> list[ValidationIssue]:
         if service.entry:
             issues.extend(_validate_import(service.entry, manifest, ref))
         issues.extend(_validate_endpoint_metadata(service, ref))
+        issues.extend(_validate_service_port_metadata(service, ref))
         if service.tactic and service.tactic not in manifest.tactics:
             issues.append(
                 ValidationIssue(
@@ -322,6 +323,38 @@ def _validate_services(manifest: PackageManifest) -> list[ValidationIssue]:
                     )
                 )
     return issues
+
+
+def _validate_service_port_metadata(service: Any, ref: str) -> list[ValidationIssue]:
+    issues: list[ValidationIssue] = []
+    for port in _declared_service_ports(service):
+        if (
+            isinstance(port, bool)
+            or not isinstance(port, int)
+            or not (1 <= port <= 65535)
+        ):
+            issues.append(
+                ValidationIssue(
+                    level="error",
+                    code="service_port_invalid",
+                    message=(
+                        "Service port metadata must be an integer between "
+                        f"1 and 65535: {port!r}."
+                    ),
+                    resource=ref,
+                )
+            )
+    return issues
+
+
+def _declared_service_ports(service: Any) -> tuple[Any, ...]:
+    ports: list[Any] = []
+    extra = _resource_extra(service)
+    if "port" in extra:
+        ports.append(extra["port"])
+    if "port" in service.metadata:
+        ports.append(service.metadata["port"])
+    return tuple(ports)
 
 
 def _validate_channels(manifest: PackageManifest) -> list[ValidationIssue]:
