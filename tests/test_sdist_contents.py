@@ -36,6 +36,7 @@ def test_sdist_includes_repo_materials(tmp_path):
         "docs/assets/logo.svg",
         "docs/tutorials/local-package-lifecycle.md",
         "examples/local_package_lifecycle/README.md",
+        "examples/local_package_lifecycle/workflow.py",
     ]
     missing = [path for path in required if f"{root}/{path}" not in names]
 
