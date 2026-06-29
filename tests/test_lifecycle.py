@@ -1258,6 +1258,7 @@ def test_cli_validate_publish_get_and_card(tmp_path, capsys):
     "args",
     [
         ["serve", "--host", ""],
+        ["serve", "--host", " 127.0.0.1 "],
         ["serve", "--host", "bad host"],
         ["serve", "--host", "http://127.0.0.1"],
         ["serve", "--port", "0"],
