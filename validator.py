@@ -575,6 +575,15 @@ def _validate_declared_file(
 ) -> list[ValidationIssue]:
     if manifest.base_dir is None:
         return []
+    if Path(path).is_absolute():
+        return [
+            ValidationIssue(
+                level="error",
+                code=code.replace("_missing", "_absolute_path"),
+                message=f"{label} file path must be relative to the package: {path}",
+                resource=resource,
+            )
+        ]
     base_dir = manifest.base_dir.resolve()
     target = (base_dir / path).resolve()
     if not _is_relative_to(target, base_dir):

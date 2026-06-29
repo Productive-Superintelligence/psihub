@@ -970,6 +970,27 @@ def test_validate_rejects_declared_files_outside_package(tmp_path):
         assert any(issue.code == code for issue in report.issues)
 
 
+def test_validate_rejects_absolute_declared_file_paths(tmp_path):
+    replacements = [
+        ("docs/guide.md", "doc_path_absolute_path"),
+        ("examples/run.py", "example_path_absolute_path"),
+        ("assets/logo.txt", "asset_path_absolute_path"),
+    ]
+    for path, code in replacements:
+        package = make_rich_metadata_package(tmp_path / code)
+        absolute_path = package / path
+        text = (package / "psi.toml").read_text(encoding="utf-8")
+        (package / "psi.toml").write_text(
+            text.replace(f'path = "{path}"', f'path = "{absolute_path}"'),
+            encoding="utf-8",
+        )
+
+        report = validate_package(package)
+
+        assert not report.ok
+        assert any(issue.code == code for issue in report.issues)
+
+
 def test_validate_isolates_entrypoint_imports_between_package_roots(tmp_path):
     first = make_entrypoint_cache_package(
         tmp_path / "first",
