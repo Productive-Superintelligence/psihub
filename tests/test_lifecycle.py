@@ -432,6 +432,36 @@ def test_validate_checks_endpoint_metadata(tmp_path):
     assert any(issue.code == "endpoint_path_invalid" for issue in path_report.issues)
 
     (package / "psi.toml").write_text(
+        original.replace('path = "/analyze"', 'path = "/bad path"'),
+        encoding="utf-8",
+    )
+    whitespace_path_report = validate_package(package)
+
+    assert not whitespace_path_report.ok
+    assert any(
+        issue.code == "endpoint_path_invalid"
+        for issue in whitespace_path_report.issues
+    )
+
+    (package / "psi.toml").write_text(
+        original.replace('name = "analyze"', 'name = "bad name"'),
+        encoding="utf-8",
+    )
+    name_report = validate_package(package)
+
+    assert not name_report.ok
+    assert any(issue.code == "endpoint_name_invalid" for issue in name_report.issues)
+
+    (package / "psi.toml").write_text(
+        original.replace('mode = "run"', 'mode = "batch"'),
+        encoding="utf-8",
+    )
+    mode_report = validate_package(package)
+
+    assert not mode_report.ok
+    assert any(issue.code == "endpoint_mode_invalid" for issue in mode_report.issues)
+
+    (package / "psi.toml").write_text(
         original.replace('scope = "channel"', 'scope = "wrong"'),
         encoding="utf-8",
     )

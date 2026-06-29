@@ -28,6 +28,7 @@ BUILTIN_SCHEMAS = {
     "array",
 }
 HTTP_METHODS = {"GET", "POST", "PUT", "PATCH", "DELETE"}
+ENDPOINT_MODES = {"run", "stream", "events"}
 ENDPOINT_SCOPES = {"store", "channel", "subscription", "artifact", "snapshot"}
 
 
@@ -659,7 +660,14 @@ def _validate_endpoint_metadata(
                 )
             )
             continue
-        method = str(endpoint.get("method") or "").upper()
+        method_value = endpoint.get("method")
+        method = (
+            method_value.upper()
+            if isinstance(method_value, str)
+            and method_value
+            and not any(ch.isspace() for ch in method_value)
+            else ""
+        )
         if method not in HTTP_METHODS:
             issues.append(
                 ValidationIssue(
@@ -670,12 +678,35 @@ def _validate_endpoint_metadata(
                 )
             )
         path = endpoint.get("path")
-        if not isinstance(path, str) or not path.startswith("/"):
+        if not _valid_endpoint_path(path):
             issues.append(
                 ValidationIssue(
                     level="error",
                     code="endpoint_path_invalid",
-                    message=f"Endpoint #{index} path must start with '/'.",
+                    message=(
+                        f"Endpoint #{index} path must be an absolute route path "
+                        "without whitespace, query, or fragment."
+                    ),
+                    resource=resource,
+                )
+            )
+        name = endpoint.get("name")
+        if name is not None and not _valid_endpoint_label(name):
+            issues.append(
+                ValidationIssue(
+                    level="error",
+                    code="endpoint_name_invalid",
+                    message=f"Endpoint #{index} declares invalid name {name!r}.",
+                    resource=resource,
+                )
+            )
+        mode = endpoint.get("mode")
+        if mode is not None and mode not in ENDPOINT_MODES:
+            issues.append(
+                ValidationIssue(
+                    level="error",
+                    code="endpoint_mode_invalid",
+                    message=f"Endpoint #{index} declares invalid mode {mode!r}.",
                     resource=resource,
                 )
             )
@@ -689,7 +720,53 @@ def _validate_endpoint_metadata(
                     resource=resource,
                 )
             )
+        description = endpoint.get("description")
+        if description is not None and not isinstance(description, str):
+            issues.append(
+                ValidationIssue(
+                    level="error",
+                    code="endpoint_description_invalid",
+                    message=f"Endpoint #{index} description must be a string.",
+                    resource=resource,
+                )
+            )
+        tags = endpoint.get("tags")
+        if tags is not None and not _valid_endpoint_tags(tags):
+            issues.append(
+                ValidationIssue(
+                    level="error",
+                    code="endpoint_tags_invalid",
+                    message=f"Endpoint #{index} tags must be non-empty strings.",
+                    resource=resource,
+                )
+            )
     return issues
+
+
+def _valid_endpoint_path(path: Any) -> bool:
+    return (
+        isinstance(path, str)
+        and path.startswith("/")
+        and not any(ch.isspace() for ch in path)
+        and "?" not in path
+        and "#" not in path
+        and "://" not in path
+    )
+
+
+def _valid_endpoint_label(value: Any) -> bool:
+    return (
+        isinstance(value, str)
+        and bool(value)
+        and not any(ch.isspace() for ch in value)
+    )
+
+
+def _valid_endpoint_tags(tags: Any) -> bool:
+    return (
+        isinstance(tags, list)
+        and all(_valid_endpoint_label(tag) for tag in tags)
+    )
 
 
 def _resource_extra(resource_model: Any) -> dict[str, Any]:
