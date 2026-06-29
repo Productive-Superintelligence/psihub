@@ -719,7 +719,8 @@ def _validate_endpoint_metadata(
                     code="endpoint_path_invalid",
                     message=(
                         f"Endpoint #{index} path must be an absolute route path "
-                        "without whitespace, percent escapes, query, or fragment."
+                        "without whitespace, percent escapes, query, fragment, "
+                        "or network-path prefix."
                     ),
                     resource=resource,
                 )
@@ -787,6 +788,7 @@ def _valid_endpoint_path(path: Any) -> bool:
     return (
         isinstance(path, str)
         and path.startswith("/")
+        and not path.startswith("//")
         and "%" not in path
         and not any(ch.isspace() for ch in path)
         and "?" not in path

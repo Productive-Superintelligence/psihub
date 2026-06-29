@@ -674,6 +674,18 @@ def test_validate_checks_endpoint_metadata(tmp_path):
     )
 
     (package / "psi.toml").write_text(
+        original.replace('path = "/analyze"', 'path = "//example.com/analyze"'),
+        encoding="utf-8",
+    )
+    network_path_report = validate_package(package)
+
+    assert not network_path_report.ok
+    assert any(
+        issue.code == "endpoint_path_invalid"
+        for issue in network_path_report.issues
+    )
+
+    (package / "psi.toml").write_text(
         original.replace('name = "analyze"', 'name = "bad name"'),
         encoding="utf-8",
     )

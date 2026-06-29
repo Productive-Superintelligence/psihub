@@ -47,4 +47,5 @@ entrypoints, unbound services, duplicate package records, and run metadata that
 names missing resources.
 
 Custom endpoint metadata uses plain route paths, names, and tags; avoid
-whitespace and percent escapes in those fields.
+whitespace and percent escapes in those fields, and do not use `//`
+network-path prefixes for route paths.
