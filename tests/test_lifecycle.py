@@ -927,6 +927,24 @@ def test_cli_rejects_blank_hub_without_traceback(capsys):
     assert "Traceback" not in output.err
 
 
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["init", "--org", ".."],
+        ["init", "--name", "bad/name"],
+        ["init", "--kind", "unknown"],
+    ],
+)
+def test_cli_init_rejects_invalid_identity_without_traceback(tmp_path, capsys, args):
+    with pytest.raises(SystemExit) as exc_info:
+        main([*args, str(tmp_path / "pkg")])
+
+    assert exc_info.value.code == 2
+    output = capsys.readouterr()
+    assert output.out == ""
+    assert "Traceback" not in output.err
+
+
 def test_cli_publish_rejects_invalid_package(tmp_path, capsys):
     package = make_lifecycle_package(tmp_path)
     text = (package / "psi.toml").read_text(encoding="utf-8")

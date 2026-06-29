@@ -65,13 +65,16 @@ def main(argv: list[str] | None = None) -> int:
             parser.error(str(exc))
 
     if args.command == "init":
-        path = init_package(
-            args.path,
-            name=args.name,
-            org=args.org,
-            kind=args.kind,
-            force=args.force,
-        )
+        try:
+            path = init_package(
+                args.path,
+                name=args.name,
+                org=args.org,
+                kind=args.kind,
+                force=args.force,
+            )
+        except ValueError as exc:
+            parser.error(str(exc))
         print(path)
         return 0
 
