@@ -12,6 +12,16 @@ from psihub import (
     load_manifest,
     validate_package,
 )
+from psihub.models import (
+    CardResource,
+    ConfigResource,
+    HubResource,
+    PackageInfo,
+    PackageManifest,
+    PackageRecord,
+    TacticResource,
+    ValidationReport,
+)
 from psihub.cli import main
 
 
@@ -57,6 +67,69 @@ def test_init_rejects_invalid_manifest_identity_before_write(tmp_path):
     with pytest.raises(ValueError, match="Input should be"):
         init_package(target, org="demo", name="pkg", kind="unknown")
     assert not (target / "psi.toml").exists()
+
+
+def test_package_models_isolate_mutable_inputs():
+    tactic_examples = ({"input": {"items": ["one"]}},)
+    tactic_metadata = {"labels": ["tactic"]}
+    tactic = TacticResource(
+        entry="demo.tactics:Echo",
+        examples=tactic_examples,
+        metadata=tactic_metadata,
+        custom={"items": ["extra"]},
+    )
+    config_schema = {"properties": {"model": {"type": "string"}}}
+    defaults = {"service": {"metadata": {"port": 8000}}}
+    config = ConfigResource(schema=config_schema, defaults=defaults)
+    manifest = PackageManifest(
+        package=PackageInfo(org="demo", name="pkg"),
+        tactics={"echo": tactic},
+        config=config,
+    )
+    hub_metadata = {"labels": ["hub"]}
+    resource = HubResource(
+        kind="tactic",
+        name="echo",
+        ref="psi://demo/pkg/tactics/echo",
+        metadata=hub_metadata,
+    )
+    card_metadata = {"labels": ["card"]}
+    record = PackageRecord(
+        org="demo",
+        name="pkg",
+        version="0.1.0",
+        kind="tactic",
+        root=Path("."),
+        manifest_path=Path("psi.toml"),
+        resources=(resource,),
+        validation=ValidationReport(ok=True),
+        card=CardResource(metadata=card_metadata),
+    )
+
+    tactic_examples[0]["input"]["items"].append("changed")
+    tactic_metadata["labels"].append("changed")
+    tactic.custom["items"].append("mutated")
+    config_schema["properties"]["model"]["type"] = "integer"
+    defaults["service"]["metadata"]["port"] = 9000
+    tactic.metadata["labels"].append("post-manifest")
+    config.defaults["service"]["metadata"]["port"] = 7000
+    hub_metadata["labels"].append("changed")
+    resource.metadata["labels"].append("mutated")
+    card_metadata["labels"].append("changed")
+
+    assert tactic.examples == ({"input": {"items": ["one"]}},)
+    assert tactic.metadata == {"labels": ["tactic", "post-manifest"]}
+    assert tactic.custom == {"items": ["extra", "mutated"]}
+    assert config.schema == {"properties": {"model": {"type": "string"}}}
+    assert config.defaults == {"service": {"metadata": {"port": 7000}}}
+    assert manifest.tactics["echo"].metadata == {"labels": ["tactic"]}
+    assert manifest.tactics["echo"].custom == {"items": ["extra"]}
+    assert manifest.config is not None
+    assert manifest.config.defaults == {"service": {"metadata": {"port": 8000}}}
+    assert resource.metadata == {"labels": ["hub", "mutated"]}
+    assert record.resources[0].metadata == {"labels": ["hub"]}
+    assert record.card is not None
+    assert record.card.metadata == {"labels": ["card"]}
 
 
 def test_local_package_lifecycle_example_runs(tmp_path):

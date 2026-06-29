@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from pathlib import Path
 from typing import Any, Literal
 
@@ -37,6 +38,9 @@ class PackageInfo(BaseModel):
     license: str | None = None
     authors: tuple[str, ...] = Field(default_factory=tuple)
 
+    def model_post_init(self, __context: Any) -> None:
+        _isolate_fields(self, "authors")
+
     @model_validator(mode="after")
     def _validate_identity(self) -> "PackageInfo":
         _validate_segment(self.org, "package.org")
@@ -57,6 +61,9 @@ class SchemaResource(BaseModel):
     description: str = ""
     metadata: dict[str, Any] = Field(default_factory=dict)
 
+    def model_post_init(self, __context: Any) -> None:
+        _isolate_fields(self, "metadata")
+
 
 class TacticResource(BaseModel):
     model_config = ConfigDict(extra="allow")
@@ -69,6 +76,9 @@ class TacticResource(BaseModel):
     examples: tuple[dict[str, Any], ...] = Field(default_factory=tuple)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
+    def model_post_init(self, __context: Any) -> None:
+        _isolate_fields(self, "examples", "metadata")
+
 
 class ServiceResource(BaseModel):
     model_config = ConfigDict(extra="allow")
@@ -80,6 +90,9 @@ class ServiceResource(BaseModel):
     subscribes: tuple[str, ...] = Field(default_factory=tuple)
     publishes: tuple[str, ...] = Field(default_factory=tuple)
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+    def model_post_init(self, __context: Any) -> None:
+        _isolate_fields(self, "subscribes", "publishes", "metadata")
 
 
 class ChannelResource(BaseModel):
@@ -94,6 +107,9 @@ class ChannelResource(BaseModel):
     def schema(self) -> str | None:
         return self.schema_ref
 
+    def model_post_init(self, __context: Any) -> None:
+        _isolate_fields(self, "metadata")
+
 
 class SnapshotResource(BaseModel):
     model_config = ConfigDict(extra="allow")
@@ -107,6 +123,9 @@ class SnapshotResource(BaseModel):
     def schema(self) -> str | None:
         return self.schema_ref
 
+    def model_post_init(self, __context: Any) -> None:
+        _isolate_fields(self, "metadata")
+
 
 class RunResource(BaseModel):
     model_config = ConfigDict(extra="allow")
@@ -117,6 +136,16 @@ class RunResource(BaseModel):
     snapshots: tuple[str, ...] = Field(default_factory=tuple)
     description: str = ""
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+    def model_post_init(self, __context: Any) -> None:
+        _isolate_fields(
+            self,
+            "services",
+            "tactics",
+            "channels",
+            "snapshots",
+            "metadata",
+        )
 
 
 class ConfigResource(BaseModel):
@@ -131,6 +160,9 @@ class ConfigResource(BaseModel):
     def schema(self) -> dict[str, Any]:
         return self.config_schema
 
+    def model_post_init(self, __context: Any) -> None:
+        _isolate_fields(self, "config_schema", "defaults", "metadata")
+
 
 class DocResource(BaseModel):
     model_config = ConfigDict(extra="allow")
@@ -139,6 +171,9 @@ class DocResource(BaseModel):
     title: str = ""
     description: str = ""
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+    def model_post_init(self, __context: Any) -> None:
+        _isolate_fields(self, "metadata")
 
 
 class ExampleResource(BaseModel):
@@ -149,6 +184,9 @@ class ExampleResource(BaseModel):
     description: str = ""
     metadata: dict[str, Any] = Field(default_factory=dict)
 
+    def model_post_init(self, __context: Any) -> None:
+        _isolate_fields(self, "metadata")
+
 
 class AssetResource(BaseModel):
     model_config = ConfigDict(extra="allow")
@@ -157,6 +195,9 @@ class AssetResource(BaseModel):
     media_type: str = "application/octet-stream"
     description: str = ""
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+    def model_post_init(self, __context: Any) -> None:
+        _isolate_fields(self, "metadata")
 
 
 class CardResource(BaseModel):
@@ -168,6 +209,9 @@ class CardResource(BaseModel):
     latency: str = ""
     suggested_commands: tuple[str, ...] = Field(default_factory=tuple)
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+    def model_post_init(self, __context: Any) -> None:
+        _isolate_fields(self, "tags", "suggested_commands", "metadata")
 
 
 class PackageManifest(BaseModel):
@@ -193,6 +237,22 @@ class PackageManifest(BaseModel):
     def identifier(self) -> str:
         return self.package.identifier
 
+    def model_post_init(self, __context: Any) -> None:
+        _isolate_fields(
+            self,
+            "schemas",
+            "tactics",
+            "services",
+            "channels",
+            "snapshots",
+            "runs",
+            "config",
+            "docs",
+            "examples",
+            "assets",
+            "card",
+        )
+
     def ref(self, kind: ResourceKind, name: str) -> str:
         plural = f"{kind}s" if kind != "schema" else "schemas"
         return f"psi://{self.package.org}/{self.package.name}/{plural}/{name}"
@@ -210,6 +270,9 @@ class HubResource(BaseModel):
     description: str = ""
     metadata: dict[str, Any] = Field(default_factory=dict)
 
+    def model_post_init(self, __context: Any) -> None:
+        _isolate_fields(self, "metadata")
+
 
 class ValidationIssue(BaseModel):
     model_config = ConfigDict(frozen=True)
@@ -225,6 +288,9 @@ class ValidationReport(BaseModel):
 
     ok: bool
     issues: tuple[ValidationIssue, ...] = Field(default_factory=tuple)
+
+    def model_post_init(self, __context: Any) -> None:
+        _isolate_fields(self, "issues")
 
 
 class PackageRecord(BaseModel):
@@ -244,6 +310,9 @@ class PackageRecord(BaseModel):
         default_factory=lambda: ValidationReport(ok=False)
     )
     card: CardResource | None = None
+
+    def model_post_init(self, __context: Any) -> None:
+        _isolate_fields(self, "resources", "validation", "card")
 
     @model_validator(mode="after")
     def _validate_identity(self) -> "PackageRecord":
@@ -269,3 +338,11 @@ class PackageRecord(BaseModel):
 def _validate_segment(value: str, field_name: str) -> None:
     if not value or value in {".", ".."} or any(ch in value for ch in "/:\\"):
         raise ValueError(f"{field_name} must be a non-empty path segment.")
+
+
+def _isolate_fields(model: BaseModel, *field_names: str) -> None:
+    for field_name in field_names:
+        object.__setattr__(model, field_name, deepcopy(getattr(model, field_name)))
+    extra = getattr(model, "__pydantic_extra__", None)
+    if extra is not None:
+        object.__setattr__(model, "__pydantic_extra__", deepcopy(extra))
