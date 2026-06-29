@@ -7,18 +7,27 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, Field, StrictStr
+from pydantic import BaseModel, Field, StrictStr, field_validator
 
 from .local import LocalHub, PublishValidationError
+from .manifest import require_path_value
 from .validator import validate_package
 
 
-class ValidateRequest(BaseModel):
+class _PackagePathRequest(BaseModel):
     path: StrictStr
 
+    @field_validator("path")
+    @classmethod
+    def _validate_path(cls, value: str) -> str:
+        return require_path_value(value, "package path")
 
-class PublishRequest(BaseModel):
-    path: StrictStr
+
+class ValidateRequest(_PackagePathRequest):
+    pass
+
+
+class PublishRequest(_PackagePathRequest):
     run_validation: bool = Field(default=True, alias="validate")
 
 

@@ -16,11 +16,37 @@ from test_lifecycle import make_lifecycle_package
     [
         lambda: ValidateRequest(path=b"."),
         lambda: PublishRequest(path=b"."),
+        lambda: ValidateRequest(path=""),
+        lambda: PublishRequest(path="   "),
     ],
 )
-def test_local_hub_server_request_models_reject_bytes(factory):
+def test_local_hub_server_request_models_reject_malformed_paths(factory):
     with pytest.raises(ValidationError):
         factory()
+
+
+def test_local_hub_server_rejects_blank_request_paths(tmp_path):
+    app = create_app(hub=LocalHub(tmp_path / "hub"))
+
+    async def run():
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url="http://testserver",
+        ) as client:
+            validation = await client.post("/validate", json={"path": "   "})
+            publish = await client.post(
+                "/publish",
+                json={"path": "", "validate": True},
+            )
+        return validation, publish
+
+    validation, publish = asyncio.run(run())
+
+    assert validation.status_code == 422
+    assert publish.status_code == 422
+    assert "package path" in validation.text
+    assert "package path" in publish.text
 
 
 def test_local_hub_server_lifecycle(tmp_path):
