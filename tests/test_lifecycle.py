@@ -1378,6 +1378,21 @@ url = "http://service"
         with pytest.raises(ValueError, match="empty segment"):
             resolver.resolve(ref)
 
+    for ref in (
+        "psi://demo org/pkg/tactics/local",
+        "psi://demo/pkg name/tactics/local",
+        "psi://demo/pkg/tact ics/local",
+        "psi://demo/pkg/tactics/local name",
+    ):
+        with pytest.raises(ValueError, match="whitespace-bearing"):
+            parse_psi_ref(ref)
+        with pytest.raises(ValueError, match="whitespace-bearing"):
+            validate_psi_ref(ref)
+        with pytest.raises(ValueError, match="whitespace-bearing"):
+            resolver.bind(ref, url="http://service")
+        with pytest.raises(ValueError, match="whitespace-bearing"):
+            resolver.resolve(ref)
+
 
 def test_psi_ref_helpers_reject_non_string_and_blank_refs():
     resolver = LocalConfigResolver()

@@ -9,6 +9,8 @@ psi://demo/echo/channels/events
 psi://demo/echo/snapshots/latest
 ```
 
+Ref segments must be non-empty path segments without whitespace.
+
 Local config maps those refs to concrete development targets:
 
 ```toml

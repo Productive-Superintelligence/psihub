@@ -36,7 +36,7 @@ def parse_psi_ref(ref: str) -> PsiRef:
         raise ValueError(f"Ref must use psi:// scheme: {ref}")
     if parsed.params or parsed.query or parsed.fragment:
         raise ValueError(f"Ref must not include params, query, or fragment: {ref}")
-    org = parsed.netloc.strip()
+    org = parsed.netloc
     raw_parts = parsed.path.split("/")
     if (
         len(raw_parts) != 4
@@ -47,6 +47,9 @@ def parse_psi_ref(ref: str) -> PsiRef:
     package, resource_kind, name = raw_parts[1:]
     if not org or not package.strip() or not name.strip():
         raise ValueError(f"Ref contains an empty segment: {ref}")
+    for segment in (org, package, resource_kind, name):
+        if any(ch.isspace() for ch in segment):
+            raise ValueError(f"Ref contains a whitespace-bearing segment: {ref}")
     if resource_kind not in PSI_REF_SECTIONS:
         raise ValueError(f"Ref uses unknown resource section {resource_kind!r}: {ref}")
     for segment in (org, package, name):
