@@ -923,6 +923,17 @@ policy_url = "http://policy"
     assert binding.metadata == {"policy_url": "http://policy"}
 
 
+def test_local_config_resolver_rejects_non_mapping_metadata():
+    resolver = LocalConfigResolver()
+
+    with pytest.raises(ValueError, match="metadata"):
+        resolver.bind(
+            "psi://demo/pkg/tactics/local",
+            url="http://service",
+            metadata=["bad"],  # type: ignore[arg-type]
+        )
+
+
 def test_local_config_resolver_rejects_non_string_targets(tmp_path):
     for target_line in (
         "url = 123",

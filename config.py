@@ -75,6 +75,8 @@ class LocalConfigResolver:
         metadata: dict[str, Any] | None = None,
     ) -> None:
         validate_psi_ref(ref)
+        if metadata is not None and not isinstance(metadata, dict):
+            raise ValueError(f"Ref binding metadata must be a table: {ref}")
         _validate_target(ref, url=url, store=store, path=path, object=object)
         self._bindings[ref] = ResolvedRef(
             ref=ref,
@@ -82,7 +84,7 @@ class LocalConfigResolver:
             store=store,
             path=path,
             object=object,
-            metadata=metadata or {},
+            metadata=dict(metadata or {}),
         )
 
     def resolve(self, ref: str) -> ResolvedRef:
