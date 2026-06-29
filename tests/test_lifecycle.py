@@ -1,5 +1,6 @@
 import importlib.util
 import json
+from copy import deepcopy
 from pathlib import Path
 
 import pytest
@@ -1499,6 +1500,19 @@ def test_local_hub_rejects_path_control_record_identity_on_load(tmp_path):
     index_path.write_text(json.dumps(payload), encoding="utf-8")
 
     with pytest.raises(ValueError, match="path segment"):
+        LocalHub(hub_root)
+
+
+def test_local_hub_rejects_duplicate_index_keys_on_load(tmp_path):
+    package = make_lifecycle_package(tmp_path)
+    hub_root = tmp_path / "hub"
+    LocalHub(hub_root).publish(package)
+    index_path = hub_root / "index" / "packages.json"
+    payload = json.loads(index_path.read_text(encoding="utf-8"))
+    payload["records"].append(deepcopy(payload["records"][0]))
+    index_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="duplicate key"):
         LocalHub(hub_root)
 
 

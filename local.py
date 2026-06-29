@@ -168,6 +168,10 @@ class LocalHub:
                 raise ValueError(
                     f"Invalid local hub index record {index}: key does not match record."
                 )
+            if key in loaded:
+                raise ValueError(
+                    f"Invalid local hub index record {index}: duplicate key."
+                )
             loaded[key] = record
         self._records = loaded
 
