@@ -8,6 +8,8 @@ from typing import Any, Literal, get_args
 
 from pydantic import BaseModel, ConfigDict, Field, StrictStr, computed_field, model_validator
 
+from .refs import parse_psi_ref
+
 PackageKind = Literal["tactic", "channel", "service", "app", "library", "mixed"]
 ResourceKind = Literal[
     "schema",
@@ -275,6 +277,15 @@ class HubResource(BaseModel):
 
     def model_post_init(self, __context: Any) -> None:
         _isolate_fields(self, "metadata")
+
+    @model_validator(mode="after")
+    def _validate_identity(self) -> "HubResource":
+        _validate_segment(self.name, f"{self.kind}.name")
+        parsed = parse_psi_ref(self.ref)
+        expected_section = "schemas" if self.kind == "schema" else f"{self.kind}s"
+        if parsed.resource_kind != expected_section or parsed.name != self.name:
+            raise ValueError("resource ref must match resource kind and name.")
+        return self
 
 
 class ValidationIssue(BaseModel):

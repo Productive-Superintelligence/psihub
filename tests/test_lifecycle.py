@@ -223,6 +223,11 @@ def test_package_models_reject_bytes_for_declared_string_fields(factory):
         lambda: PackageInfo(org="demo org", name="pkg"),
         lambda: PackageInfo(org="demo", name="bad pkg"),
         lambda: PackageInfo(org="demo", name="pkg", version="0.1.0 beta"),
+        lambda: HubResource(
+            kind="tactic",
+            name="bad tactic",
+            ref="psi://demo/pkg/tactics/bad-tactic",
+        ),
         lambda: PackageRecord(
             org="demo",
             name="   ",
@@ -262,6 +267,36 @@ def test_package_manifest_ref_rejects_invalid_resource_kind():
     for kind in ("widget", "", None, 123):
         with pytest.raises(ValueError, match="resource kind"):
             manifest.ref(kind, "local")  # type: ignore[arg-type]
+
+
+def test_hub_resource_validates_ref_identity():
+    resource = HubResource(
+        kind="tactic",
+        name="echo",
+        ref="psi://demo/pkg/tactics/echo",
+    )
+
+    assert resource.ref == "psi://demo/pkg/tactics/echo"
+
+    for kwargs in (
+        {
+            "kind": "tactic",
+            "name": "echo",
+            "ref": "not-a-ref",
+        },
+        {
+            "kind": "tactic",
+            "name": "echo",
+            "ref": "psi://demo/pkg/channels/echo",
+        },
+        {
+            "kind": "tactic",
+            "name": "echo",
+            "ref": "psi://demo/pkg/tactics/other",
+        },
+    ):
+        with pytest.raises(ValidationError):
+            HubResource(**kwargs)
 
 
 def test_local_package_lifecycle_example_runs(tmp_path):
