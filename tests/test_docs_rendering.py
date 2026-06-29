@@ -83,6 +83,9 @@ def test_docs_site_builds_core_pages(tmp_path):
     assert "absolute HTTP(S) URLs" in refs_html
     assert "text targets must not contain" in refs_html
     assert "whitespace" in refs_html
+    assert "store table" in refs_html
+    assert "<code>path</code> values" in refs_html
+    assert "must be non-empty strings without" in refs_html
     assert "preferred local service port" in refs_html
     assert "psi://demo/events/schemas/event_payload" in refs_html
     assert "psi://demo/echo/schemas/echo_output" in refs_html

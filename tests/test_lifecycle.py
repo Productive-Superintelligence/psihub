@@ -2177,7 +2177,7 @@ port = {port}
                 root=tmp_path / f"port-{index}",
             )
 
-    for index, path in enumerate(("123", '""', '"   "'), start=1):
+    for index, path in enumerate(("123", '""', '"   "', '"bad path"'), start=1):
         with pytest.raises(ValueError, match="path"):
             LocalConfigResolver.from_text(
                 f"""

@@ -197,8 +197,15 @@ def _validate_table_values(section: str, key: str, item: dict[str, Any]) -> None
             )
     if section == "stores" and "path" in item:
         path = item["path"]
-        if not isinstance(path, str) or not path or path != path.strip():
-            raise ValueError(f"[stores.{key}] path must be a non-empty string.")
+        if (
+            not isinstance(path, str)
+            or not path
+            or path != path.strip()
+            or any(ch.isspace() for ch in path)
+        ):
+            raise ValueError(
+                f"[stores.{key}] path must be a non-empty string without whitespace."
+            )
 
 
 def _normalize_text_target(ref: str, name: str, value: Any) -> str | None:

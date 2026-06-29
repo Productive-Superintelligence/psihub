@@ -118,7 +118,7 @@ not launch that service. Tactic refs point at the local port for the service
 that declares the tactic, falling back to port 8000 when no service declares it.
 Templates also include passive `[services.*]` port tables and `[stores.*]` path
 tables for humans or future runners to inspect without asking PsiHub to launch
-anything.
+anything; store table paths must be non-empty strings without whitespace.
 Snapshot resources render as `psi://.../snapshots/name` refs and bind to the
 same local store path convention as channels.
 Config defaults render under `[settings]`; `LocalConfigResolver.settings()`
