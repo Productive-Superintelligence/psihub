@@ -217,6 +217,9 @@ def test_package_models_reject_bytes_for_declared_string_fields(factory):
         lambda: PackageInfo(org="demo", name="   "),
         lambda: PackageInfo(org="   ", name="pkg"),
         lambda: PackageInfo(org="demo", name="pkg", version="   "),
+        lambda: PackageInfo(org="demo org", name="pkg"),
+        lambda: PackageInfo(org="demo", name="bad pkg"),
+        lambda: PackageInfo(org="demo", name="pkg", version="0.1.0 beta"),
         lambda: PackageRecord(
             org="demo",
             name="   ",
@@ -226,9 +229,22 @@ def test_package_models_reject_bytes_for_declared_string_fields(factory):
             manifest_path=Path("psi.toml"),
             validation=ValidationReport(ok=True),
         ),
+        lambda: PackageRecord(
+            org="demo",
+            name="bad pkg",
+            version="0.1.0",
+            kind="mixed",
+            root=Path("."),
+            manifest_path=Path("psi.toml"),
+            validation=ValidationReport(ok=True),
+        ),
         lambda: PackageManifest(package=PackageInfo(org="demo", name="pkg")).ref(
             "tactic",
             "   ",
+        ),
+        lambda: PackageManifest(package=PackageInfo(org="demo", name="pkg")).ref(
+            "tactic",
+            "bad tactic",
         ),
     ],
 )
@@ -658,6 +674,26 @@ def test_validate_rejects_path_control_package_identity_segments(tmp_path):
     ]
     for field, original, replacement in replacements:
         package = make_lifecycle_package(tmp_path / field)
+        manifest_path = package / "psi.toml"
+        manifest_path.write_text(
+            manifest_path.read_text(encoding="utf-8").replace(original, replacement),
+            encoding="utf-8",
+        )
+
+        report = validate_package(package)
+
+        assert not report.ok
+        assert any(issue.code == "manifest_load_failed" for issue in report.issues)
+
+
+def test_validate_rejects_whitespace_package_identity_segments(tmp_path):
+    replacements = [
+        ("org", 'org = "demo"', 'org = "demo org"'),
+        ("name", 'name = "echo"', 'name = "bad echo"'),
+        ("version", 'version = "0.1.0"', 'version = "0.1.0 beta"'),
+    ]
+    for field, original, replacement in replacements:
+        package = make_lifecycle_package(tmp_path / f"whitespace-{field}")
         manifest_path = package / "psi.toml"
         manifest_path.write_text(
             manifest_path.read_text(encoding="utf-8").replace(original, replacement),
