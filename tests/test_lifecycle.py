@@ -84,7 +84,7 @@ def test_init_rejects_invalid_manifest_identity_before_write(tmp_path):
 
 
 def test_public_path_helpers_reject_blank_or_non_path_values(tmp_path):
-    for value in ("   ", 123):
+    for value in ("   ", " package ", 123):
         with pytest.raises(ValueError, match="manifest path"):
             manifest_path(value)  # type: ignore[arg-type]
         with pytest.raises(ValueError, match="package path"):
@@ -99,6 +99,10 @@ def test_public_path_helpers_reject_blank_or_non_path_values(tmp_path):
     hub = LocalHub(tmp_path / "hub")
     with pytest.raises(ValueError, match="download destination"):
         hub.download("demo/missing", "   ")
+
+    spaced_root = tmp_path / "package with space"
+    created = init_package(spaced_root, org="demo", name="spaced")
+    assert manifest_path(spaced_root) == created
 
 
 def test_package_models_isolate_mutable_inputs():
