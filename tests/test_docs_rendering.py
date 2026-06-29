@@ -66,6 +66,9 @@ def test_docs_site_builds_core_pages(tmp_path):
     assert "does not launch package services" in local_hub_api_html
     assert "test_server.py" in local_hub_api_html
     assert "Downloaded Package Contracts" in refs_html
+    assert "absolute HTTP(S) URLs" in refs_html
+    assert "text targets must not contain" in refs_html
+    assert "whitespace" in refs_html
     assert "preferred local service port" in refs_html
     assert "psi://demo/events/schemas/event_payload" in refs_html
     assert "psi://demo/echo/schemas/echo_output" in refs_html

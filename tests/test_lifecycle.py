@@ -1462,12 +1462,15 @@ def test_local_config_resolver_rejects_non_string_targets(tmp_path):
         "url = 123",
         "url = \"\"",
         "url = \"   \"",
+        "url = \"http://bad host\"",
         "store = false",
         "store = \"\"",
         "store = \"   \"",
+        "store = \"bad store\"",
         'path = ["x"]',
         "path = \"\"",
         "path = \"   \"",
+        "path = \"bad path\"",
     ):
         with pytest.raises(ValueError, match="non-empty string"):
             LocalConfigResolver.from_text(
@@ -1476,6 +1479,23 @@ def test_local_config_resolver_rejects_non_string_targets(tmp_path):
 {target_line}
 """.lstrip(),
                 root=tmp_path / target_line.split(" ", 1)[0],
+            )
+
+
+def test_local_config_resolver_rejects_malformed_url_targets(tmp_path):
+    resolver = LocalConfigResolver()
+    for url in ("service", "/service", "ftp://service", "http://"):
+        with pytest.raises(ValueError, match="absolute HTTP"):
+            resolver.bind("psi://demo/pkg/tactics/local", url=url)
+
+    for index, url in enumerate(("service", "/service", "ftp://service"), start=1):
+        with pytest.raises(ValueError, match="absolute HTTP"):
+            LocalConfigResolver.from_text(
+                f"""
+[refs."psi://demo/pkg/tactics/local"]
+url = "{url}"
+""".lstrip(),
+                root=tmp_path / f"url-{index}",
             )
 
 

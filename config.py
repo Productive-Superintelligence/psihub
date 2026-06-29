@@ -6,6 +6,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from .manifest import require_path_value
 from .refs import validate_psi_ref
@@ -200,10 +201,15 @@ def _validate_table_values(section: str, key: str, item: dict[str, Any]) -> None
 def _normalize_text_target(ref: str, name: str, value: Any) -> str | None:
     if value is None:
         return None
-    if isinstance(value, str) and value and value == value.strip():
+    if (
+        isinstance(value, str)
+        and value
+        and value == value.strip()
+        and not any(ch.isspace() for ch in value)
+    ):
         return value
     raise ValueError(
-        f"Ref binding target {name!r} must be a non-empty string: {ref}"
+        f"Ref binding target {name!r} must be a non-empty string without whitespace: {ref}"
     )
 
 
@@ -237,8 +243,19 @@ def _validate_target(
 def _validate_text_target(ref: str, name: str, value: Any) -> None:
     if name == "object":
         return
-    if isinstance(value, str) and value:
+    if not isinstance(value, str) or not value:
+        raise ValueError(
+            f"Ref binding target {name!r} must be a non-empty string: {ref}"
+        )
+    if name == "url":
+        _validate_url_target(ref, value)
+        return
+
+
+def _validate_url_target(ref: str, value: str) -> None:
+    parsed = urlparse(value)
+    if parsed.scheme in {"http", "https"} and parsed.netloc:
         return
     raise ValueError(
-        f"Ref binding target {name!r} must be a non-empty string: {ref}"
+        f"Ref binding target 'url' must be an absolute HTTP(S) URL: {ref}"
     )
