@@ -893,6 +893,29 @@ def test_cli_validate_publish_get_and_card(tmp_path, capsys):
     assert "Agent Card: demo/echo" in capsys.readouterr().out
 
 
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["serve", "--host", ""],
+        ["serve", "--host", "bad host"],
+        ["serve", "--host", "http://127.0.0.1"],
+        ["serve", "--port", "0"],
+        ["serve", "--port", "70000"],
+    ],
+)
+def test_cli_serve_rejects_malformed_bindings_before_hub(tmp_path, capsys, args):
+    hub = tmp_path / "hub"
+
+    with pytest.raises(SystemExit) as exc_info:
+        main(["--hub", str(hub), *args])
+
+    assert exc_info.value.code == 2
+    output = capsys.readouterr()
+    assert output.out == ""
+    assert "serve " in output.err
+    assert not hub.exists()
+
+
 def test_cli_publish_rejects_invalid_package(tmp_path, capsys):
     package = make_lifecycle_package(tmp_path)
     text = (package / "psi.toml").read_text(encoding="utf-8")
