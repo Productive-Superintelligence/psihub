@@ -1216,6 +1216,54 @@ def test_card_rendering_skips_malformed_endpoint_metadata(tmp_path):
         assert "/bad-label" not in text
 
 
+def test_card_rendering_skips_malformed_example_metadata(tmp_path):
+    record = PackageRecord(
+        org="demo",
+        name="cards",
+        version="0.1.0",
+        kind="tactic",
+        description="Card rendering boundary.",
+        root=tmp_path,
+        manifest_path=tmp_path / "psi.toml",
+        validation=ValidationReport(ok=True),
+        resources=(
+            HubResource(
+                kind="tactic",
+                name="echo",
+                ref="psi://demo/cards/tactics/echo",
+                metadata={
+                    "examples": [
+                        {
+                            "description": "Uppercase text.",
+                            "input": {"text": "hello"},
+                            "output": {"text": "HELLO"},
+                        },
+                        {"description": 123, "input": {"text": "bad"}},
+                        {"name": object(), "input": {"text": "bad"}},
+                        {"description": "Bad input.", "input": object()},
+                        {
+                            "description": "Partial output.",
+                            "input": {"text": "ok"},
+                            "output": object(),
+                        },
+                    ]
+                },
+            ),
+        ),
+    )
+
+    card = render_package_card(record)
+    agent_card = render_agent_card(record)
+
+    for text in (card, agent_card):
+        assert 'Example: Uppercase text. `input={"text":"hello"}`' in text
+        assert 'Example: Partial output. `input={"text":"ok"}`' in text
+        assert "123" not in text
+        assert "object at" not in text
+        assert "Bad input" not in text
+        assert '{"text":"bad"}' not in text
+
+
 def test_local_publish_excludes_local_secret_config_and_cache_files(tmp_path):
     package = make_lifecycle_package(tmp_path)
     (package / ".env").write_text("TOKEN=secret\n", encoding="utf-8")

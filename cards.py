@@ -343,16 +343,22 @@ def _example_lines(metadata: dict[str, Any]) -> list[str]:
     for example in examples:
         if not isinstance(example, dict):
             continue
-        description = str(
-            example.get("description") or example.get("name") or ""
-        ).strip()
+        description = _example_description(example)
+        if description is None:
+            continue
         parts: list[str] = []
         if "input" in example:
-            parts.append(f"`input={_json_inline(example['input'])}`")
+            rendered = _json_inline(example["input"])
+            if rendered is not None:
+                parts.append(f"`input={rendered}`")
         if "output" in example:
-            parts.append(f"`output={_json_inline(example['output'])}`")
+            rendered = _json_inline(example["output"])
+            if rendered is not None:
+                parts.append(f"`output={rendered}`")
         if "command" in example:
-            parts.append(f"`command={_json_inline(example['command'])}`")
+            rendered = _json_inline(example["command"])
+            if rendered is not None:
+                parts.append(f"`command={rendered}`")
         if not parts:
             continue
         if description and description.endswith((".", "!", "?", ":")):
@@ -363,11 +369,22 @@ def _example_lines(metadata: dict[str, Any]) -> list[str]:
     return lines
 
 
-def _json_inline(value: Any) -> str:
+def _example_description(example: dict[str, Any]) -> str | None:
+    value = example.get("description")
+    if value in (None, ""):
+        value = example.get("name")
+    if value in (None, ""):
+        return ""
+    if not isinstance(value, str):
+        return None
+    return value.strip()
+
+
+def _json_inline(value: Any) -> str | None:
     try:
         return json.dumps(value, sort_keys=True, separators=(",", ":"))
     except TypeError:
-        return json.dumps(str(value))
+        return None
 
 
 def _mapping_summary(value: Any) -> str:
