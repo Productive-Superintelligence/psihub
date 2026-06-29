@@ -35,10 +35,14 @@ def parse_psi_ref(ref: str) -> PsiRef:
     if parsed.params or parsed.query or parsed.fragment:
         raise ValueError(f"Ref must not include params, query, or fragment: {ref}")
     org = parsed.netloc.strip()
-    parts = [part for part in parsed.path.split("/") if part]
-    if len(parts) != 3:
+    raw_parts = parsed.path.split("/")
+    if (
+        len(raw_parts) != 4
+        or raw_parts[0] != ""
+        or any(not part for part in raw_parts[1:])
+    ):
         raise ValueError(f"Ref must have shape psi://org/package/resources/name: {ref}")
-    package, resource_kind, name = parts
+    package, resource_kind, name = raw_parts[1:]
     if not org or not package or not name:
         raise ValueError(f"Ref contains an empty segment: {ref}")
     if resource_kind not in PSI_REF_SECTIONS:

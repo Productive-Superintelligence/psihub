@@ -879,6 +879,16 @@ url = "http://service"
         with pytest.raises(ValueError, match="invalid segment"):
             resolver.resolve(ref)
 
+    for ref in (
+        "psi://demo/pkg/tactics//local",
+        "psi://demo/pkg//tactics/local",
+        "psi://demo/pkg/tactics/local/",
+    ):
+        with pytest.raises(ValueError, match="shape"):
+            resolver.bind(ref, url="http://service")
+        with pytest.raises(ValueError, match="shape"):
+            resolver.resolve(ref)
+
 
 def test_local_config_resolver_requires_one_concrete_target(tmp_path):
     with pytest.raises(ValueError, match="one concrete target"):
