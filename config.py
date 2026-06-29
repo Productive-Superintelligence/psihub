@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -41,7 +42,7 @@ class LocalConfigResolver:
         settings = data.get("settings", {})
         if not isinstance(settings, dict):
             raise ValueError("[settings] must be a TOML table.")
-        resolver._settings = dict(settings)
+        resolver._settings = deepcopy(settings)
         resolver._services = _table_of_tables(data.get("services", {}), "services")
         resolver._stores = _table_of_tables(data.get("stores", {}), "stores")
         for ref, binding in refs.items():
@@ -52,7 +53,11 @@ class LocalConfigResolver:
                 url=binding.get("url"),
                 store=binding.get("store"),
                 path=binding.get("path"),
-                metadata={key: value for key, value in binding.items() if key not in {"url", "store", "path"}},
+                metadata={
+                    key: value
+                    for key, value in binding.items()
+                    if key not in {"url", "store", "path"}
+                },
             )
         return resolver
 
@@ -84,42 +89,54 @@ class LocalConfigResolver:
             store=store,
             path=path,
             object=object,
-            metadata=dict(metadata or {}),
+            metadata=deepcopy(metadata or {}),
         )
 
     def resolve(self, ref: str) -> ResolvedRef:
         validate_psi_ref(ref)
         try:
-            return self._bindings[ref]
+            binding = self._bindings[ref]
         except KeyError as exc:
             raise KeyError(f"Ref is not bound: {ref}") from exc
+        return _copy_binding(binding)
 
     def refs(self) -> tuple[str, ...]:
         return tuple(sorted(self._bindings))
 
     def settings(self) -> dict[str, Any]:
-        return dict(self._settings)
+        return deepcopy(self._settings)
 
     def setting(self, key: str, default: Any = None) -> Any:
-        return self._settings.get(key, default)
+        return deepcopy(self._settings.get(key, default))
 
     def services(self) -> dict[str, dict[str, Any]]:
-        return {name: dict(value) for name, value in self._services.items()}
+        return deepcopy(self._services)
 
     def service(self, name: str) -> dict[str, Any]:
         try:
-            return dict(self._services[name])
+            return deepcopy(self._services[name])
         except KeyError as exc:
             raise KeyError(f"Service config is not bound: {name}") from exc
 
     def stores(self) -> dict[str, dict[str, Any]]:
-        return {name: dict(value) for name, value in self._stores.items()}
+        return deepcopy(self._stores)
 
     def store(self, name: str) -> dict[str, Any]:
         try:
-            return dict(self._stores[name])
+            return deepcopy(self._stores[name])
         except KeyError as exc:
             raise KeyError(f"Store config is not bound: {name}") from exc
+
+
+def _copy_binding(binding: ResolvedRef) -> ResolvedRef:
+    return ResolvedRef(
+        ref=binding.ref,
+        url=binding.url,
+        store=binding.store,
+        path=binding.path,
+        object=binding.object,
+        metadata=deepcopy(binding.metadata) if binding.metadata is not None else None,
+    )
 
 
 def _load_toml(path: Path) -> dict[str, Any]:
@@ -140,7 +157,7 @@ def _table_of_tables(value: Any, name: str) -> dict[str, dict[str, Any]]:
             raise ValueError(f"[{name}.{key}] must be a TOML table.")
         key_text = str(key)
         _validate_table_name(key_text, f"{name}.{key_text}")
-        item_copy = dict(item)
+        item_copy = deepcopy(item)
         _validate_table_values(name, key_text, item_copy)
         result[key_text] = item_copy
     return result

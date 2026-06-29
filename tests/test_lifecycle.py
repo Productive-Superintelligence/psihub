@@ -934,6 +934,26 @@ def test_local_config_resolver_rejects_non_mapping_metadata():
         )
 
 
+def test_local_config_resolver_returns_isolated_binding_metadata():
+    resolver = LocalConfigResolver()
+    metadata = {"headers": {"x-policy": "demo"}}
+    resolver.bind(
+        "psi://demo/pkg/tactics/local",
+        url="http://service",
+        metadata=metadata,
+    )
+
+    metadata["headers"]["x-policy"] = "changed"
+    resolved = resolver.resolve("psi://demo/pkg/tactics/local")
+    assert resolved.metadata == {"headers": {"x-policy": "demo"}}
+
+    assert resolved.metadata is not None
+    resolved.metadata["headers"]["x-policy"] = "mutated"
+    assert resolver.resolve("psi://demo/pkg/tactics/local").metadata == {
+        "headers": {"x-policy": "demo"}
+    }
+
+
 def test_local_config_resolver_rejects_non_string_targets(tmp_path):
     for target_line in (
         "url = 123",
@@ -984,6 +1004,52 @@ path = ".sssn"
         resolver.service("missing")
     with pytest.raises(KeyError):
         resolver.store("missing")
+
+
+def test_local_config_resolver_returns_isolated_nested_config_tables(tmp_path):
+    resolver = LocalConfigResolver.from_text(
+        """
+[settings]
+tags = ["alpha"]
+
+[services.api]
+port = 8000
+
+[services.api.metadata]
+policy_url = "http://policy"
+
+[stores.default]
+path = ".sssn"
+
+[stores.default.metadata]
+owner = "demo"
+""".lstrip(),
+        root=tmp_path / "workspace",
+    )
+
+    settings = resolver.settings()
+    settings["tags"].append("beta")
+    assert resolver.settings() == {"tags": ["alpha"]}
+
+    tag_setting = resolver.setting("tags")
+    tag_setting.append("gamma")
+    assert resolver.setting("tags") == ["alpha"]
+
+    service = resolver.service("api")
+    service["metadata"]["policy_url"] = "http://changed"
+    assert resolver.service("api")["metadata"]["policy_url"] == "http://policy"
+
+    services = resolver.services()
+    services["api"]["metadata"]["policy_url"] = "http://changed-again"
+    assert resolver.services()["api"]["metadata"]["policy_url"] == "http://policy"
+
+    store = resolver.store("default")
+    store["metadata"]["owner"] = "changed"
+    assert resolver.store("default")["metadata"]["owner"] == "demo"
+
+    stores = resolver.stores()
+    stores["default"]["metadata"]["owner"] = "changed-again"
+    assert resolver.stores()["default"]["metadata"]["owner"] == "demo"
 
 
 def test_local_config_resolver_rejects_invalid_service_store_tables(tmp_path):
