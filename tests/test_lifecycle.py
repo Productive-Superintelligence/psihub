@@ -113,6 +113,11 @@ def test_package_models_isolate_mutable_inputs():
     defaults["service"]["metadata"]["port"] = 9000
     tactic.metadata["labels"].append("post-manifest")
     config.defaults["service"]["metadata"]["port"] = 7000
+    config_schema_view = config.schema
+    config_schema_view["properties"]["model"]["type"] = "number"
+    assert manifest.config is not None
+    manifest_schema_view = manifest.config.schema
+    manifest_schema_view["properties"]["model"]["type"] = "boolean"
     hub_metadata["labels"].append("changed")
     resource.metadata["labels"].append("mutated")
     card_metadata["labels"].append("changed")
@@ -124,7 +129,7 @@ def test_package_models_isolate_mutable_inputs():
     assert config.defaults == {"service": {"metadata": {"port": 7000}}}
     assert manifest.tactics["echo"].metadata == {"labels": ["tactic"]}
     assert manifest.tactics["echo"].custom == {"items": ["extra"]}
-    assert manifest.config is not None
+    assert manifest.config.schema == {"properties": {"model": {"type": "string"}}}
     assert manifest.config.defaults == {"service": {"metadata": {"port": 8000}}}
     assert resource.metadata == {"labels": ["hub", "mutated"]}
     assert record.resources[0].metadata == {"labels": ["hub"]}

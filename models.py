@@ -158,7 +158,7 @@ class ConfigResource(BaseModel):
 
     @property
     def schema(self) -> dict[str, Any]:
-        return self.config_schema
+        return deepcopy(self.config_schema)
 
     def model_post_init(self, __context: Any) -> None:
         _isolate_fields(self, "config_schema", "defaults", "metadata")
