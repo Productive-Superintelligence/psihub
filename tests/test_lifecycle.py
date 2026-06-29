@@ -1058,7 +1058,15 @@ def test_local_hub_rejects_malformed_index_shape(tmp_path, payload, message):
 def test_local_hub_rejects_invalid_package_identifiers(tmp_path):
     hub = LocalHub(tmp_path / "hub")
 
-    for identifier in ("demo", "demo/", "/pkg", "../pkg", "demo/.."):
+    for identifier in (
+        "demo",
+        "demo/",
+        "/pkg",
+        "../pkg",
+        "demo/..",
+        "demo org/pkg",
+        "demo/bad pkg",
+    ):
         with pytest.raises(ValueError, match="path segment|org/name"):
             hub.get(identifier)
 
@@ -1651,8 +1659,10 @@ default = ".sssn"
     for section, name in (
         ("services", "../api"),
         ("services", "."),
+        ("services", "bad api"),
         ("stores", "bad/name"),
         ("stores", ".."),
+        ("stores", "bad store"),
     ):
         with pytest.raises(ValueError, match="path-segment"):
             LocalConfigResolver.from_text(
