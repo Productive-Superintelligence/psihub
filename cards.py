@@ -173,13 +173,29 @@ def _store_settings_lines(resources: tuple[Any, ...]) -> list[str]:
 
 def _service_ports(resources: tuple[Any, ...]) -> dict[str, int]:
     ports: dict[str, int] = {}
+    used: set[int] = set()
     next_port = 8000
     for resource in resources:
         if resource.kind != "service":
             continue
-        ports[resource.name] = next_port
+        port = _preferred_service_port(resource)
+        if port is None or port in used:
+            while next_port in used:
+                next_port += 1
+            port = next_port
+        ports[resource.name] = port
+        used.add(port)
         next_port += 1
     return ports
+
+
+def _preferred_service_port(resource: Any) -> int | None:
+    port = resource.metadata.get("port")
+    if isinstance(port, bool) or not isinstance(port, int):
+        return None
+    if not (1 <= port <= 65535):
+        return None
+    return port
 
 
 def _tactic_ports(

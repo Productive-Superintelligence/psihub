@@ -107,7 +107,9 @@ Local hub storage defaults to:
 ```
 
 Generated config templates assign multiple service refs distinct default local
-ports in manifest order. Tactic refs point at the local port for the service
+ports in manifest order. A service can declare `port` in its metadata to prefer
+a local config-template port; PsiHub still only writes passive config and does
+not launch that service. Tactic refs point at the local port for the service
 that declares the tactic, falling back to port 8000 when no service declares it.
 Templates also include passive `[services.*]` port tables and `[stores.*]` path
 tables for humans or future runners to inspect without asking PsiHub to launch

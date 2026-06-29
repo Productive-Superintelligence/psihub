@@ -525,6 +525,29 @@ def test_local_publish_download_card_and_config(tmp_path):
     assert resolver.service("api") == {"port": 8000}
 
 
+def test_config_template_honors_service_metadata_port(tmp_path):
+    package = make_lifecycle_package(tmp_path)
+    manifest = package / "psi.toml"
+    manifest.write_text(
+        manifest.read_text(encoding="utf-8").replace(
+            '[services.api.metadata]\npolicy_url = "http://policy"',
+            '[services.api.metadata]\nport = 8700\npolicy_url = "http://policy"',
+        ),
+        encoding="utf-8",
+    )
+    hub = LocalHub(tmp_path / "hub")
+
+    hub.publish(package)
+    config = hub.config_template("demo/echo")
+    resolver = LocalConfigResolver.from_text(config, root=tmp_path / "workspace")
+
+    assert "[services.api]" in config
+    assert "port = 8700" in config
+    assert 'url = "http://127.0.0.1:8700"' in config
+    assert resolver.service("api") == {"port": 8700}
+    assert resolver.resolve("psi://demo/echo/services/api").metadata["port"] == 8700
+
+
 def test_local_publish_replaces_same_package_version_deterministically(tmp_path):
     package = make_lifecycle_package(tmp_path)
     hub = LocalHub(tmp_path / "hub")
