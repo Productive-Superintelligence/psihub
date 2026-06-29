@@ -168,6 +168,9 @@ def test_package_models_isolate_mutable_inputs():
     tactic_resources = record.resources_by_kind("tactic")
     tactic_resources[0].metadata["labels"].append("from-query")
     assert record.resources[0].metadata == {"labels": ["hub"]}
+    for kind in ("widget", "", None, 123):
+        with pytest.raises(ValueError, match="resource kind"):
+            record.resources_by_kind(kind)  # type: ignore[arg-type]
 
 
 @pytest.mark.parametrize(

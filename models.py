@@ -335,6 +335,7 @@ class PackageRecord(BaseModel):
         return f"{self.identifier}@{self.version}"
 
     def resources_by_kind(self, kind: ResourceKind) -> tuple[HubResource, ...]:
+        _validate_resource_kind(kind)
         return tuple(
             resource.model_copy(deep=True)
             for resource in self.resources
