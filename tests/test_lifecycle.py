@@ -990,6 +990,18 @@ def test_validate_rejects_absolute_declared_file_paths(tmp_path):
         assert not report.ok
         assert any(issue.code == code for issue in report.issues)
 
+        windows_path = f"C:/tmp/{Path(path).name}"
+        text = (package / "psi.toml").read_text(encoding="utf-8")
+        (package / "psi.toml").write_text(
+            text.replace(f'path = "{absolute_path}"', f'path = "{windows_path}"'),
+            encoding="utf-8",
+        )
+
+        windows_report = validate_package(package)
+
+        assert not windows_report.ok
+        assert any(issue.code == code for issue in windows_report.issues)
+
 
 def test_validate_isolates_entrypoint_imports_between_package_roots(tmp_path):
     first = make_entrypoint_cache_package(

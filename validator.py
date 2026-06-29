@@ -5,7 +5,7 @@ from __future__ import annotations
 import importlib
 import sys
 from contextlib import contextmanager
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any, Iterator
 
 from .manifest import load_manifest, manifest_path
@@ -575,7 +575,7 @@ def _validate_declared_file(
 ) -> list[ValidationIssue]:
     if manifest.base_dir is None:
         return []
-    if Path(path).is_absolute():
+    if Path(path).is_absolute() or PureWindowsPath(path).is_absolute():
         return [
             ValidationIssue(
                 level="error",
