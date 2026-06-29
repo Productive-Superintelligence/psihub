@@ -130,6 +130,9 @@ def test_package_models_isolate_mutable_inputs():
     assert record.resources[0].metadata == {"labels": ["hub"]}
     assert record.card is not None
     assert record.card.metadata == {"labels": ["card"]}
+    tactic_resources = record.resources_by_kind("tactic")
+    tactic_resources[0].metadata["labels"].append("from-query")
+    assert record.resources[0].metadata == {"labels": ["hub"]}
 
 
 def test_local_package_lifecycle_example_runs(tmp_path):

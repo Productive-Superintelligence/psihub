@@ -332,7 +332,11 @@ class PackageRecord(BaseModel):
         return f"{self.identifier}@{self.version}"
 
     def resources_by_kind(self, kind: ResourceKind) -> tuple[HubResource, ...]:
-        return tuple(resource for resource in self.resources if resource.kind == kind)
+        return tuple(
+            resource.model_copy(deep=True)
+            for resource in self.resources
+            if resource.kind == kind
+        )
 
 
 def _validate_segment(value: str, field_name: str) -> None:
