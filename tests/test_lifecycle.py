@@ -937,6 +937,36 @@ def test_local_publish_replaces_same_package_version_deterministically(tmp_path)
     assert "Updated echo package." in hub.card("demo/echo")
 
 
+def test_local_hub_get_uses_numeric_version_order_for_latest(tmp_path):
+    package = make_lifecycle_package(tmp_path)
+    manifest = package / "psi.toml"
+    hub = LocalHub(tmp_path / "hub")
+
+    text = manifest.read_text(encoding="utf-8")
+    manifest.write_text(
+        text.replace('version = "0.1.0"', 'version = "0.2.0"'),
+        encoding="utf-8",
+    )
+    older = hub.publish(package)
+
+    text = manifest.read_text(encoding="utf-8")
+    manifest.write_text(
+        text.replace('version = "0.2.0"', 'version = "0.10.0"').replace(
+            'summary = "Echo tactic package."',
+            'summary = "Newer numeric echo package."',
+        ),
+        encoding="utf-8",
+    )
+    newer = hub.publish(package)
+
+    assert older.key == "demo/echo@0.2.0"
+    assert newer.key == "demo/echo@0.10.0"
+    assert hub.get("demo/echo").version == "0.10.0"
+    assert hub.get("demo/echo", version="0.2.0").version == "0.2.0"
+    assert "Newer numeric echo package." in hub.card("demo/echo")
+    assert "Echo tactic package." in hub.card("demo/echo", version="0.2.0")
+
+
 def test_local_hub_reopens_published_index(tmp_path):
     package = make_lifecycle_package(tmp_path)
     hub_root = tmp_path / "hub"

@@ -87,7 +87,9 @@ class LocalHub:
             matches = [record for record in matches if record.version == version]
         if not matches:
             raise KeyError(f"Package not found: {identifier}")
-        return sorted(matches, key=lambda record: record.version)[-1].model_copy(
+        return sorted(matches, key=lambda record: _version_sort_key(record.version))[
+            -1
+        ].model_copy(
             deep=True
         )
 
@@ -405,3 +407,41 @@ def _validate_identifier_segment(value: str, field_name: str) -> None:
         or any(ch in value for ch in "/:\\")
     ):
         raise ValueError(f"{field_name} must be a non-empty path segment.")
+
+
+def _version_sort_key(version: str) -> tuple[Any, ...]:
+    public, _, _local = version.partition("+")
+    release, prerelease_separator, prerelease = public.partition("-")
+    release_parts = release.split(".")
+    if release_parts and all(part.isdecimal() for part in release_parts):
+        return (
+            1,
+            tuple(int(part) for part in release_parts),
+            1 if not prerelease_separator else 0,
+            _natural_text_key(prerelease),
+        )
+    return (0, _natural_text_key(version))
+
+
+def _natural_text_key(text: str) -> tuple[tuple[int, int | str], ...]:
+    parts: list[tuple[int, int | str]] = []
+    current = ""
+    current_is_digit: bool | None = None
+    for char in text:
+        is_digit = char.isdigit()
+        if current and current_is_digit != is_digit:
+            parts.append(_natural_text_part(current, current_is_digit))
+            current = char
+            current_is_digit = is_digit
+            continue
+        current += char
+        current_is_digit = is_digit
+    if current:
+        parts.append(_natural_text_part(current, current_is_digit))
+    return tuple(parts)
+
+
+def _natural_text_part(text: str, is_digit: bool | None) -> tuple[int, int | str]:
+    if is_digit:
+        return (0, int(text))
+    return (1, text.lower())

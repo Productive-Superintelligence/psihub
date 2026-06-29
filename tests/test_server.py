@@ -88,6 +88,61 @@ def test_local_hub_server_lifecycle(tmp_path):
         assert "psi.toml" in archive.namelist()
 
 
+def test_local_hub_server_respects_version_query_and_numeric_latest(tmp_path):
+    package = make_lifecycle_package(tmp_path)
+    manifest = package / "psi.toml"
+    hub = LocalHub(tmp_path / "hub")
+
+    text = manifest.read_text(encoding="utf-8")
+    manifest.write_text(
+        text.replace('version = "0.1.0"', 'version = "0.2.0"'),
+        encoding="utf-8",
+    )
+    hub.publish(package)
+
+    text = manifest.read_text(encoding="utf-8")
+    manifest.write_text(
+        text.replace('version = "0.2.0"', 'version = "0.10.0"').replace(
+            'summary = "Echo tactic package."',
+            'summary = "Newer numeric echo package."',
+        ),
+        encoding="utf-8",
+    )
+    hub.publish(package)
+    app = create_app(hub=hub)
+
+    async def run():
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url="http://testserver",
+        ) as client:
+            latest = await client.get("/packages/demo/echo")
+            older = await client.get(
+                "/packages/demo/echo",
+                params={"version": "0.2.0"},
+            )
+            older_card = await client.get(
+                "/packages/demo/echo/card",
+                params={"version": "0.2.0"},
+            )
+            older_download = await client.get(
+                "/packages/demo/echo/download",
+                params={"version": "0.2.0"},
+            )
+        return latest, older, older_card, older_download
+
+    latest, older, older_card, older_download = asyncio.run(run())
+
+    assert latest.json()["version"] == "0.10.0"
+    assert older.json()["version"] == "0.2.0"
+    assert "Echo tactic package." in older_card.text
+    assert "Newer numeric echo package." not in older_card.text
+    with zipfile.ZipFile(io.BytesIO(older_download.content)) as archive:
+        manifest_text = archive.read("psi.toml").decode()
+    assert 'version = "0.2.0"' in manifest_text
+
+
 def test_local_hub_server_rejects_invalid_publish(tmp_path):
     package = make_lifecycle_package(tmp_path)
     text = (package / "psi.toml").read_text(encoding="utf-8")
