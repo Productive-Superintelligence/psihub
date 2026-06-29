@@ -118,11 +118,39 @@ class LocalHub:
     def _load(self) -> None:
         if not self.index_path.is_file():
             return
-        data = json.loads(self.index_path.read_text(encoding="utf-8"))
-        self._records = {
-            item["key"]: PackageRecord.model_validate(item["record"])
-            for item in data.get("records", [])
-        }
+        try:
+            data = json.loads(self.index_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"Invalid local hub index: {exc}") from exc
+        if not isinstance(data, dict):
+            raise ValueError("Invalid local hub index: root must be an object.")
+        records = data.get("records", [])
+        if not isinstance(records, list):
+            raise ValueError("Invalid local hub index: records must be a list.")
+
+        loaded: dict[str, PackageRecord] = {}
+        for index, item in enumerate(records):
+            if not isinstance(item, dict):
+                raise ValueError(
+                    f"Invalid local hub index record {index}: must be an object."
+                )
+            key = item.get("key")
+            if not isinstance(key, str) or not key.strip():
+                raise ValueError(
+                    f"Invalid local hub index record {index}: key must be a string."
+                )
+            raw_record = item.get("record")
+            if not isinstance(raw_record, dict):
+                raise ValueError(
+                    f"Invalid local hub index record {index}: record must be an object."
+                )
+            record = PackageRecord.model_validate(raw_record)
+            if key != record.key:
+                raise ValueError(
+                    f"Invalid local hub index record {index}: key does not match record."
+                )
+            loaded[key] = record
+        self._records = loaded
 
     def _write(self) -> None:
         payload: dict[str, Any] = {

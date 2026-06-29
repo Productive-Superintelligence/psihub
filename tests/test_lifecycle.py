@@ -861,6 +861,26 @@ def test_local_hub_rejects_path_control_record_identity_on_load(tmp_path):
         LocalHub(hub_root)
 
 
+@pytest.mark.parametrize(
+    ("payload", "message"),
+    [
+        ("[]", "root must be an object"),
+        ('{"records": {}}', "records must be a list"),
+        ('{"records": [null]}', "record 0: must be an object"),
+        ('{"records": [{"key": "", "record": {}}]}', "key must be a string"),
+        ('{"records": [{"key": "demo/echo@0.1.0"}]}', "record must be an object"),
+    ],
+)
+def test_local_hub_rejects_malformed_index_shape(tmp_path, payload, message):
+    hub_root = tmp_path / "hub"
+    index_path = hub_root / "index" / "packages.json"
+    index_path.parent.mkdir(parents=True)
+    index_path.write_text(payload, encoding="utf-8")
+
+    with pytest.raises(ValueError, match=message):
+        LocalHub(hub_root)
+
+
 def test_local_hub_rejects_invalid_package_identifiers(tmp_path):
     hub = LocalHub(tmp_path / "hub")
 
@@ -924,6 +944,23 @@ def test_cli_rejects_blank_hub_without_traceback(capsys):
     output = capsys.readouterr()
     assert output.out == ""
     assert "hub root must be a non-empty path string" in output.err
+    assert "Traceback" not in output.err
+
+
+@pytest.mark.parametrize("payload", ["[]", '{"records": [null]}'])
+def test_cli_reports_malformed_hub_index_without_traceback(tmp_path, capsys, payload):
+    hub = tmp_path / "hub"
+    index_path = hub / "index" / "packages.json"
+    index_path.parent.mkdir(parents=True)
+    index_path.write_text(payload, encoding="utf-8")
+
+    with pytest.raises(SystemExit) as exc_info:
+        main(["--hub", str(hub), "list"])
+
+    assert exc_info.value.code == 2
+    output = capsys.readouterr()
+    assert output.out == ""
+    assert "Invalid local hub index" in output.err
     assert "Traceback" not in output.err
 
 
