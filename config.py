@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from .manifest import require_path_value
 from .refs import validate_psi_ref
 
 
@@ -32,7 +33,7 @@ class LocalConfigResolver:
     @classmethod
     def from_file(cls, path: str | Path) -> "LocalConfigResolver":
         resolver = cls()
-        target = Path(path)
+        target = Path(require_path_value(path, "config path"))
         if target.is_dir():
             target = target / ".psi" / "config.toml"
         data = _load_toml(target)
@@ -63,7 +64,8 @@ class LocalConfigResolver:
 
     @classmethod
     def from_text(cls, text: str, *, root: str | Path | None = None) -> "LocalConfigResolver":
-        root_path = Path(root or ".")
+        root_value = "." if root is None else root
+        root_path = Path(require_path_value(root_value, "config root"))
         target = root_path / ".psi" / "config.toml"
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(text, encoding="utf-8")
@@ -82,6 +84,9 @@ class LocalConfigResolver:
         validate_psi_ref(ref)
         if metadata is not None and not isinstance(metadata, dict):
             raise ValueError(f"Ref binding metadata must be a table: {ref}")
+        url = _normalize_text_target(ref, "url", url)
+        store = _normalize_text_target(ref, "store", store)
+        path = _normalize_text_target(ref, "path", path)
         _validate_target(ref, url=url, store=store, path=path, object=object)
         self._bindings[ref] = ResolvedRef(
             ref=ref,
@@ -188,8 +193,19 @@ def _validate_table_values(section: str, key: str, item: dict[str, Any]) -> None
             )
     if section == "stores" and "path" in item:
         path = item["path"]
-        if not isinstance(path, str) or not path:
+        if not isinstance(path, str) or not path.strip():
             raise ValueError(f"[stores.{key}] path must be a non-empty string.")
+        item["path"] = path.strip()
+
+
+def _normalize_text_target(ref: str, name: str, value: Any) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    raise ValueError(
+        f"Ref binding target {name!r} must be a non-empty string: {ref}"
+    )
 
 
 def _validate_target(

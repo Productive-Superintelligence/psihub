@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import textwrap
 from pathlib import Path
 from typing import Any
@@ -10,8 +11,18 @@ from typing import Any
 from .models import PackageInfo, PackageManifest
 
 
+def require_path_value(value: Any, label: str = "path") -> str:
+    try:
+        text = os.fspath(value)
+    except TypeError as exc:
+        raise ValueError(f"{label} must be a non-empty path string") from exc
+    if not isinstance(text, str) or not text.strip():
+        raise ValueError(f"{label} must be a non-empty path string")
+    return text.strip()
+
+
 def manifest_path(path: str | Path) -> Path:
-    value = Path(path).expanduser()
+    value = Path(require_path_value(path, "manifest path")).expanduser()
     if value.is_dir():
         value = value / "psi.toml"
     return value.resolve()
@@ -33,7 +44,7 @@ def init_package(
     kind: str = "mixed",
     force: bool = False,
 ) -> Path:
-    root = Path(path).expanduser()
+    root = Path(require_path_value(path, "package path")).expanduser()
     root.mkdir(parents=True, exist_ok=True)
     target = root / "psi.toml"
     if target.exists() and not force:

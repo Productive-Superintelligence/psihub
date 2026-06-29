@@ -11,6 +11,7 @@ from psihub import (
     PublishValidationError,
     init_package,
     load_manifest,
+    manifest_path,
     validate_package,
 )
 from psihub.models import (
@@ -78,6 +79,24 @@ def test_init_rejects_invalid_manifest_identity_before_write(tmp_path):
     with pytest.raises(ValueError, match="Input should be"):
         init_package(target, org="demo", name="pkg", kind="unknown")
     assert not (target / "psi.toml").exists()
+
+
+def test_public_path_helpers_reject_blank_or_non_path_values(tmp_path):
+    for value in ("   ", 123):
+        with pytest.raises(ValueError, match="manifest path"):
+            manifest_path(value)  # type: ignore[arg-type]
+        with pytest.raises(ValueError, match="package path"):
+            init_package(value)  # type: ignore[arg-type]
+        with pytest.raises(ValueError, match="config path"):
+            LocalConfigResolver.from_file(value)  # type: ignore[arg-type]
+        with pytest.raises(ValueError, match="config root"):
+            LocalConfigResolver.from_text("[refs]\n", root=value)  # type: ignore[arg-type]
+        with pytest.raises(ValueError, match="hub root"):
+            LocalHub(value)  # type: ignore[arg-type]
+
+    hub = LocalHub(tmp_path / "hub")
+    with pytest.raises(ValueError, match="download destination"):
+        hub.download("demo/missing", "   ")
 
 
 def test_package_models_isolate_mutable_inputs():
@@ -1137,6 +1156,18 @@ def test_local_config_resolver_rejects_non_mapping_metadata():
         )
 
 
+def test_local_config_resolver_trims_text_targets():
+    resolver = LocalConfigResolver()
+
+    resolver.bind("psi://demo/pkg/tactics/local", url="  http://service  ")
+    resolver.bind("psi://demo/pkg/channels/events", store="  .sssn  ")
+    resolver.bind("psi://demo/pkg/docs/readme", path="  docs/readme.md  ")
+
+    assert resolver.resolve("psi://demo/pkg/tactics/local").url == "http://service"
+    assert resolver.resolve("psi://demo/pkg/channels/events").store == ".sssn"
+    assert resolver.resolve("psi://demo/pkg/docs/readme").path == "docs/readme.md"
+
+
 def test_local_config_resolver_returns_isolated_binding_metadata():
     resolver = LocalConfigResolver()
     metadata = {"headers": {"x-policy": "demo"}}
@@ -1161,10 +1192,13 @@ def test_local_config_resolver_rejects_non_string_targets(tmp_path):
     for target_line in (
         "url = 123",
         "url = \"\"",
+        "url = \"   \"",
         "store = false",
         "store = \"\"",
+        "store = \"   \"",
         'path = ["x"]',
         "path = \"\"",
+        "path = \"   \"",
     ):
         with pytest.raises(ValueError, match="non-empty string"):
             LocalConfigResolver.from_text(
@@ -1194,14 +1228,21 @@ port = 8000
 
 [stores.default]
 path = ".sssn"
+
+[stores.spaced]
+path = "  .trimmed-store  "
 """.lstrip(),
         root=tmp_path / "workspace",
     )
 
     assert resolver.services() == {"api": {"port": 8000}}
     assert resolver.service("api") == {"port": 8000}
-    assert resolver.stores() == {"default": {"path": ".sssn"}}
+    assert resolver.stores() == {
+        "default": {"path": ".sssn"},
+        "spaced": {"path": ".trimmed-store"},
+    }
     assert resolver.store("default") == {"path": ".sssn"}
+    assert resolver.store("spaced") == {"path": ".trimmed-store"}
 
     with pytest.raises(KeyError):
         resolver.service("missing")
@@ -1301,7 +1342,7 @@ port = {port}
                 root=tmp_path / f"port-{index}",
             )
 
-    for index, path in enumerate(("123", '""'), start=1):
+    for index, path in enumerate(("123", '""', '"   "'), start=1):
         with pytest.raises(ValueError, match="path"):
             LocalConfigResolver.from_text(
                 f"""

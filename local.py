@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from .cards import render_agent_card, render_config_template, render_package_card
-from .manifest import load_manifest, manifest_path
+from .manifest import load_manifest, manifest_path, require_path_value
 from .models import HubResource, PackageManifest, PackageRecord, ValidationReport
 from .validator import validate_package
 
@@ -25,7 +25,7 @@ class LocalHub:
     """A deterministic local package hub."""
 
     def __init__(self, root: str | Path = ".psihub") -> None:
-        self.root = Path(root).expanduser().resolve()
+        self.root = Path(require_path_value(root, "hub root")).expanduser().resolve()
         self.packages_dir = self.root / "packages"
         self.index_dir = self.root / "index"
         self.index_path = self.index_dir / "packages.json"
@@ -82,8 +82,11 @@ class LocalHub:
         *,
         version: str | None = None,
     ) -> Path:
+        destination_root = Path(
+            require_path_value(destination, "download destination")
+        ).expanduser()
         record = self.get(identifier, version=version)
-        target = Path(destination).expanduser() / record.name
+        target = destination_root / record.name
         if target.exists():
             shutil.rmtree(target)
         shutil.copytree(record.root, target)
