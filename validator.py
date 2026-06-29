@@ -39,13 +39,7 @@ def validate_package(path: str | Path) -> ValidationReport:
     except Exception as exc:
         return ValidationReport(
             ok=False,
-            issues=(
-                ValidationIssue(
-                    level="error",
-                    code="manifest_load_failed",
-                    message=str(exc),
-                ),
-            ),
+            issues=(_manifest_load_issue(exc),),
         )
 
     issues.extend(_validate_resource_names(manifest))
@@ -65,6 +59,28 @@ def validate_package(path: str | Path) -> ValidationReport:
     return ValidationReport(
         ok=not any(issue.level == "error" for issue in issues),
         issues=tuple(issues),
+    )
+
+
+def _manifest_load_issue(exc: Exception) -> ValidationIssue:
+    message = str(exc)
+    return ValidationIssue(
+        level="error",
+        code=(
+            "manifest_duplicate_name"
+            if _looks_like_duplicate_toml_name(message)
+            else "manifest_load_failed"
+        ),
+        message=message,
+    )
+
+
+def _looks_like_duplicate_toml_name(message: str) -> bool:
+    normalized = message.lower()
+    return (
+        ("cannot declare" in normalized and "twice" in normalized)
+        or ("duplicate" in normalized and "key" in normalized)
+        or ("duplicate" in normalized and "table" in normalized)
     )
 
 

@@ -309,6 +309,18 @@ def test_validate_catches_missing_service_tactic(tmp_path):
     assert any(issue.code == "service_tactic_missing" for issue in report.issues)
 
 
+def test_validate_catches_duplicate_resource_table_names(tmp_path):
+    package = make_lifecycle_package(tmp_path)
+    with (package / "psi.toml").open("a", encoding="utf-8") as handle:
+        handle.write('\n[tactics.echo]\nentry = "demo.tactics:EchoTactic"\n')
+
+    report = validate_package(package)
+
+    assert not report.ok
+    assert any(issue.code == "manifest_duplicate_name" for issue in report.issues)
+    assert any("twice" in issue.message for issue in report.issues)
+
+
 def test_validate_catches_unbound_service(tmp_path):
     package = make_lifecycle_package(tmp_path)
     text = (package / "psi.toml").read_text(encoding="utf-8")
@@ -321,6 +333,70 @@ def test_validate_catches_unbound_service(tmp_path):
 
     assert not report.ok
     assert any(issue.code == "service_unbound" for issue in report.issues)
+
+
+def test_validate_catches_missing_service_channel_refs(tmp_path):
+    replacements = [
+        ("subscribe", 'subscribes = ["events"]', 'subscribes = ["missing"]'),
+        ("publish", 'publishes = ["analysis"]', 'publishes = ["missing"]'),
+    ]
+    for name, old, new in replacements:
+        package = make_combined_package(tmp_path / name)
+        manifest = package / "psi.toml"
+        manifest.write_text(
+            manifest.read_text(encoding="utf-8").replace(old, new, 1),
+            encoding="utf-8",
+        )
+
+        report = validate_package(package)
+
+        assert not report.ok
+        assert any(issue.code == "service_channel_missing" for issue in report.issues)
+
+
+def test_validate_checks_all_run_resource_refs(tmp_path):
+    cases = [
+        (
+            "service",
+            make_lifecycle_package,
+            'services = ["api"]',
+            'services = ["missing"]',
+            "run_service_missing",
+        ),
+        (
+            "tactic",
+            make_lifecycle_package,
+            'services = ["api"]',
+            'services = ["api"]\ntactics = ["missing"]',
+            "run_tactic_missing",
+        ),
+        (
+            "channel",
+            make_combined_package,
+            'channels = ["events", "analysis"]',
+            'channels = ["missing"]',
+            "run_channel_missing",
+        ),
+        (
+            "snapshot",
+            make_combined_package,
+            'snapshots = ["latest_analysis"]',
+            'snapshots = ["missing"]',
+            "run_snapshot_missing",
+        ),
+    ]
+    for name, factory, old, new, code in cases:
+        package = factory(tmp_path / name)
+        manifest = package / "psi.toml"
+        manifest.write_text(
+            manifest.read_text(encoding="utf-8").replace(old, new, 1),
+            encoding="utf-8",
+        )
+
+        report = validate_package(package)
+
+        assert not report.ok
+        assert any(issue.code == code for issue in report.issues)
 
 
 def test_validate_checks_schema_psi_refs(tmp_path):
