@@ -9,7 +9,8 @@ psi://demo/echo/channels/events
 psi://demo/echo/snapshots/latest
 ```
 
-Ref segments must be non-empty path segments without whitespace.
+Ref segments must be non-empty path segments without whitespace, percent
+escapes, or path separators.
 
 Local config maps those refs to concrete development targets:
 

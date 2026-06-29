@@ -173,7 +173,7 @@ def _invalid_segment(value: str) -> bool:
         or not value.strip()
         or value in {".", ".."}
         or any(ch.isspace() for ch in value)
-        or any(ch in value for ch in "/:\\")
+        or any(ch in value for ch in "/:\\%")
     )
 
 

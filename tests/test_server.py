@@ -195,6 +195,8 @@ def test_local_hub_server_rejects_invalid_package_identifiers(tmp_path):
                     "/packages/demo/bad:name",
                     "/packages/bad%20org/echo",
                     "/packages/demo/bad%20name",
+                    "/packages/bad%25org/echo",
+                    "/packages/demo/bad%25name",
                     "/packages/bad:org/echo/card",
                     "/packages/bad:org/echo/agent-card",
                     "/packages/bad:org/echo/config-template",

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 
 PSI_REF_SECTIONS = {
@@ -48,12 +48,18 @@ def parse_psi_ref(ref: str) -> PsiRef:
     if not org or not package.strip() or not name.strip():
         raise ValueError(f"Ref contains an empty segment: {ref}")
     for segment in (org, package, resource_kind, name):
-        if any(ch.isspace() for ch in segment):
+        decoded_segment = unquote(segment)
+        if any(ch.isspace() for ch in decoded_segment):
             raise ValueError(f"Ref contains a whitespace-bearing segment: {ref}")
     if resource_kind not in PSI_REF_SECTIONS:
         raise ValueError(f"Ref uses unknown resource section {resource_kind!r}: {ref}")
     for segment in (org, package, name):
-        if segment in {".", ".."} or any(ch in segment for ch in ":\\"):
+        decoded_segment = unquote(segment)
+        if (
+            decoded_segment in {".", ".."}
+            or any(ch in decoded_segment for ch in "/:\\")
+            or "%" in segment
+        ):
             raise ValueError(f"Ref contains an invalid segment: {ref}")
     return PsiRef(org=org, package=package, resource_kind=resource_kind, name=name)
 

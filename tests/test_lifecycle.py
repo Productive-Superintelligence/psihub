@@ -228,12 +228,20 @@ def test_package_models_reject_bytes_for_declared_string_fields(factory):
         lambda: PackageInfo(org="   ", name="pkg"),
         lambda: PackageInfo(org="demo", name="pkg", version="   "),
         lambda: PackageInfo(org="demo org", name="pkg"),
+        lambda: PackageInfo(org="demo%2Forg", name="pkg"),
         lambda: PackageInfo(org="demo", name="bad pkg"),
+        lambda: PackageInfo(org="demo", name="bad%2Fpkg"),
         lambda: PackageInfo(org="demo", name="pkg", version="0.1.0 beta"),
+        lambda: PackageInfo(org="demo", name="pkg", version="0.1.0%20beta"),
         lambda: HubResource(
             kind="tactic",
             name="bad tactic",
             ref="psi://demo/pkg/tactics/bad-tactic",
+        ),
+        lambda: HubResource(
+            kind="tactic",
+            name="bad%2Ftactic",
+            ref="psi://demo/pkg/tactics/bad%2Ftactic",
         ),
         lambda: PackageRecord(
             org="demo",
@@ -253,6 +261,15 @@ def test_package_models_reject_bytes_for_declared_string_fields(factory):
             manifest_path=Path("psi.toml"),
             validation=ValidationReport(ok=True),
         ),
+        lambda: PackageRecord(
+            org="demo",
+            name="bad%2Fpkg",
+            version="0.1.0",
+            kind="mixed",
+            root=Path("."),
+            manifest_path=Path("psi.toml"),
+            validation=ValidationReport(ok=True),
+        ),
         lambda: PackageManifest(package=PackageInfo(org="demo", name="pkg")).ref(
             "tactic",
             "   ",
@@ -261,16 +278,30 @@ def test_package_models_reject_bytes_for_declared_string_fields(factory):
             "tactic",
             "bad tactic",
         ),
+        lambda: PackageManifest(package=PackageInfo(org="demo", name="pkg")).ref(
+            "tactic",
+            "bad%2Ftactic",
+        ),
     ],
 )
-def test_package_identity_models_reject_whitespace_segments(factory):
+def test_package_identity_models_reject_malformed_segments(factory):
     with pytest.raises(ValueError, match="path segment"):
         factory()
 
 
 @pytest.mark.parametrize(
     "value",
-    ("", "   ", ".", "..", "bad token", "bad/token", "bad:token", "bad\\token"),
+    (
+        "",
+        "   ",
+        ".",
+        "..",
+        "bad token",
+        "bad/token",
+        "bad:token",
+        "bad\\token",
+        "bad%2Ftoken",
+    ),
 )
 def test_package_resource_metadata_rejects_malformed_tokens(value):
     with pytest.raises(ValidationError):
@@ -1201,6 +1232,7 @@ def test_local_hub_rejects_malformed_version_selectors(tmp_path):
         "..",
         "0.1.0 beta",
         "bad/version",
+        "0.1.0%2Fbad",
     ):
         if value is None:
             assert hub.get("demo/echo", version=value).version == "0.1.0"
@@ -1273,6 +1305,8 @@ def test_local_hub_rejects_invalid_package_identifiers(tmp_path):
         "demo/..",
         "demo org/pkg",
         "demo/bad pkg",
+        "demo%2Forg/pkg",
+        "demo/bad%2Fpkg",
     ):
         with pytest.raises(ValueError, match="path segment|org/name"):
             hub.get(identifier)
@@ -1646,6 +1680,24 @@ url = "http://service"
         with pytest.raises(ValueError, match="whitespace-bearing"):
             resolver.resolve(ref)
 
+    for ref in (
+        "psi://demo%2Forg/pkg/tactics/local",
+        "psi://demo/pkg%2Fname/tactics/local",
+        "psi://demo/pkg/tactics/local%2Fname",
+        "psi://demo/pkg/tactics/local%5Cname",
+        "psi://demo/pkg/tactics/%2E%2E",
+        "psi://demo/pkg/tactics/local%20name",
+        "psi://demo/pkg/tactics/local%3Aname",
+    ):
+        with pytest.raises(ValueError, match="invalid segment|whitespace-bearing"):
+            parse_psi_ref(ref)
+        with pytest.raises(ValueError, match="invalid segment|whitespace-bearing"):
+            validate_psi_ref(ref)
+        with pytest.raises(ValueError, match="invalid segment|whitespace-bearing"):
+            resolver.bind(ref, url="http://service")
+        with pytest.raises(ValueError, match="invalid segment|whitespace-bearing"):
+            resolver.resolve(ref)
+
 
 def test_psi_ref_helpers_reject_non_string_and_blank_refs():
     resolver = LocalConfigResolver()
@@ -1875,9 +1927,11 @@ default = ".sssn"
         ("services", "../api"),
         ("services", "."),
         ("services", "bad api"),
+        ("services", "api%2Fhidden"),
         ("stores", "bad/name"),
         ("stores", ".."),
         ("stores", "bad store"),
+        ("stores", "default%20bad"),
     ):
         with pytest.raises(ValueError, match="path-segment"):
             LocalConfigResolver.from_text(

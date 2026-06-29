@@ -67,6 +67,8 @@ def test_docs_site_builds_core_pages(tmp_path):
     assert "test_server.py" in local_hub_api_html
     assert "Downloaded Package Contracts" in refs_html
     assert "Ref segments must be non-empty path segments without whitespace" in refs_html
+    assert "percent" in refs_html
+    assert "escapes" in refs_html
     assert "absolute HTTP(S) URLs" in refs_html
     assert "text targets must not contain" in refs_html
     assert "whitespace" in refs_html

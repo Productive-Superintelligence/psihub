@@ -380,7 +380,7 @@ def _validate_segment(value: str, field_name: str) -> None:
         or not value.strip()
         or value in {".", ".."}
         or any(ch.isspace() for ch in value)
-        or any(ch in value for ch in "/:\\")
+        or any(ch in value for ch in "/:\\%")
     ):
         raise ValueError(f"{field_name} must be a non-empty path segment.")
 
@@ -391,7 +391,7 @@ def _validate_token(value: str, field_name: str) -> None:
         or not value.strip()
         or value in {".", ".."}
         or any(ch.isspace() for ch in value)
-        or any(ch in value for ch in "/:\\")
+        or any(ch in value for ch in "/:\\%")
     ):
         raise ValueError(f"{field_name} must be a non-empty token.")
 
