@@ -99,11 +99,16 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"{issue.level}: {issue.code}: {issue.message}", file=sys.stderr)
             print("failed")
             return 1
+        except (OSError, ValueError) as exc:
+            parser.error(str(exc))
         print(record.key)
         return 0 if record.validation.ok or args.no_validate else 1
 
     if args.command == "get":
-        print(hub.download(args.identifier, args.dest, version=args.version))
+        try:
+            print(hub.download(args.identifier, args.dest, version=args.version))
+        except (KeyError, ValueError) as exc:
+            parser.error(str(exc))
         return 0
 
     if args.command == "list":
@@ -112,15 +117,24 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "card":
-        print(hub.card(args.identifier, version=args.version), end="")
+        try:
+            print(hub.card(args.identifier, version=args.version), end="")
+        except (KeyError, ValueError) as exc:
+            parser.error(str(exc))
         return 0
 
     if args.command == "agent-card":
-        print(hub.agent_card(args.identifier, version=args.version), end="")
+        try:
+            print(hub.agent_card(args.identifier, version=args.version), end="")
+        except (KeyError, ValueError) as exc:
+            parser.error(str(exc))
         return 0
 
     if args.command == "config-template":
-        print(hub.config_template(args.identifier, version=args.version), end="")
+        try:
+            print(hub.config_template(args.identifier, version=args.version), end="")
+        except (KeyError, ValueError) as exc:
+            parser.error(str(exc))
         return 0
 
     if args.command == "serve":
