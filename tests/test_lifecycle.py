@@ -681,6 +681,116 @@ def test_lifecycle_covers_tactic_channel_and_combined_packages(tmp_path):
     assert resolver.store("default") == {"path": ".sssn"}
 
 
+def test_downloaded_packages_can_seed_downstream_composition_package(tmp_path):
+    tactic_package = make_lifecycle_package(tmp_path)
+    channel_package = make_channel_package(tmp_path)
+    hub = LocalHub(tmp_path / "hub")
+    hub.publish(tactic_package)
+    hub.publish(channel_package)
+
+    downloaded_root = tmp_path / "downloaded"
+    downloaded_tactic = hub.download("demo/echo", downloaded_root)
+    downloaded_channel = hub.download("demo/events", downloaded_root)
+    tactic_manifest = load_manifest(downloaded_tactic)
+    channel_manifest = load_manifest(downloaded_channel)
+    event_schema_ref = channel_manifest.ref("schema", "event_payload")
+    output_schema_ref = tactic_manifest.ref("schema", "echo_output")
+
+    downstream = tmp_path / "downstream"
+    module = downstream / "consumer"
+    module.mkdir(parents=True)
+    (downstream / "README.md").write_text(
+        "# Downstream\n\nComposes downloaded package contracts.\n",
+        encoding="utf-8",
+    )
+    (module / "__init__.py").write_text("", encoding="utf-8")
+    (module / "tactics.py").write_text(
+        """
+class Summarize:
+    name = "summarize"
+
+    def run(self, input_value, *, context=None):
+        if isinstance(input_value, dict):
+            text = input_value["text"]
+        else:
+            text = input_value.text
+        return {"text": text.upper()}
+""".lstrip(),
+        encoding="utf-8",
+    )
+    (module / "service.py").write_text(
+        """
+def create_app():
+    return {"service": "downstream"}
+""".lstrip(),
+        encoding="utf-8",
+    )
+    (downstream / "psi.toml").write_text(
+        f"""
+[package]
+psi_version = "0.1"
+org = "demo"
+name = "downstream"
+version = "0.1.0"
+kind = "app"
+primary = "services.analyzer"
+description = "Downstream package built from downloaded package contracts."
+
+[card]
+summary = "Downstream composition package."
+
+[docs.readme]
+path = "README.md"
+title = "README"
+
+[tactics.summarize]
+entry = "consumer.tactics:Summarize"
+input = "{event_schema_ref}"
+output = "{output_schema_ref}"
+
+[channels.events]
+schema = "{event_schema_ref}"
+form = "log"
+
+[channels.analysis]
+schema = "{output_schema_ref}"
+form = "log"
+
+[services.analyzer]
+entry = "consumer.service:create_app"
+tactic = "summarize"
+subscribes = ["events"]
+publishes = ["analysis"]
+
+[runs.local]
+services = ["analyzer"]
+channels = ["events", "analysis"]
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    report = validate_package(downstream)
+    downstream_record = hub.publish(downstream)
+    downloaded_downstream = hub.download("demo/downstream", tmp_path / "consumer-copy")
+    config = hub.config_template("demo/downstream")
+    resolver = LocalConfigResolver.from_text(config, root=tmp_path / "workspace")
+
+    assert validate_package(downloaded_tactic).ok
+    assert validate_package(downloaded_channel).ok
+    assert report.ok
+    assert not [issue for issue in report.issues if issue.level == "error"]
+    assert downstream_record.validation.ok
+    assert validate_package(downloaded_downstream).ok
+    assert event_schema_ref == "psi://demo/events/schemas/event_payload"
+    assert output_schema_ref == "psi://demo/echo/schemas/echo_output"
+    assert '[refs."psi://demo/downstream/tactics/summarize"]' in config
+    assert '[refs."psi://demo/downstream/channels/events"]' in config
+    assert resolver.resolve("psi://demo/downstream/tactics/summarize").url == (
+        "http://127.0.0.1:8000/tactics/summarize"
+    )
+    assert resolver.resolve("psi://demo/downstream/channels/analysis").store == ".sssn"
+
+
 def test_local_config_resolver_supports_registered_objects():
     resolver = LocalConfigResolver()
     obj = object()
