@@ -311,6 +311,11 @@ class ValidationIssue(BaseModel):
     message: StrictStr
     resource: StrictStr | None = None
 
+    @model_validator(mode="after")
+    def _validate_code(self) -> "ValidationIssue":
+        _validate_token(self.code, "issue.code")
+        return self
+
 
 class ValidationReport(BaseModel):
     model_config = ConfigDict(frozen=True)

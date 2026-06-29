@@ -284,6 +284,25 @@ def test_package_resource_metadata_allows_common_token_separators():
     assert channel.form == "time-series"
 
 
+@pytest.mark.parametrize(
+    "value",
+    ("", "   ", ".", "..", "bad code", "bad/code", "bad:code", "bad\\code"),
+)
+def test_validation_issue_rejects_malformed_codes(value):
+    with pytest.raises(ValidationError):
+        ValidationIssue(level="error", code=value, message="broken")
+
+
+def test_validation_issue_allows_common_code_separators():
+    issue = ValidationIssue(
+        level="error",
+        code="schema_ref_kind_mismatch",
+        message="broken",
+    )
+
+    assert issue.code == "schema_ref_kind_mismatch"
+
+
 def test_package_manifest_ref_rejects_invalid_resource_kind():
     manifest = PackageManifest(package=PackageInfo(org="demo", name="pkg"))
 
