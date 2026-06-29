@@ -626,6 +626,27 @@ def test_local_publish_download_card_and_config(tmp_path):
     assert resolver.service("api") == {"port": 8000}
 
 
+def test_local_hub_returns_isolated_package_records(tmp_path):
+    package = make_lifecycle_package(tmp_path)
+    hub = LocalHub(tmp_path / "hub")
+
+    published = hub.publish(package)
+    fetched = hub.get("demo/echo")
+    listed = hub.list()[0]
+    for record in (published, fetched, listed):
+        tactic = next(
+            resource for resource in record.resources if resource.kind == "tactic"
+        )
+        tactic.metadata["examples"][0]["input"]["text"] = "mutated"
+
+    stored = hub.get("demo/echo")
+    tactic = next(
+        resource for resource in stored.resources if resource.kind == "tactic"
+    )
+
+    assert tactic.metadata["examples"][0]["input"] == {"text": "hello"}
+
+
 def test_config_template_honors_service_metadata_port(tmp_path):
     package = make_lifecycle_package(tmp_path)
     manifest = package / "psi.toml"

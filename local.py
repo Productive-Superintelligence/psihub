@@ -58,7 +58,7 @@ class LocalHub:
         record = record_from_manifest(manifest, validation=report)
         self._records[record.key] = record
         self._write()
-        return record
+        return record.model_copy(deep=True)
 
     def get(self, identifier: str, *, version: str | None = None) -> PackageRecord:
         org, name = _split_identifier(identifier)
@@ -71,7 +71,9 @@ class LocalHub:
             matches = [record for record in matches if record.version == version]
         if not matches:
             raise KeyError(f"Package not found: {identifier}")
-        return sorted(matches, key=lambda record: record.version)[-1]
+        return sorted(matches, key=lambda record: record.version)[-1].model_copy(
+            deep=True
+        )
 
     def download(
         self,
@@ -88,7 +90,10 @@ class LocalHub:
         return target
 
     def list(self) -> tuple[PackageRecord, ...]:
-        return tuple(sorted(self._records.values(), key=lambda record: record.key))
+        return tuple(
+            record.model_copy(deep=True)
+            for record in sorted(self._records.values(), key=lambda record: record.key)
+        )
 
     def card(self, identifier: str, *, version: str | None = None) -> str:
         return render_package_card(self.get(identifier, version=version))
