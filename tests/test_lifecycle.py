@@ -74,6 +74,7 @@ def test_init_escapes_manifest_identity_strings(tmp_path):
 
 def test_init_rejects_invalid_manifest_identity_before_write(tmp_path):
     target = tmp_path / "invalid"
+    encoded_target = tmp_path / "bad%2Fpkg"
 
     with pytest.raises(ValueError, match="path segment"):
         init_package(target, org="demo", name="")
@@ -81,7 +82,11 @@ def test_init_rejects_invalid_manifest_identity_before_write(tmp_path):
         init_package(target, org="..", name="pkg")
     with pytest.raises(ValueError, match="Input should be"):
         init_package(target, org="demo", name="pkg", kind="unknown")
+    with pytest.raises(ValueError, match="path segment"):
+        init_package(encoded_target, org="demo")
     assert not (target / "psi.toml").exists()
+    assert not target.exists()
+    assert not encoded_target.exists()
 
 
 def test_public_path_helpers_reject_blank_or_non_path_values(tmp_path):
@@ -1475,17 +1480,20 @@ def test_cli_reports_malformed_hub_index_without_traceback(tmp_path, capsys, pay
         ["init", "--org", ".."],
         ["init", "--name", ""],
         ["init", "--name", "bad/name"],
+        ["init", "--name", "bad%2Fname"],
         ["init", "--kind", "unknown"],
     ],
 )
 def test_cli_init_rejects_invalid_identity_without_traceback(tmp_path, capsys, args):
+    target = tmp_path / "pkg"
     with pytest.raises(SystemExit) as exc_info:
-        main([*args, str(tmp_path / "pkg")])
+        main([*args, str(target)])
 
     assert exc_info.value.code == 2
     output = capsys.readouterr()
     assert output.out == ""
     assert "Traceback" not in output.err
+    assert not target.exists()
 
 
 @pytest.mark.parametrize(

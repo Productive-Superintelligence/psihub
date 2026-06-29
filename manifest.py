@@ -45,12 +45,12 @@ def init_package(
     force: bool = False,
 ) -> Path:
     root = Path(require_path_value(path, "package path")).expanduser()
-    root.mkdir(parents=True, exist_ok=True)
+    package_name = root.resolve().name if name is None else name
+    package = PackageInfo(org=org, name=package_name, kind=kind)
     target = root / "psi.toml"
     if target.exists() and not force:
         return target
-    package_name = root.resolve().name if name is None else name
-    package = PackageInfo(org=org, name=package_name, kind=kind)
+    root.mkdir(parents=True, exist_ok=True)
     target.write_text(
         textwrap.dedent(
             f"""
