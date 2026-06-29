@@ -13,6 +13,29 @@ from .models import HubResource, PackageManifest, PackageRecord, ValidationRepor
 from .validator import validate_package
 
 
+PUBLISH_IGNORE_NAMES = {
+    ".git",
+    ".mypy_cache",
+    ".psi",
+    ".psihub",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".tox",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+    "htmlcov",
+    "site",
+    "venv",
+}
+SAFE_ENV_TEMPLATE_NAMES = {
+    ".env.example",
+    ".env.sample",
+    ".env.template",
+}
+
+
 class PublishValidationError(ValueError):
     """Raised when validated publish receives an invalid package."""
 
@@ -45,14 +68,7 @@ class LocalHub:
         shutil.copytree(
             source_manifest.base_dir or manifest_path(package_path).parent,
             destination,
-            ignore=shutil.ignore_patterns(
-                ".git",
-                "__pycache__",
-                ".pytest_cache",
-                "*.egg-info",
-                "build",
-                "dist",
-            ),
+            ignore=_publish_ignore,
         )
         manifest = load_manifest(destination)
         record = record_from_manifest(manifest, validation=report)
@@ -347,6 +363,26 @@ def record_from_manifest(
 
 def _resource_extra(resource: Any) -> dict[str, Any]:
     return dict(getattr(resource, "model_extra", None) or {})
+
+
+def _publish_ignore(directory: str, names: list[str]) -> set[str]:
+    del directory
+    return {name for name in names if _should_ignore_publish_name(name)}
+
+
+def _should_ignore_publish_name(name: str) -> bool:
+    if name in PUBLISH_IGNORE_NAMES:
+        return True
+    if name == ".env":
+        return True
+    if name.startswith(".env.") and name not in SAFE_ENV_TEMPLATE_NAMES:
+        return True
+    return (
+        name.endswith(".egg-info")
+        or name.endswith(".pyc")
+        or name.endswith(".pyo")
+        or name == ".coverage"
+    )
 
 
 def _split_identifier(identifier: str) -> tuple[str, str]:

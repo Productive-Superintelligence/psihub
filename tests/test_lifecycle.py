@@ -765,6 +765,38 @@ def test_local_publish_download_card_and_config(tmp_path):
     assert resolver.service("api") == {"port": 8000}
 
 
+def test_local_publish_excludes_local_secret_config_and_cache_files(tmp_path):
+    package = make_lifecycle_package(tmp_path)
+    (package / ".env").write_text("TOKEN=secret\n", encoding="utf-8")
+    (package / ".env.local").write_text("TOKEN=local-secret\n", encoding="utf-8")
+    (package / ".env.example").write_text("TOKEN=\n", encoding="utf-8")
+    (package / ".psi").mkdir()
+    (package / ".psi" / "config.toml").write_text("[refs]\n", encoding="utf-8")
+    (package / ".psihub").mkdir()
+    (package / ".psihub" / "index.json").write_text("{}", encoding="utf-8")
+    (package / "__pycache__").mkdir()
+    (package / "__pycache__" / "demo.cpython-312.pyc").write_bytes(b"cache")
+    (package / "demo.egg-info").mkdir()
+    (package / "demo.egg-info" / "PKG-INFO").write_text("cache\n", encoding="utf-8")
+    hub = LocalHub(tmp_path / "hub")
+
+    record = hub.publish(package)
+    downloaded = hub.download("demo/echo", tmp_path / "downloaded")
+
+    excluded = (
+        ".env",
+        ".env.local",
+        ".psi/config.toml",
+        ".psihub/index.json",
+        "__pycache__/demo.cpython-312.pyc",
+        "demo.egg-info/PKG-INFO",
+    )
+    for root in (record.root, downloaded):
+        for relative in excluded:
+            assert not (root / relative).exists()
+        assert (root / ".env.example").read_text(encoding="utf-8") == "TOKEN=\n"
+
+
 def test_local_hub_returns_isolated_package_records(tmp_path):
     package = make_lifecycle_package(tmp_path)
     hub = LocalHub(tmp_path / "hub")
