@@ -7,6 +7,7 @@ import re
 from typing import Any
 
 from .models import PackageRecord
+from .validator import HTTP_METHODS
 
 
 def render_agent_card(record: PackageRecord) -> str:
@@ -304,17 +305,34 @@ def _endpoint_lines(metadata: dict[str, Any]) -> list[str]:
     for endpoint in endpoints:
         if not isinstance(endpoint, dict):
             continue
-        method = str(endpoint.get("method") or "").upper()
-        path = endpoint.get("path")
-        if not path:
+        rendered = _endpoint_line(endpoint)
+        if rendered is None:
             continue
-        name = endpoint.get("name")
-        mode = endpoint.get("mode") or endpoint.get("scope")
-        suffix_parts = [str(value) for value in (name, mode) if value]
-        suffix = f" ({', '.join(suffix_parts)})" if suffix_parts else ""
-        prefix = f"{method} " if method else ""
-        lines.append(f"  - Endpoint: `{prefix}{path}`{suffix}")
+        lines.append(rendered)
     return lines
+
+
+def _endpoint_line(endpoint: dict[str, Any]) -> str | None:
+    method_value = endpoint.get("method")
+    method = method_value.upper() if isinstance(method_value, str) else ""
+    path = endpoint.get("path")
+    if (
+        method not in HTTP_METHODS
+        or not isinstance(path, str)
+        or not path
+        or "%" in path
+        or any(ch.isspace() for ch in path)
+    ):
+        return None
+    suffix_parts: list[str] = []
+    for value in (endpoint.get("name"), endpoint.get("mode") or endpoint.get("scope")):
+        if value in (None, ""):
+            continue
+        if not isinstance(value, str) or any(ch.isspace() for ch in value):
+            return None
+        suffix_parts.append(value)
+    suffix = f" ({', '.join(suffix_parts)})" if suffix_parts else ""
+    return f"  - Endpoint: `{method} {path}`{suffix}"
 
 
 def _example_lines(metadata: dict[str, Any]) -> list[str]:

@@ -13,6 +13,8 @@ from psihub import (
     init_package,
     load_manifest,
     manifest_path,
+    render_agent_card,
+    render_package_card,
     validate_package,
 )
 from psihub.models import (
@@ -1166,6 +1168,52 @@ def test_local_publish_download_card_and_config(tmp_path):
         == "http://policy"
     )
     assert resolver.service("api") == {"port": 8000}
+
+
+def test_card_rendering_skips_malformed_endpoint_metadata(tmp_path):
+    record = PackageRecord(
+        org="demo",
+        name="cards",
+        version="0.1.0",
+        kind="service",
+        description="Card rendering boundary.",
+        root=tmp_path,
+        manifest_path=tmp_path / "psi.toml",
+        validation=ValidationReport(ok=True),
+        resources=(
+            HubResource(
+                kind="service",
+                name="api",
+                ref="psi://demo/cards/services/api",
+                metadata={
+                    "endpoints": [
+                        {
+                            "method": "POST",
+                            "path": "/ok",
+                            "name": "ok",
+                            "mode": "run",
+                        },
+                        {"method": 123, "path": "/coerced-method"},
+                        {"method": "GET", "path": 123},
+                        {"method": "GET", "path": "/bad name"},
+                        {"method": "TRACE", "path": "/trace"},
+                        {"method": "GET", "path": "/bad-label", "name": 123},
+                    ]
+                },
+            ),
+        ),
+    )
+
+    card = render_package_card(record)
+    agent_card = render_agent_card(record)
+
+    for text in (card, agent_card):
+        assert "Endpoint: `POST /ok` (ok, run)" in text
+        assert "coerced-method" not in text
+        assert "GET 123" not in text
+        assert "/bad name" not in text
+        assert "/trace" not in text
+        assert "/bad-label" not in text
 
 
 def test_local_publish_excludes_local_secret_config_and_cache_files(tmp_path):
