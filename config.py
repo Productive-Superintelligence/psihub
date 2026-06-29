@@ -138,13 +138,32 @@ def _table_of_tables(value: Any, name: str) -> dict[str, dict[str, Any]]:
             raise ValueError(f"[{name}.{key}] must be a TOML table.")
         key_text = str(key)
         _validate_table_name(key_text, f"{name}.{key_text}")
-        result[key_text] = dict(item)
+        item_copy = dict(item)
+        _validate_table_values(name, key_text, item_copy)
+        result[key_text] = item_copy
     return result
 
 
 def _validate_table_name(value: str, label: str) -> None:
     if not value or value in {".", ".."} or any(ch in value for ch in "/:\\"):
         raise ValueError(f"[{label}] must use a non-empty path-segment name.")
+
+
+def _validate_table_values(section: str, key: str, item: dict[str, Any]) -> None:
+    if section == "services" and "port" in item:
+        port = item["port"]
+        if (
+            isinstance(port, bool)
+            or not isinstance(port, int)
+            or not (1 <= port <= 65535)
+        ):
+            raise ValueError(
+                f"[services.{key}] port must be an integer between 1 and 65535."
+            )
+    if section == "stores" and "path" in item:
+        path = item["path"]
+        if not isinstance(path, str) or not path:
+            raise ValueError(f"[stores.{key}] path must be a non-empty string.")
 
 
 def _validate_target(

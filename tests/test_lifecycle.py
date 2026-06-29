@@ -1010,6 +1010,28 @@ path = ".sssn"
             )
 
 
+def test_local_config_resolver_rejects_invalid_service_store_values(tmp_path):
+    for index, port in enumerate(('"bad"', "70000", "false"), start=1):
+        with pytest.raises(ValueError, match="port"):
+            LocalConfigResolver.from_text(
+                f"""
+[services.api]
+port = {port}
+""".lstrip(),
+                root=tmp_path / f"port-{index}",
+            )
+
+    for index, path in enumerate(("123", '""'), start=1):
+        with pytest.raises(ValueError, match="path"):
+            LocalConfigResolver.from_text(
+                f"""
+[stores.default]
+path = {path}
+""".lstrip(),
+                root=tmp_path / f"path-{index}",
+            )
+
+
 def make_lifecycle_package(tmp_path: Path) -> Path:
     package = tmp_path / "echo"
     module = package / "demo"
