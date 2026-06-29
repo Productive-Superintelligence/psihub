@@ -130,14 +130,20 @@ def test_local_hub_server_respects_version_query_and_numeric_latest(tmp_path):
                 "/packages/demo/echo/download",
                 params={"version": "0.2.0"},
             )
-        return latest, older, older_card, older_download
+            bad_version = await client.get(
+                "/packages/demo/echo",
+                params={"version": "bad version"},
+            )
+        return latest, older, older_card, older_download, bad_version
 
-    latest, older, older_card, older_download = asyncio.run(run())
+    latest, older, older_card, older_download, bad_version = asyncio.run(run())
 
     assert latest.json()["version"] == "0.10.0"
     assert older.json()["version"] == "0.2.0"
     assert "Echo tactic package." in older_card.text
     assert "Newer numeric echo package." not in older_card.text
+    assert bad_version.status_code == 400
+    assert "package version" in bad_version.text
     with zipfile.ZipFile(io.BytesIO(older_download.content)) as archive:
         manifest_text = archive.read("psi.toml").decode()
     assert 'version = "0.2.0"' in manifest_text

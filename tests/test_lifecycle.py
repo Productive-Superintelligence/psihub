@@ -1120,6 +1120,42 @@ def test_local_hub_get_uses_numeric_version_order_for_latest(tmp_path):
     assert "Echo tactic package." in hub.card("demo/echo", version="0.2.0")
 
 
+def test_local_hub_rejects_malformed_version_selectors(tmp_path):
+    package = make_lifecycle_package(tmp_path)
+    hub = LocalHub(tmp_path / "hub")
+    hub.publish(package)
+
+    helpers = (
+        lambda value: hub.get("demo/echo", version=value),
+        lambda value: hub.card("demo/echo", version=value),
+        lambda value: hub.agent_card("demo/echo", version=value),
+        lambda value: hub.config_template("demo/echo", version=value),
+        lambda value: hub.download(
+            "demo/echo",
+            tmp_path / "downloaded",
+            version=value,
+        ),
+    )
+
+    for value in (
+        None,
+        123,
+        b"0.1.0",
+        "",
+        "   ",
+        ".",
+        "..",
+        "0.1.0 beta",
+        "bad/version",
+    ):
+        if value is None:
+            assert hub.get("demo/echo", version=value).version == "0.1.0"
+            continue
+        for helper in helpers:
+            with pytest.raises(ValueError, match="package version"):
+                helper(value)  # type: ignore[arg-type]
+
+
 def test_local_hub_reopens_published_index(tmp_path):
     package = make_lifecycle_package(tmp_path)
     hub_root = tmp_path / "hub"

@@ -84,6 +84,7 @@ class LocalHub:
             if record.org == org and record.name == name
         ]
         if version is not None:
+            _validate_identifier_segment(version, "package version")
             matches = [record for record in matches if record.version == version]
         if not matches:
             raise KeyError(f"Package not found: {identifier}")
