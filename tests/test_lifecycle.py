@@ -75,6 +75,8 @@ def test_init_rejects_invalid_manifest_identity_before_write(tmp_path):
     target = tmp_path / "invalid"
 
     with pytest.raises(ValueError, match="path segment"):
+        init_package(target, org="demo", name="")
+    with pytest.raises(ValueError, match="path segment"):
         init_package(target, org="..", name="pkg")
     with pytest.raises(ValueError, match="Input should be"):
         init_package(target, org="demo", name="pkg", kind="unknown")
@@ -1303,6 +1305,7 @@ def test_cli_reports_malformed_hub_index_without_traceback(tmp_path, capsys, pay
     "args",
     [
         ["init", "--org", ".."],
+        ["init", "--name", ""],
         ["init", "--name", "bad/name"],
         ["init", "--kind", "unknown"],
     ],

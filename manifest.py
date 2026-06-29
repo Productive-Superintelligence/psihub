@@ -49,7 +49,7 @@ def init_package(
     target = root / "psi.toml"
     if target.exists() and not force:
         return target
-    package_name = name or root.resolve().name
+    package_name = root.resolve().name if name is None else name
     package = PackageInfo(org=org, name=package_name, kind=kind)
     target.write_text(
         textwrap.dedent(
