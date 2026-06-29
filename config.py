@@ -65,11 +65,12 @@ class LocalConfigResolver:
 
     @classmethod
     def from_text(cls, text: str, *, root: str | Path | None = None) -> "LocalConfigResolver":
+        text_value = _config_text_value(text)
         root_value = "." if root is None else root
         root_path = Path(require_path_value(root_value, "config root"))
         target = root_path / ".psi" / "config.toml"
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(text, encoding="utf-8")
+        target.write_text(text_value, encoding="utf-8")
         return cls.from_file(root_path)
 
     def bind(
@@ -154,6 +155,12 @@ def _load_toml(path: Path) -> dict[str, Any]:
         import tomli as tomllib  # type: ignore[no-redef]
     with path.open("rb") as handle:
         return tomllib.load(handle)
+
+
+def _config_text_value(value: Any) -> str:
+    if not isinstance(value, str):
+        raise ValueError("config text must be a string.")
+    return value
 
 
 def _table_of_tables(value: Any, name: str) -> dict[str, dict[str, Any]]:

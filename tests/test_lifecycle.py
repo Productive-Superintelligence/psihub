@@ -113,6 +113,14 @@ def test_public_path_helpers_reject_blank_or_non_path_values(tmp_path):
     assert manifest_path(spaced_root) == created
 
 
+def test_local_config_resolver_from_text_rejects_non_string_text(tmp_path):
+    for index, value in enumerate((None, 123, b"[refs]\n"), start=1):
+        root = tmp_path / f"workspace-{index}"
+        with pytest.raises(ValueError, match="config text"):
+            LocalConfigResolver.from_text(value, root=root)  # type: ignore[arg-type]
+        assert not root.exists()
+
+
 def test_package_models_isolate_mutable_inputs():
     tactic_examples = ({"input": {"items": ["one"]}},)
     tactic_metadata = {"labels": ["tactic"]}
