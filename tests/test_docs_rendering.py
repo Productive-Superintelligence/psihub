@@ -54,6 +54,7 @@ def test_docs_site_builds_core_pages(tmp_path):
 
     assert "PsiHub is the local-first package hub" in index_html
     assert "does not launch services" in index_html
+    assert "assets/logo.svg" in index_html
     assert "serve" in cli_html
     assert "8787" in cli_html
     assert "Local Package Lifecycle" in lifecycle_html
