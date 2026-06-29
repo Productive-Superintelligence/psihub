@@ -719,7 +719,7 @@ def _validate_endpoint_metadata(
                     code="endpoint_path_invalid",
                     message=(
                         f"Endpoint #{index} path must be an absolute route path "
-                        "without whitespace, query, or fragment."
+                        "without whitespace, percent escapes, query, or fragment."
                     ),
                     resource=resource,
                 )
@@ -730,7 +730,10 @@ def _validate_endpoint_metadata(
                 ValidationIssue(
                     level="error",
                     code="endpoint_name_invalid",
-                    message=f"Endpoint #{index} declares invalid name {name!r}.",
+                    message=(
+                        f"Endpoint #{index} declares invalid name {name!r}; "
+                        "names must not contain whitespace or percent escapes."
+                    ),
                     resource=resource,
                 )
             )
@@ -770,7 +773,10 @@ def _validate_endpoint_metadata(
                 ValidationIssue(
                     level="error",
                     code="endpoint_tags_invalid",
-                    message=f"Endpoint #{index} tags must be non-empty strings.",
+                    message=(
+                        f"Endpoint #{index} tags must be non-empty strings "
+                        "without whitespace or percent escapes."
+                    ),
                     resource=resource,
                 )
             )
@@ -781,6 +787,7 @@ def _valid_endpoint_path(path: Any) -> bool:
     return (
         isinstance(path, str)
         and path.startswith("/")
+        and "%" not in path
         and not any(ch.isspace() for ch in path)
         and "?" not in path
         and "#" not in path
@@ -792,6 +799,7 @@ def _valid_endpoint_label(value: Any) -> bool:
     return (
         isinstance(value, str)
         and bool(value)
+        and "%" not in value
         and not any(ch.isspace() for ch in value)
     )
 

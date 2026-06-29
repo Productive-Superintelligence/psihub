@@ -45,3 +45,6 @@ policy_url = "http://127.0.0.1:8000"
 Validation catches malformed refs, missing same-package resources, invalid
 entrypoints, unbound services, duplicate package records, and run metadata that
 names missing resources.
+
+Custom endpoint metadata uses plain route paths, names, and tags; avoid
+whitespace and percent escapes in those fields.

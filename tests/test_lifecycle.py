@@ -662,6 +662,18 @@ def test_validate_checks_endpoint_metadata(tmp_path):
     )
 
     (package / "psi.toml").write_text(
+        original.replace('path = "/analyze"', 'path = "/bad%2Fpath"'),
+        encoding="utf-8",
+    )
+    percent_path_report = validate_package(package)
+
+    assert not percent_path_report.ok
+    assert any(
+        issue.code == "endpoint_path_invalid"
+        for issue in percent_path_report.issues
+    )
+
+    (package / "psi.toml").write_text(
         original.replace('name = "analyze"', 'name = "bad name"'),
         encoding="utf-8",
     )
@@ -669,6 +681,17 @@ def test_validate_checks_endpoint_metadata(tmp_path):
 
     assert not name_report.ok
     assert any(issue.code == "endpoint_name_invalid" for issue in name_report.issues)
+
+    (package / "psi.toml").write_text(
+        original.replace('name = "analyze"', 'name = "bad%2Fname"'),
+        encoding="utf-8",
+    )
+    percent_name_report = validate_package(package)
+
+    assert not percent_name_report.ok
+    assert any(
+        issue.code == "endpoint_name_invalid" for issue in percent_name_report.issues
+    )
 
     (package / "psi.toml").write_text(
         original.replace('mode = "run"', 'mode = "batch"'),
@@ -688,6 +711,17 @@ def test_validate_checks_endpoint_metadata(tmp_path):
     assert not scope_report.ok
     assert any(
         issue.code == "endpoint_scope_invalid" for issue in scope_report.issues
+    )
+
+    (package / "psi.toml").write_text(
+        original.replace('mode = "run"', 'mode = "run"\ntags = ["bad%2Ftag"]'),
+        encoding="utf-8",
+    )
+    percent_tag_report = validate_package(package)
+
+    assert not percent_tag_report.ok
+    assert any(
+        issue.code == "endpoint_tags_invalid" for issue in percent_tag_report.issues
     )
 
 

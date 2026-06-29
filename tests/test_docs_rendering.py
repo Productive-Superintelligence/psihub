@@ -45,6 +45,9 @@ def test_docs_site_builds_core_pages(tmp_path):
     local_hub_api_html = (
         site_dir / "reference" / "local-hub-api" / "index.html"
     ).read_text(encoding="utf-8")
+    manifest_html = (site_dir / "reference" / "manifest" / "index.html").read_text(
+        encoding="utf-8"
+    )
     refs_html = (
         site_dir / "concepts" / "refs-and-config" / "index.html"
     ).read_text(encoding="utf-8")
@@ -65,6 +68,8 @@ def test_docs_site_builds_core_pages(tmp_path):
     assert "0.10.0" in local_hub_api_html
     assert "does not launch package services" in local_hub_api_html
     assert "test_server.py" in local_hub_api_html
+    assert "Custom endpoint metadata uses plain route paths" in manifest_html
+    assert "percent escapes in those fields" in manifest_html
     assert "Downloaded Package Contracts" in refs_html
     assert "Ref segments must be non-empty path segments without whitespace" in refs_html
     assert "percent" in refs_html
