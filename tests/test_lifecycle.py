@@ -261,6 +261,29 @@ def test_package_identity_models_reject_whitespace_segments(factory):
         factory()
 
 
+@pytest.mark.parametrize(
+    "value",
+    ("", "   ", ".", "..", "bad token", "bad/token", "bad:token", "bad\\token"),
+)
+def test_package_resource_metadata_rejects_malformed_tokens(value):
+    with pytest.raises(ValidationError):
+        TacticResource(entry="demo.tactics:Echo", runtime=value)
+    with pytest.raises(ValidationError):
+        ServiceResource(entry="demo.service:app", transport=value)
+    with pytest.raises(ValidationError):
+        ChannelResource(form=value)
+
+
+def test_package_resource_metadata_allows_common_token_separators():
+    tactic = TacticResource(entry="demo.tactics:Echo", runtime="pydantic-ai")
+    service = ServiceResource(entry="demo.service:app", transport="fastapi")
+    channel = ChannelResource(form="time-series")
+
+    assert tactic.runtime == "pydantic-ai"
+    assert service.transport == "fastapi"
+    assert channel.form == "time-series"
+
+
 def test_package_manifest_ref_rejects_invalid_resource_kind():
     manifest = PackageManifest(package=PackageInfo(org="demo", name="pkg"))
 

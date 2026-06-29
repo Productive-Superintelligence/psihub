@@ -82,6 +82,11 @@ class TacticResource(BaseModel):
     def model_post_init(self, __context: Any) -> None:
         _isolate_fields(self, "examples", "metadata")
 
+    @model_validator(mode="after")
+    def _validate_metadata_tokens(self) -> "TacticResource":
+        _validate_token(self.runtime, "tactic.runtime")
+        return self
+
 
 class ServiceResource(BaseModel):
     model_config = ConfigDict(extra="allow")
@@ -96,6 +101,11 @@ class ServiceResource(BaseModel):
 
     def model_post_init(self, __context: Any) -> None:
         _isolate_fields(self, "subscribes", "publishes", "metadata")
+
+    @model_validator(mode="after")
+    def _validate_metadata_tokens(self) -> "ServiceResource":
+        _validate_token(self.transport, "service.transport")
+        return self
 
 
 class ChannelResource(BaseModel):
@@ -112,6 +122,11 @@ class ChannelResource(BaseModel):
 
     def model_post_init(self, __context: Any) -> None:
         _isolate_fields(self, "metadata")
+
+    @model_validator(mode="after")
+    def _validate_metadata_tokens(self) -> "ChannelResource":
+        _validate_token(self.form, "channel.form")
+        return self
 
 
 class SnapshotResource(BaseModel):
@@ -363,6 +378,17 @@ def _validate_segment(value: str, field_name: str) -> None:
         or any(ch in value for ch in "/:\\")
     ):
         raise ValueError(f"{field_name} must be a non-empty path segment.")
+
+
+def _validate_token(value: str, field_name: str) -> None:
+    if (
+        not isinstance(value, str)
+        or not value.strip()
+        or value in {".", ".."}
+        or any(ch.isspace() for ch in value)
+        or any(ch in value for ch in "/:\\")
+    ):
+        raise ValueError(f"{field_name} must be a non-empty token.")
 
 
 def _validate_resource_kind(value: str) -> None:
