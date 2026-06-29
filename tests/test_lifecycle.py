@@ -22,6 +22,7 @@ from psihub.models import (
     TacticResource,
     ValidationReport,
 )
+from psihub.refs import parse_psi_ref, validate_psi_ref
 from psihub.cli import main
 
 
@@ -990,6 +991,20 @@ url = "http://service"
             resolver.bind(ref, url="http://service")
         with pytest.raises(ValueError, match="shape"):
             resolver.resolve(ref)
+
+
+def test_psi_ref_helpers_reject_non_string_and_blank_refs():
+    resolver = LocalConfigResolver()
+
+    for ref in (None, 123, b"psi://demo/pkg/tactics/local", "", "   "):
+        with pytest.raises(ValueError, match="non-empty string"):
+            parse_psi_ref(ref)  # type: ignore[arg-type]
+        with pytest.raises(ValueError, match="non-empty string"):
+            validate_psi_ref(ref)  # type: ignore[arg-type]
+        with pytest.raises(ValueError, match="non-empty string"):
+            resolver.bind(ref, url="http://service")  # type: ignore[arg-type]
+        with pytest.raises(ValueError, match="non-empty string"):
+            resolver.resolve(ref)  # type: ignore[arg-type]
 
 
 def test_local_config_resolver_requires_one_concrete_target(tmp_path):

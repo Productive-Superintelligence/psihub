@@ -29,6 +29,8 @@ class PsiRef:
 
 
 def parse_psi_ref(ref: str) -> PsiRef:
+    if not isinstance(ref, str) or not ref.strip():
+        raise ValueError("Ref must be a non-empty string.")
     parsed = urlparse(ref)
     if parsed.scheme != "psi":
         raise ValueError(f"Ref must use psi:// scheme: {ref}")
