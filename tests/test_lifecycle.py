@@ -254,6 +254,10 @@ def test_local_package_lifecycle_example_runs(tmp_path):
     assert "Agent Card: demo/echo" in result["agent_card"]
     assert isinstance(result["config"], str)
 
+    for bad_root in ("", "   ", 123):
+        with pytest.raises(ValueError, match="workflow root"):
+            module.run_workflow(bad_root)
+
 
 def test_validate_lifecycle_package(tmp_path):
     package = make_lifecycle_package(tmp_path)

@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from psihub import LocalHub, init_package, validate_package
@@ -6,7 +7,7 @@ from psihub import LocalHub, init_package, validate_package
 def run_workflow(root: str | Path):
     """Run the local package lifecycle without a hosted hub."""
 
-    root = Path(root)
+    root = Path(_path_value(root, "workflow root"))
     package = root / "demo-package"
     hub_root = root / ".psihub"
     download_root = root / "downloaded"
@@ -36,3 +37,13 @@ def run_workflow(root: str | Path):
         "agent_card": agent_card,
         "config": config,
     }
+
+
+def _path_value(value, label: str) -> str:
+    try:
+        text = os.fspath(value)
+    except TypeError as exc:
+        raise ValueError(f"{label} must be a non-empty path string") from exc
+    if not isinstance(text, str) or not text.strip():
+        raise ValueError(f"{label} must be a non-empty path string")
+    return text.strip()
