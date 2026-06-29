@@ -76,3 +76,30 @@ def test_local_hub_server_rejects_invalid_publish(tmp_path):
     assert publish.json()["detail"]["ok"] is False
     assert publish.json()["detail"]["issues"][0]["code"] == "service_tactic_missing"
     assert listed.json() == []
+
+
+def test_local_hub_server_rejects_invalid_package_identifiers(tmp_path):
+    app = create_app(hub=LocalHub(tmp_path / "hub"))
+
+    async def run():
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url="http://testserver",
+        ) as client:
+            return [
+                await client.get(path)
+                for path in (
+                    "/packages/bad:org/echo",
+                    "/packages/demo/bad:name",
+                    "/packages/bad:org/echo/card",
+                    "/packages/bad:org/echo/agent-card",
+                    "/packages/bad:org/echo/config-template",
+                    "/packages/bad:org/echo/download",
+                )
+            ]
+
+    responses = asyncio.run(run())
+
+    assert {response.status_code for response in responses} == {400}
+    assert all("path segment" in response.json()["detail"] for response in responses)
