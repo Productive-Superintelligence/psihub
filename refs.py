@@ -45,7 +45,7 @@ def parse_psi_ref(ref: str) -> PsiRef:
     ):
         raise ValueError(f"Ref must have shape psi://org/package/resources/name: {ref}")
     package, resource_kind, name = raw_parts[1:]
-    if not org or not package or not name:
+    if not org or not package.strip() or not name.strip():
         raise ValueError(f"Ref contains an empty segment: {ref}")
     if resource_kind not in PSI_REF_SECTIONS:
         raise ValueError(f"Ref uses unknown resource section {resource_kind!r}: {ref}")

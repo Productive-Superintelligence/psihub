@@ -3,10 +3,24 @@ import io
 import zipfile
 
 import httpx
+import pytest
+from pydantic import ValidationError
 
 from psihub import LocalHub
-from psihub.server import create_app
+from psihub.server import PublishRequest, ValidateRequest, create_app
 from test_lifecycle import make_lifecycle_package
+
+
+@pytest.mark.parametrize(
+    "factory",
+    [
+        lambda: ValidateRequest(path=b"."),
+        lambda: PublishRequest(path=b"."),
+    ],
+)
+def test_local_hub_server_request_models_reject_bytes(factory):
+    with pytest.raises(ValidationError):
+        factory()
 
 
 def test_local_hub_server_lifecycle(tmp_path):

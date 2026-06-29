@@ -134,7 +134,12 @@ def _validate_resource_names(manifest: PackageManifest) -> list[ValidationIssue]
 
 
 def _invalid_segment(value: str) -> bool:
-    return not value or value in {".", ".."} or any(ch in value for ch in "/:\\")
+    return (
+        not isinstance(value, str)
+        or not value.strip()
+        or value in {".", ".."}
+        or any(ch in value for ch in "/:\\")
+    )
 
 
 def _validate_card_metadata(manifest: PackageManifest) -> list[ValidationIssue]:
@@ -254,6 +259,8 @@ def _validate_primary_kind(
 def _validate_schemas(manifest: PackageManifest) -> list[ValidationIssue]:
     issues: list[ValidationIssue] = []
     for name, schema in manifest.schemas.items():
+        if _invalid_segment(name):
+            continue
         if schema.entry:
             issues.extend(_validate_import(schema.entry, manifest, manifest.ref("schema", name)))
     return issues
@@ -262,6 +269,8 @@ def _validate_schemas(manifest: PackageManifest) -> list[ValidationIssue]:
 def _validate_tactics(manifest: PackageManifest) -> list[ValidationIssue]:
     issues: list[ValidationIssue] = []
     for name, tactic in manifest.tactics.items():
+        if _invalid_segment(name):
+            continue
         ref = manifest.ref("tactic", name)
         issues.extend(_validate_import(tactic.entry, manifest, ref))
         for schema_ref in (tactic.input, tactic.output):
@@ -287,6 +296,8 @@ def _validate_tactics(manifest: PackageManifest) -> list[ValidationIssue]:
 def _validate_services(manifest: PackageManifest) -> list[ValidationIssue]:
     issues: list[ValidationIssue] = []
     for name, service in manifest.services.items():
+        if _invalid_segment(name):
+            continue
         ref = manifest.ref("service", name)
         if not service.entry and not service.tactic:
             issues.append(
@@ -360,6 +371,8 @@ def _declared_service_ports(service: Any) -> tuple[Any, ...]:
 def _validate_channels(manifest: PackageManifest) -> list[ValidationIssue]:
     issues: list[ValidationIssue] = []
     for name, channel in manifest.channels.items():
+        if _invalid_segment(name):
+            continue
         ref = manifest.ref("channel", name)
         if channel.schema:
             issues.extend(
@@ -376,6 +389,8 @@ def _validate_channels(manifest: PackageManifest) -> list[ValidationIssue]:
 def _validate_snapshots(manifest: PackageManifest) -> list[ValidationIssue]:
     issues: list[ValidationIssue] = []
     for name, snapshot in manifest.snapshots.items():
+        if _invalid_segment(name):
+            continue
         ref = manifest.ref("snapshot", name)
         if snapshot.schema:
             issues.extend(_validate_schema_ref(snapshot.schema, manifest, ref))
@@ -398,6 +413,8 @@ def _validate_snapshots(manifest: PackageManifest) -> list[ValidationIssue]:
 def _validate_runs(manifest: PackageManifest) -> list[ValidationIssue]:
     issues: list[ValidationIssue] = []
     for name, run in manifest.runs.items():
+        if _invalid_segment(name):
+            continue
         ref = manifest.ref("run", name)
         for service in run.services:
             if service not in manifest.services:
@@ -435,6 +452,8 @@ def _validate_config(manifest: PackageManifest) -> list[ValidationIssue]:
 def _validate_docs(manifest: PackageManifest) -> list[ValidationIssue]:
     issues: list[ValidationIssue] = []
     for name, doc in manifest.docs.items():
+        if _invalid_segment(name):
+            continue
         issues.extend(
             _validate_declared_file(
                 manifest,
@@ -450,6 +469,8 @@ def _validate_docs(manifest: PackageManifest) -> list[ValidationIssue]:
 def _validate_examples(manifest: PackageManifest) -> list[ValidationIssue]:
     issues: list[ValidationIssue] = []
     for name, example in manifest.examples.items():
+        if _invalid_segment(name):
+            continue
         ref = manifest.ref("example", name)
         if not example.path and not example.command:
             issues.append(
@@ -476,6 +497,8 @@ def _validate_examples(manifest: PackageManifest) -> list[ValidationIssue]:
 def _validate_assets(manifest: PackageManifest) -> list[ValidationIssue]:
     issues: list[ValidationIssue] = []
     for name, asset in manifest.assets.items():
+        if _invalid_segment(name):
+            continue
         issues.extend(
             _validate_declared_file(
                 manifest,

@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from psihub import (
     LocalConfigResolver,
@@ -13,13 +14,22 @@ from psihub import (
     validate_package,
 )
 from psihub.models import (
+    AssetResource,
     CardResource,
+    ChannelResource,
     ConfigResource,
+    DocResource,
+    ExampleResource,
     HubResource,
     PackageInfo,
     PackageManifest,
     PackageRecord,
+    RunResource,
+    SchemaResource,
+    ServiceResource,
+    SnapshotResource,
     TacticResource,
+    ValidationIssue,
     ValidationReport,
 )
 from psihub.refs import parse_psi_ref, validate_psi_ref
@@ -139,6 +149,73 @@ def test_package_models_isolate_mutable_inputs():
     tactic_resources = record.resources_by_kind("tactic")
     tactic_resources[0].metadata["labels"].append("from-query")
     assert record.resources[0].metadata == {"labels": ["hub"]}
+
+
+@pytest.mark.parametrize(
+    "factory",
+    [
+        lambda: PackageInfo(org="demo", name=b"pkg"),
+        lambda: PackageInfo(org="demo", name="pkg", authors=(b"author",)),
+        lambda: SchemaResource(entry=b"demo.schemas:Event"),
+        lambda: TacticResource(entry=b"demo.tactics:Echo"),
+        lambda: TacticResource(entry="demo.tactics:Echo", input=b"demo.schemas:In"),
+        lambda: ServiceResource(entry=b"demo.service:app"),
+        lambda: ServiceResource(subscribes=(b"events",)),
+        lambda: ChannelResource(schema=b"demo.schemas:Event"),
+        lambda: SnapshotResource(channel=b"state"),
+        lambda: RunResource(services=(b"api",)),
+        lambda: ConfigResource(description=b"config"),
+        lambda: DocResource(path=b"README.md"),
+        lambda: ExampleResource(command=b"python examples/demo.py"),
+        lambda: AssetResource(path=b"assets/logo.svg"),
+        lambda: AssetResource(path="assets/logo.svg", media_type=b"image/svg+xml"),
+        lambda: CardResource(tags=(b"demo",)),
+        lambda: HubResource(kind="tactic", name="echo", ref=b"psi://demo/pkg/tactics/echo"),
+        lambda: ValidationIssue(level="error", code=b"bad", message="bad"),
+        lambda: PackageRecord(
+            org="demo",
+            name=b"pkg",
+            version="0.1.0",
+            kind="mixed",
+            root=Path("."),
+            manifest_path=Path("psi.toml"),
+            validation=ValidationReport(ok=True),
+        ),
+        lambda: PackageManifest(
+            package=PackageInfo(org="demo", name="pkg"),
+            tactics={b"echo": TacticResource(entry="demo.tactics:Echo")},
+        ),
+    ],
+)
+def test_package_models_reject_bytes_for_declared_string_fields(factory):
+    with pytest.raises(ValidationError):
+        factory()
+
+
+@pytest.mark.parametrize(
+    "factory",
+    [
+        lambda: PackageInfo(org="demo", name="   "),
+        lambda: PackageInfo(org="   ", name="pkg"),
+        lambda: PackageInfo(org="demo", name="pkg", version="   "),
+        lambda: PackageRecord(
+            org="demo",
+            name="   ",
+            version="0.1.0",
+            kind="mixed",
+            root=Path("."),
+            manifest_path=Path("psi.toml"),
+            validation=ValidationReport(ok=True),
+        ),
+        lambda: PackageManifest(package=PackageInfo(org="demo", name="pkg")).ref(
+            "tactic",
+            "   ",
+        ),
+    ],
+)
+def test_package_identity_models_reject_whitespace_segments(factory):
+    with pytest.raises(ValueError, match="path segment"):
+        factory()
 
 
 def test_local_package_lifecycle_example_runs(tmp_path):
@@ -990,6 +1067,15 @@ url = "http://service"
         with pytest.raises(ValueError, match="shape"):
             resolver.bind(ref, url="http://service")
         with pytest.raises(ValueError, match="shape"):
+            resolver.resolve(ref)
+
+    for ref in (
+        "psi://demo/   /tactics/local",
+        "psi://demo/pkg/tactics/   ",
+    ):
+        with pytest.raises(ValueError, match="empty segment"):
+            resolver.bind(ref, url="http://service")
+        with pytest.raises(ValueError, match="empty segment"):
             resolver.resolve(ref)
 
 

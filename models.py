@@ -6,7 +6,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictStr, computed_field, model_validator
 
 PackageKind = Literal["tactic", "channel", "service", "app", "library", "mixed"]
 ResourceKind = Literal[
@@ -28,15 +28,15 @@ class PackageInfo(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    psi_version: str = "0.1"
-    name: str
-    org: str = "local"
-    version: str = "0.1.0"
+    psi_version: StrictStr = "0.1"
+    name: StrictStr
+    org: StrictStr = "local"
+    version: StrictStr = "0.1.0"
     kind: PackageKind = "mixed"
-    primary: str | None = None
-    description: str = ""
-    license: str | None = None
-    authors: tuple[str, ...] = Field(default_factory=tuple)
+    primary: StrictStr | None = None
+    description: StrictStr = ""
+    license: StrictStr | None = None
+    authors: tuple[StrictStr, ...] = Field(default_factory=tuple)
 
     def model_post_init(self, __context: Any) -> None:
         _isolate_fields(self, "authors")
@@ -57,8 +57,8 @@ class PackageInfo(BaseModel):
 class SchemaResource(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    entry: str | None = None
-    description: str = ""
+    entry: StrictStr | None = None
+    description: StrictStr = ""
     metadata: dict[str, Any] = Field(default_factory=dict)
 
     def model_post_init(self, __context: Any) -> None:
@@ -68,11 +68,11 @@ class SchemaResource(BaseModel):
 class TacticResource(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    entry: str
-    input: str | None = None
-    output: str | None = None
-    runtime: str = "python"
-    description: str = ""
+    entry: StrictStr
+    input: StrictStr | None = None
+    output: StrictStr | None = None
+    runtime: StrictStr = "python"
+    description: StrictStr = ""
     examples: tuple[dict[str, Any], ...] = Field(default_factory=tuple)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
@@ -83,12 +83,12 @@ class TacticResource(BaseModel):
 class ServiceResource(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    entry: str | None = None
-    tactic: str | None = None
-    transport: str = "fastapi"
-    description: str = ""
-    subscribes: tuple[str, ...] = Field(default_factory=tuple)
-    publishes: tuple[str, ...] = Field(default_factory=tuple)
+    entry: StrictStr | None = None
+    tactic: StrictStr | None = None
+    transport: StrictStr = "fastapi"
+    description: StrictStr = ""
+    subscribes: tuple[StrictStr, ...] = Field(default_factory=tuple)
+    publishes: tuple[StrictStr, ...] = Field(default_factory=tuple)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
     def model_post_init(self, __context: Any) -> None:
@@ -98,9 +98,9 @@ class ServiceResource(BaseModel):
 class ChannelResource(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    schema_ref: str | None = Field(default=None, alias="schema")
-    form: str = "log"
-    description: str = ""
+    schema_ref: StrictStr | None = Field(default=None, alias="schema")
+    form: StrictStr = "log"
+    description: StrictStr = ""
     metadata: dict[str, Any] = Field(default_factory=dict)
 
     @property
@@ -114,9 +114,9 @@ class ChannelResource(BaseModel):
 class SnapshotResource(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    schema_ref: str | None = Field(default=None, alias="schema")
-    channel: str | None = None
-    description: str = ""
+    schema_ref: StrictStr | None = Field(default=None, alias="schema")
+    channel: StrictStr | None = None
+    description: StrictStr = ""
     metadata: dict[str, Any] = Field(default_factory=dict)
 
     @property
@@ -130,11 +130,11 @@ class SnapshotResource(BaseModel):
 class RunResource(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    services: tuple[str, ...] = Field(default_factory=tuple)
-    tactics: tuple[str, ...] = Field(default_factory=tuple)
-    channels: tuple[str, ...] = Field(default_factory=tuple)
-    snapshots: tuple[str, ...] = Field(default_factory=tuple)
-    description: str = ""
+    services: tuple[StrictStr, ...] = Field(default_factory=tuple)
+    tactics: tuple[StrictStr, ...] = Field(default_factory=tuple)
+    channels: tuple[StrictStr, ...] = Field(default_factory=tuple)
+    snapshots: tuple[StrictStr, ...] = Field(default_factory=tuple)
+    description: StrictStr = ""
     metadata: dict[str, Any] = Field(default_factory=dict)
 
     def model_post_init(self, __context: Any) -> None:
@@ -153,7 +153,7 @@ class ConfigResource(BaseModel):
 
     config_schema: dict[str, Any] = Field(default_factory=dict, alias="schema")
     defaults: dict[str, Any] = Field(default_factory=dict)
-    description: str = ""
+    description: StrictStr = ""
     metadata: dict[str, Any] = Field(default_factory=dict)
 
     @property
@@ -167,9 +167,9 @@ class ConfigResource(BaseModel):
 class DocResource(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    path: str
-    title: str = ""
-    description: str = ""
+    path: StrictStr
+    title: StrictStr = ""
+    description: StrictStr = ""
     metadata: dict[str, Any] = Field(default_factory=dict)
 
     def model_post_init(self, __context: Any) -> None:
@@ -179,9 +179,9 @@ class DocResource(BaseModel):
 class ExampleResource(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    path: str | None = None
-    command: str | None = None
-    description: str = ""
+    path: StrictStr | None = None
+    command: StrictStr | None = None
+    description: StrictStr = ""
     metadata: dict[str, Any] = Field(default_factory=dict)
 
     def model_post_init(self, __context: Any) -> None:
@@ -191,9 +191,9 @@ class ExampleResource(BaseModel):
 class AssetResource(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    path: str
-    media_type: str = "application/octet-stream"
-    description: str = ""
+    path: StrictStr
+    media_type: StrictStr = "application/octet-stream"
+    description: StrictStr = ""
     metadata: dict[str, Any] = Field(default_factory=dict)
 
     def model_post_init(self, __context: Any) -> None:
@@ -203,11 +203,11 @@ class AssetResource(BaseModel):
 class CardResource(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    summary: str = ""
-    tags: tuple[str, ...] = Field(default_factory=tuple)
-    safety: str = ""
-    latency: str = ""
-    suggested_commands: tuple[str, ...] = Field(default_factory=tuple)
+    summary: StrictStr = ""
+    tags: tuple[StrictStr, ...] = Field(default_factory=tuple)
+    safety: StrictStr = ""
+    latency: StrictStr = ""
+    suggested_commands: tuple[StrictStr, ...] = Field(default_factory=tuple)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
     def model_post_init(self, __context: Any) -> None:
@@ -220,16 +220,16 @@ class PackageManifest(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
 
     package: PackageInfo
-    schemas: dict[str, SchemaResource] = Field(default_factory=dict)
-    tactics: dict[str, TacticResource] = Field(default_factory=dict)
-    services: dict[str, ServiceResource] = Field(default_factory=dict)
-    channels: dict[str, ChannelResource] = Field(default_factory=dict)
-    snapshots: dict[str, SnapshotResource] = Field(default_factory=dict)
-    runs: dict[str, RunResource] = Field(default_factory=dict)
+    schemas: dict[StrictStr, SchemaResource] = Field(default_factory=dict)
+    tactics: dict[StrictStr, TacticResource] = Field(default_factory=dict)
+    services: dict[StrictStr, ServiceResource] = Field(default_factory=dict)
+    channels: dict[StrictStr, ChannelResource] = Field(default_factory=dict)
+    snapshots: dict[StrictStr, SnapshotResource] = Field(default_factory=dict)
+    runs: dict[StrictStr, RunResource] = Field(default_factory=dict)
     config: ConfigResource | None = None
-    docs: dict[str, DocResource] = Field(default_factory=dict)
-    examples: dict[str, ExampleResource] = Field(default_factory=dict)
-    assets: dict[str, AssetResource] = Field(default_factory=dict)
+    docs: dict[StrictStr, DocResource] = Field(default_factory=dict)
+    examples: dict[StrictStr, ExampleResource] = Field(default_factory=dict)
+    assets: dict[StrictStr, AssetResource] = Field(default_factory=dict)
     card: CardResource | None = None
     base_dir: Path | None = None
 
@@ -254,6 +254,7 @@ class PackageManifest(BaseModel):
         )
 
     def ref(self, kind: ResourceKind, name: str) -> str:
+        _validate_segment(name, f"{kind}.name")
         plural = f"{kind}s" if kind != "schema" else "schemas"
         return f"psi://{self.package.org}/{self.package.name}/{plural}/{name}"
 
@@ -264,10 +265,10 @@ class HubResource(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     kind: ResourceKind
-    name: str
-    ref: str
-    entry: str | None = None
-    description: str = ""
+    name: StrictStr
+    ref: StrictStr
+    entry: StrictStr | None = None
+    description: StrictStr = ""
     metadata: dict[str, Any] = Field(default_factory=dict)
 
     def model_post_init(self, __context: Any) -> None:
@@ -278,9 +279,9 @@ class ValidationIssue(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     level: Literal["error", "warning"]
-    code: str
-    message: str
-    resource: str | None = None
+    code: StrictStr
+    message: StrictStr
+    resource: StrictStr | None = None
 
 
 class ValidationReport(BaseModel):
@@ -298,11 +299,11 @@ class PackageRecord(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    org: str
-    name: str
-    version: str
+    org: StrictStr
+    name: StrictStr
+    version: StrictStr
     kind: PackageKind
-    description: str = ""
+    description: StrictStr = ""
     root: Path
     manifest_path: Path
     resources: tuple[HubResource, ...] = Field(default_factory=tuple)
@@ -340,7 +341,12 @@ class PackageRecord(BaseModel):
 
 
 def _validate_segment(value: str, field_name: str) -> None:
-    if not value or value in {".", ".."} or any(ch in value for ch in "/:\\"):
+    if (
+        not isinstance(value, str)
+        or not value.strip()
+        or value in {".", ".."}
+        or any(ch in value for ch in "/:\\")
+    ):
         raise ValueError(f"{field_name} must be a non-empty path segment.")
 
 

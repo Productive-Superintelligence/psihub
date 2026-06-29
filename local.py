@@ -319,6 +319,8 @@ def _resource_extra(resource: Any) -> dict[str, Any]:
 
 
 def _split_identifier(identifier: str) -> tuple[str, str]:
+    if not isinstance(identifier, str) or not identifier.strip():
+        raise ValueError("Package identifier must have shape org/name.")
     parts = identifier.split("/")
     if len(parts) != 2:
         raise ValueError("Package identifier must have shape org/name.")
@@ -329,5 +331,10 @@ def _split_identifier(identifier: str) -> tuple[str, str]:
 
 
 def _validate_identifier_segment(value: str, field_name: str) -> None:
-    if not value or value in {".", ".."} or any(ch in value for ch in "/:\\"):
+    if (
+        not isinstance(value, str)
+        or not value.strip()
+        or value in {".", ".."}
+        or any(ch in value for ch in "/:\\")
+    ):
         raise ValueError(f"{field_name} must be a non-empty path segment.")

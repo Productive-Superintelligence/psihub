@@ -7,18 +7,18 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, StrictStr
 
 from .local import LocalHub, PublishValidationError
 from .validator import validate_package
 
 
 class ValidateRequest(BaseModel):
-    path: str
+    path: StrictStr
 
 
 class PublishRequest(BaseModel):
-    path: str
+    path: StrictStr
     run_validation: bool = Field(default=True, alias="validate")
 
 

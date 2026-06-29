@@ -155,7 +155,9 @@ def _table_of_tables(value: Any, name: str) -> dict[str, dict[str, Any]]:
     for key, item in value.items():
         if not isinstance(item, dict):
             raise ValueError(f"[{name}.{key}] must be a TOML table.")
-        key_text = str(key)
+        if not isinstance(key, str):
+            raise ValueError(f"[{name}.{key}] must use a non-empty path-segment name.")
+        key_text = key
         _validate_table_name(key_text, f"{name}.{key_text}")
         item_copy = deepcopy(item)
         _validate_table_values(name, key_text, item_copy)
@@ -164,7 +166,12 @@ def _table_of_tables(value: Any, name: str) -> dict[str, dict[str, Any]]:
 
 
 def _validate_table_name(value: str, label: str) -> None:
-    if not value or value in {".", ".."} or any(ch in value for ch in "/:\\"):
+    if (
+        not isinstance(value, str)
+        or not value.strip()
+        or value in {".", ".."}
+        or any(ch in value for ch in "/:\\")
+    ):
         raise ValueError(f"[{label}] must use a non-empty path-segment name.")
 
 
