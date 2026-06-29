@@ -1156,18 +1156,6 @@ def test_local_config_resolver_rejects_non_mapping_metadata():
         )
 
 
-def test_local_config_resolver_trims_text_targets():
-    resolver = LocalConfigResolver()
-
-    resolver.bind("psi://demo/pkg/tactics/local", url="  http://service  ")
-    resolver.bind("psi://demo/pkg/channels/events", store="  .sssn  ")
-    resolver.bind("psi://demo/pkg/docs/readme", path="  docs/readme.md  ")
-
-    assert resolver.resolve("psi://demo/pkg/tactics/local").url == "http://service"
-    assert resolver.resolve("psi://demo/pkg/channels/events").store == ".sssn"
-    assert resolver.resolve("psi://demo/pkg/docs/readme").path == "docs/readme.md"
-
-
 def test_local_config_resolver_returns_isolated_binding_metadata():
     resolver = LocalConfigResolver()
     metadata = {"headers": {"x-policy": "demo"}}
@@ -1228,21 +1216,14 @@ port = 8000
 
 [stores.default]
 path = ".sssn"
-
-[stores.spaced]
-path = "  .trimmed-store  "
 """.lstrip(),
         root=tmp_path / "workspace",
     )
 
     assert resolver.services() == {"api": {"port": 8000}}
     assert resolver.service("api") == {"port": 8000}
-    assert resolver.stores() == {
-        "default": {"path": ".sssn"},
-        "spaced": {"path": ".trimmed-store"},
-    }
+    assert resolver.stores() == {"default": {"path": ".sssn"}}
     assert resolver.store("default") == {"path": ".sssn"}
-    assert resolver.store("spaced") == {"path": ".trimmed-store"}
 
     with pytest.raises(KeyError):
         resolver.service("missing")

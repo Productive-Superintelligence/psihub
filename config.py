@@ -193,16 +193,15 @@ def _validate_table_values(section: str, key: str, item: dict[str, Any]) -> None
             )
     if section == "stores" and "path" in item:
         path = item["path"]
-        if not isinstance(path, str) or not path.strip():
+        if not isinstance(path, str) or not path or path != path.strip():
             raise ValueError(f"[stores.{key}] path must be a non-empty string.")
-        item["path"] = path.strip()
 
 
 def _normalize_text_target(ref: str, name: str, value: Any) -> str | None:
     if value is None:
         return None
-    if isinstance(value, str) and value.strip():
-        return value.strip()
+    if isinstance(value, str) and value and value == value.strip():
+        return value
     raise ValueError(
         f"Ref binding target {name!r} must be a non-empty string: {ref}"
     )
