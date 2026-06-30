@@ -132,7 +132,7 @@ def render_config_template(record: PackageRecord) -> str:
                     f'url = "http://127.0.0.1:{service_ports[resource.name]}"',
                 ]
             )
-            lines.extend(_metadata_lines(resource.metadata))
+            lines.extend(_ref_metadata_lines(resource.ref, resource.metadata))
             lines.append("")
         if resource.kind == "tactic":
             tactic_port = tactic_ports.get(resource.name, 8000)
@@ -143,7 +143,7 @@ def render_config_template(record: PackageRecord) -> str:
                     f'{resource.name}"',
                 ]
             )
-            lines.extend(_metadata_lines(resource.metadata))
+            lines.extend(_ref_metadata_lines(resource.ref, resource.metadata))
             lines.append("")
         if resource.kind in {"channel", "snapshot"}:
             lines.extend(
@@ -152,7 +152,7 @@ def render_config_template(record: PackageRecord) -> str:
                     'store = ".sssn"',
                 ]
             )
-            lines.extend(_metadata_lines(resource.metadata))
+            lines.extend(_ref_metadata_lines(resource.ref, resource.metadata))
             lines.append("")
     return "\n".join(lines).rstrip() + ("\n" if lines else "")
 
@@ -263,6 +263,13 @@ def _metadata_lines(metadata: dict[str, Any]) -> list[str]:
         if rendered is not None:
             lines.append(f"{_toml_key(key)} = {rendered}")
     return lines
+
+
+def _ref_metadata_lines(ref: str, metadata: dict[str, Any]) -> list[str]:
+    metadata_lines = _metadata_lines(metadata)
+    if not metadata_lines:
+        return []
+    return ["", f"[refs.\"{ref}\".metadata]", *metadata_lines]
 
 
 def _toml_key(key: str) -> str:

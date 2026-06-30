@@ -1520,6 +1520,7 @@ def test_local_publish_download_card_and_config(tmp_path):
     assert 'policy_url="http://policy"' in card
     assert '[refs."psi://demo/echo/tactics/echo"]' in config
     assert '[refs."psi://demo/echo/services/api"]' in config
+    assert '[refs."psi://demo/echo/services/api".metadata]' in config
     assert "[services.api]" in config
     assert "port = 8000" in config
     assert 'policy_url = "http://policy"' in config
@@ -1697,6 +1698,7 @@ def test_config_template_honors_service_metadata_port(tmp_path):
     assert "[services.api]" in config
     assert "port = 8700" in config
     assert 'url = "http://127.0.0.1:8700"' in config
+    assert '[refs."psi://demo/echo/services/api".metadata]' in config
     assert resolver.service("api") == {"port": 8700}
     assert resolver.resolve("psi://demo/echo/services/api").metadata["port"] == 8700
 
