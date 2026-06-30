@@ -18,6 +18,9 @@ Local config maps those refs to concrete development targets:
 [refs."psi://demo/echo/services/api"]
 url = "http://127.0.0.1:8000"
 
+[refs."psi://demo/echo/services/api".metadata]
+policy_url = "http://127.0.0.1:9000"
+
 [refs."psi://demo/echo/channels/events"]
 store = ".sssn"
 ```
@@ -29,6 +32,10 @@ settings.
 Each `[refs."psi://..."]` table must declare exactly one concrete target:
 `url`, `store`, or `path`. Extra keys are preserved as metadata for that
 binding.
+For structured metadata, prefer an explicit nested
+`[refs."psi://...".metadata]` table. Legacy top-level extra keys are still read
+as metadata, and explicit metadata table values win when the same key appears
+in both places.
 `url` targets must be absolute HTTP(S) URLs, and text targets must not contain
 whitespace.
 Passive `[services.*]` and `[stores.*]` tables use the same path-segment name
