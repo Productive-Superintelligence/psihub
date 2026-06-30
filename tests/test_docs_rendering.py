@@ -65,6 +65,7 @@ def test_docs_site_builds_core_pages(tmp_path):
     assert "8787" in cli_html
     assert "outside the selected local hub root" in cli_html
     assert "outside <code>.psihub</code>" in local_hub_html
+    assert "Symlinks are skipped" in local_hub_html
     assert "Local Package Lifecycle" in lifecycle_html
     assert "agent-card" in lifecycle_html
     assert "Local Hub API" in local_hub_api_html

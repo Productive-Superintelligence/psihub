@@ -381,8 +381,12 @@ def _resource_extra(resource: Any) -> dict[str, Any]:
 
 
 def _publish_ignore(directory: str, names: list[str]) -> set[str]:
-    del directory
-    return {name for name in names if _should_ignore_publish_name(name)}
+    root = Path(directory)
+    return {
+        name
+        for name in names
+        if _should_ignore_publish_name(name) or (root / name).is_symlink()
+    }
 
 
 def _should_ignore_publish_name(name: str) -> bool:

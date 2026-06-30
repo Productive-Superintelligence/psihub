@@ -1718,6 +1718,16 @@ def test_local_publish_excludes_local_secret_config_and_cache_files(tmp_path):
     (package / "__pycache__" / "demo.cpython-312.pyc").write_bytes(b"cache")
     (package / "demo.egg-info").mkdir()
     (package / "demo.egg-info" / "PKG-INFO").write_text("cache\n", encoding="utf-8")
+    outside_secret = tmp_path / "outside-secret.txt"
+    outside_secret.write_text("TOKEN=outside\n", encoding="utf-8")
+    outside_dir = tmp_path / "outside-dir"
+    outside_dir.mkdir()
+    (outside_dir / "token.txt").write_text("TOKEN=outside-dir\n", encoding="utf-8")
+    try:
+        (package / "linked-secret.txt").symlink_to(outside_secret)
+        (package / "linked-dir").symlink_to(outside_dir, target_is_directory=True)
+    except OSError:
+        pytest.skip("symlinks are not available in this filesystem")
     hub = LocalHub(tmp_path / "hub")
 
     record = hub.publish(package)
@@ -1730,6 +1740,8 @@ def test_local_publish_excludes_local_secret_config_and_cache_files(tmp_path):
         ".psihub/index.json",
         "__pycache__/demo.cpython-312.pyc",
         "demo.egg-info/PKG-INFO",
+        "linked-secret.txt",
+        "linked-dir/token.txt",
     )
     for root in (record.root, downloaded):
         for relative in excluded:
