@@ -2,6 +2,7 @@ import importlib.util
 import json
 from copy import deepcopy
 from pathlib import Path
+from types import MappingProxyType
 
 import pytest
 from pydantic import ValidationError
@@ -2049,7 +2050,7 @@ def test_local_config_resolver_returns_isolated_binding_metadata():
     resolver.bind(
         "psi://demo/pkg/tactics/local",
         url="http://service",
-        metadata=metadata,
+        metadata=MappingProxyType(metadata),
     )
 
     metadata["headers"]["x-policy"] = "changed"

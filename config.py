@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
@@ -83,10 +84,10 @@ class LocalConfigResolver:
         store: str | None = None,
         path: str | None = None,
         object: Any = None,
-        metadata: dict[str, Any] | None = None,
+        metadata: Mapping[str, Any] | None = None,
     ) -> None:
         validate_psi_ref(ref)
-        if metadata is not None and not isinstance(metadata, dict):
+        if metadata is not None and not isinstance(metadata, Mapping):
             raise ValueError(f"Ref binding metadata must be a table: {ref}")
         url = _normalize_text_target(ref, "url", url)
         store = _normalize_text_target(ref, "store", store)
@@ -98,7 +99,7 @@ class LocalConfigResolver:
             store=store,
             path=path,
             object=object,
-            metadata=deepcopy(metadata or {}),
+            metadata=deepcopy(dict(metadata or {})),
         )
 
     def resolve(self, ref: str) -> ResolvedRef:
