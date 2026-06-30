@@ -10,6 +10,11 @@ from .local import LocalHub, PublishValidationError
 from .manifest import init_package
 from .validator import validate_package
 
+LOG_LEVELS = {"critical", "debug", "error", "info", "trace", "warning"}
+LOG_LEVEL_ERROR = (
+    "serve log level must be one of: critical, debug, error, info, trace, warning"
+)
+
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="psihub", description="Local PSI package hub")
@@ -58,10 +63,12 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     serve_host = None
     serve_port = None
+    serve_log_level = None
     if args.command == "serve":
         try:
             serve_host = _serve_host(args.host)
             serve_port = _serve_port(args.port)
+            serve_log_level = _serve_log_level(args.log_level)
         except ValueError as exc:
             parser.error(str(exc))
 
@@ -147,7 +154,7 @@ def main(argv: list[str] | None = None) -> int:
             create_app(hub=hub),
             host=serve_host,
             port=serve_port,
-            log_level=args.log_level,
+            log_level=serve_log_level,
         )
         return 0
 
@@ -179,6 +186,20 @@ def _serve_port(value: int) -> int:
     ):
         raise ValueError("serve port must be an integer between 1 and 65535")
     return value
+
+
+def _serve_log_level(value: str) -> str:
+    if (
+        not isinstance(value, str)
+        or not value
+        or value != value.strip()
+        or any(ch.isspace() for ch in value)
+    ):
+        raise ValueError(LOG_LEVEL_ERROR)
+    log_level = value.lower()
+    if log_level not in LOG_LEVELS:
+        raise ValueError(LOG_LEVEL_ERROR)
+    return log_level
 
 
 if __name__ == "__main__":

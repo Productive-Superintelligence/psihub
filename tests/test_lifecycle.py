@@ -41,7 +41,7 @@ from psihub.models import (
     ValidationReport,
 )
 from psihub.refs import PSI_REF_SECTIONS, parse_psi_ref, validate_psi_ref
-from psihub.cli import _serve_host, main
+from psihub.cli import _serve_host, _serve_log_level, main
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -2129,6 +2129,9 @@ def test_cli_validate_publish_get_and_card(tmp_path, capsys):
         ["serve", "--host", "localhost:8787"],
         ["serve", "--port", "0"],
         ["serve", "--port", "70000"],
+        ["serve", "--log-level", ""],
+        ["serve", "--log-level", " debug "],
+        ["serve", "--log-level", "verbose"],
     ],
 )
 def test_cli_serve_rejects_malformed_bindings_before_hub(tmp_path, capsys, args):
@@ -2146,6 +2149,11 @@ def test_cli_serve_rejects_malformed_bindings_before_hub(tmp_path, capsys, args)
 
 def test_cli_serve_host_accepts_bare_ipv6_addresses():
     assert _serve_host("::1") == "::1"
+
+
+def test_cli_serve_log_level_normalizes_known_values():
+    assert _serve_log_level("INFO") == "info"
+    assert _serve_log_level("trace") == "trace"
 
 
 def test_cli_rejects_blank_hub_without_traceback(capsys):
