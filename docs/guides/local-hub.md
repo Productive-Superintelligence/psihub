@@ -8,6 +8,9 @@ The local hub is deterministic disk storage for package development and tests:
   index/
 ```
 
+On reopen, index records must still point at the matching
+`.psihub/packages/org/name/version/psi.toml` package file.
+
 Publish a package:
 
 ```bash

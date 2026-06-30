@@ -116,6 +116,9 @@ Local hub storage defaults to:
   index/
 ```
 
+When a local hub is reopened, index records must still point at the deterministic
+`.psihub/packages/org/name/version/psi.toml` package location.
+
 Local publish copies package source into the hub while excluding local-only
 secret/config/cache material such as `.env`, `.env.local`, `.psi/`,
 `.psihub/`, virtualenvs, build output, and Python caches. Template files such

@@ -2155,6 +2155,39 @@ def test_local_hub_reopens_published_index(tmp_path):
     assert (downloaded / "psi.toml").exists()
 
 
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("root", "outside", "package root"),
+        ("root", "missing-root", "package root"),
+        ("manifest_path", "outside/psi.toml", "manifest path"),
+        ("manifest_path", "missing-manifest/psi.toml", "manifest path"),
+    ],
+)
+def test_local_hub_rejects_malformed_index_paths_on_load(
+    tmp_path,
+    field,
+    value,
+    message,
+):
+    package = make_lifecycle_package(tmp_path)
+    hub_root = tmp_path / "hub"
+    LocalHub(hub_root).publish(package)
+    index_path = hub_root / "index" / "packages.json"
+    payload = json.loads(index_path.read_text(encoding="utf-8"))
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "psi.toml").write_text(
+        "[package]\nname = \"outside\"\n",
+        encoding="utf-8",
+    )
+    payload["records"][0]["record"][field] = str(tmp_path / value)
+    index_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=message):
+        LocalHub(hub_root)
+
+
 def test_local_hub_rejects_path_control_record_identity_on_load(tmp_path):
     package = make_lifecycle_package(tmp_path)
     hub_root = tmp_path / "hub"

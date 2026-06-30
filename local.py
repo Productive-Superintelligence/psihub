@@ -175,6 +175,7 @@ class LocalHub:
                     f"Invalid local hub index record {index}: record must be an object."
                 )
             record = PackageRecord.model_validate(raw_record)
+            self._validate_loaded_record_paths(index, record)
             if key != record.key:
                 raise ValueError(
                     f"Invalid local hub index record {index}: key does not match record."
@@ -185,6 +186,34 @@ class LocalHub:
                 )
             loaded[key] = record
         self._records = loaded
+
+    def _validate_loaded_record_paths(
+        self, index: int, record: PackageRecord
+    ) -> None:
+        expected_root = (
+            self.packages_dir / record.org / record.name / record.version
+        )
+        if record.root != expected_root:
+            raise ValueError(
+                f"Invalid local hub index record {index}: package root must "
+                "match packages/org/name/version."
+            )
+        if expected_root.is_symlink() or not expected_root.is_dir():
+            raise ValueError(
+                f"Invalid local hub index record {index}: package root "
+                "must be an existing directory inside the hub packages tree."
+            )
+        expected_manifest = expected_root / "psi.toml"
+        if record.manifest_path != expected_manifest:
+            raise ValueError(
+                f"Invalid local hub index record {index}: manifest path "
+                "must match packages/org/name/version/psi.toml."
+            )
+        if expected_manifest.is_symlink() or not expected_manifest.is_file():
+            raise ValueError(
+                f"Invalid local hub index record {index}: manifest path "
+                "must be an existing package psi.toml file."
+            )
 
     def _write(self) -> None:
         payload: dict[str, Any] = {
