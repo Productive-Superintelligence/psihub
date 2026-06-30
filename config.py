@@ -192,6 +192,8 @@ def _validate_table_name(value: str, label: str) -> None:
 
 
 def _validate_table_values(section: str, key: str, item: dict[str, Any]) -> None:
+    if "metadata" in item and not isinstance(item["metadata"], dict):
+        raise ValueError(f"[{section}.{key}.metadata] must be a TOML table.")
     if section == "services" and "port" in item:
         port = item["port"]
         if (

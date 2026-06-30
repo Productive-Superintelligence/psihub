@@ -2238,6 +2238,24 @@ path = {path}
                 root=tmp_path / f"path-{index}",
             )
 
+    for index, (section, name, value) in enumerate(
+        (
+            ("services", "api", "[]"),
+            ("services", "api", '"bad"'),
+            ("stores", "default", "[]"),
+            ("stores", "default", '"bad"'),
+        ),
+        start=1,
+    ):
+        with pytest.raises(ValueError, match=rf"\[{section}\.{name}\.metadata\]"):
+            LocalConfigResolver.from_text(
+                f"""
+[{section}.{name}]
+metadata = {value}
+""".lstrip(),
+                root=tmp_path / f"metadata-{index}",
+            )
+
 
 def make_lifecycle_package(tmp_path: Path) -> Path:
     package = tmp_path / "echo"
