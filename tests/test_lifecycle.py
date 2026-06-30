@@ -1586,6 +1586,8 @@ def test_config_template_preserves_structured_ref_metadata(tmp_path):
                     "headers": {"x-policy": "demo", "retry": True},
                     "labels": ["alpha", "beta"],
                     "limits": {"max_retries": 2},
+                    "sample_rate": 0.25,
+                    "thresholds": {"score": 0.75},
                 },
             ),
         ),
@@ -1598,10 +1600,14 @@ def test_config_template_preserves_structured_ref_metadata(tmp_path):
     assert 'headers = { retry = true, x-policy = "demo" }' in config
     assert 'labels = ["alpha", "beta"]' in config
     assert "limits = { max_retries = 2 }" in config
+    assert "sample_rate = 0.25" in config
+    assert "thresholds = { score = 0.75 }" in config
     assert resolver.resolve(ref).metadata == {
         "headers": {"x-policy": "demo", "retry": True},
         "labels": ["alpha", "beta"],
         "limits": {"max_retries": 2},
+        "sample_rate": 0.25,
+        "thresholds": {"score": 0.75},
     }
 
 
