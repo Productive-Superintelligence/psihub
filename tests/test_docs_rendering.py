@@ -83,6 +83,9 @@ def test_docs_site_builds_core_pages(tmp_path):
     assert "network-path prefixes" in manifest_html
     assert "Downloaded Package Contracts" in refs_html
     assert "Ref segments must be non-empty path segments without whitespace" in refs_html
+    assert "Resource sections must be known PSI sections" in refs_html
+    assert "tactics" in refs_html
+    assert "assets" in refs_html
     assert "percent" in refs_html
     assert "escapes" in refs_html
     assert "absolute HTTP(S) URLs" in refs_html

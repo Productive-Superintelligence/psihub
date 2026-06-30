@@ -10,7 +10,9 @@ psi://demo/echo/snapshots/latest
 ```
 
 Ref segments must be non-empty path segments without whitespace, percent
-escapes, or path separators.
+escapes, or path separators. Resource sections must be known PSI sections such
+as `schemas`, `tactics`, `services`, `channels`, `snapshots`, `runs`,
+`configs`, `docs`, `examples`, or `assets`.
 
 Local config maps those refs to concrete development targets:
 
