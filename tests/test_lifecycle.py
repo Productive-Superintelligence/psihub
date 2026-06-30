@@ -1532,6 +1532,38 @@ def test_local_publish_download_card_and_config(tmp_path):
     assert resolver.service("api") == {"port": 8000}
 
 
+def test_config_template_escapes_quoted_ref_table_keys(tmp_path):
+    root = tmp_path / "quoted-package"
+    root.mkdir()
+    manifest_path = root / "psi.toml"
+    manifest_path.write_text("", encoding="utf-8")
+    ref = 'psi://demo"org/quote"pkg/services/api'
+    record = PackageRecord(
+        org='demo"org',
+        name='quote"pkg',
+        version="0.1.0",
+        kind="app",
+        root=root,
+        manifest_path=manifest_path,
+        resources=(
+            HubResource(
+                kind="service",
+                name="api",
+                ref=ref,
+                metadata={"policy_url": "http://policy"},
+            ),
+        ),
+        validation=ValidationReport(ok=True),
+    )
+
+    config = psihub.render_config_template(record)
+    resolver = LocalConfigResolver.from_text(config, root=tmp_path / "workspace")
+
+    assert '[refs."psi://demo\\"org/quote\\"pkg/services/api"]' in config
+    assert '[refs."psi://demo\\"org/quote\\"pkg/services/api".metadata]' in config
+    assert resolver.resolve(ref).metadata == {"policy_url": "http://policy"}
+
+
 def test_card_rendering_skips_malformed_endpoint_metadata(tmp_path):
     record = PackageRecord(
         org="demo",

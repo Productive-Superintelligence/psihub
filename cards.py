@@ -128,7 +128,7 @@ def render_config_template(record: PackageRecord) -> str:
         if resource.kind == "service":
             lines.extend(
                 [
-                    f"[refs.\"{resource.ref}\"]",
+                    f"[refs.{_toml_key(resource.ref)}]",
                     f'url = "http://127.0.0.1:{service_ports[resource.name]}"',
                 ]
             )
@@ -138,7 +138,7 @@ def render_config_template(record: PackageRecord) -> str:
             tactic_port = tactic_ports.get(resource.name, 8000)
             lines.extend(
                 [
-                    f"[refs.\"{resource.ref}\"]",
+                    f"[refs.{_toml_key(resource.ref)}]",
                     f'url = "http://127.0.0.1:{tactic_port}/tactics/'
                     f'{resource.name}"',
                 ]
@@ -148,7 +148,7 @@ def render_config_template(record: PackageRecord) -> str:
         if resource.kind in {"channel", "snapshot"}:
             lines.extend(
                 [
-                    f"[refs.\"{resource.ref}\"]",
+                    f"[refs.{_toml_key(resource.ref)}]",
                     'store = ".sssn"',
                 ]
             )
@@ -269,7 +269,7 @@ def _ref_metadata_lines(ref: str, metadata: dict[str, Any]) -> list[str]:
     metadata_lines = _metadata_lines(metadata)
     if not metadata_lines:
         return []
-    return ["", f"[refs.\"{ref}\".metadata]", *metadata_lines]
+    return ["", f"[refs.{_toml_key(ref)}.metadata]", *metadata_lines]
 
 
 def _toml_key(key: str) -> str:
