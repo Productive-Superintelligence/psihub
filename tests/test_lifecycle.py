@@ -155,6 +155,17 @@ def test_local_hub_rejects_download_file_target_collisions(tmp_path):
     assert existing_target.read_text(encoding="utf-8") == "not a directory"
 
 
+@pytest.mark.parametrize("validate", ["false", "true", 0, 1])
+def test_local_hub_publish_rejects_non_bool_validate_flag(tmp_path, validate):
+    package = make_lifecycle_package(tmp_path)
+    hub = LocalHub(tmp_path / "hub")
+
+    with pytest.raises(ValueError, match="publish validate"):
+        hub.publish(package, validate=validate)  # type: ignore[arg-type]
+
+    assert hub.list() == ()
+
+
 def test_local_config_resolver_from_text_rejects_non_string_text(tmp_path):
     for index, value in enumerate((None, 123, b"[refs]\n"), start=1):
         root = tmp_path / f"workspace-{index}"

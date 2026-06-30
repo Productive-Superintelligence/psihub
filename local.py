@@ -58,6 +58,8 @@ class LocalHub:
         self._load()
 
     def publish(self, package_path: str | Path, *, validate: bool = True) -> PackageRecord:
+        if not isinstance(validate, bool):
+            raise ValueError("publish validate must be a boolean.")
         source_manifest = load_manifest(package_path)
         report = validate_package(package_path) if validate else ValidationReport(ok=True)
         if validate and not report.ok:
