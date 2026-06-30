@@ -37,7 +37,9 @@ that binding.
 For structured metadata, prefer an explicit nested
 `[refs."psi://...".metadata]` table. Legacy top-level extra keys are still read
 as metadata, and explicit metadata table values win when the same key appears
-in both places.
+in both places. Ref, service, and store metadata must not include raw
+secret-shaped keys such as `api_key`, tokens, passwords, `authorization`, or
+credentials; use local credential refs such as `api_key_ref` instead.
 In-process `object` bindings are available through
 `LocalConfigResolver.bind(..., object=...)`; they are not serialized into
 `.psi/config.toml`.

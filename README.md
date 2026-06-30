@@ -108,7 +108,9 @@ In-process `object` bindings are registered with
 `.psi/config.toml`.
 Use `[refs."psi://...".metadata]` for structured binding metadata. Legacy
 top-level extra keys still work, but the explicit metadata table wins on
-duplicate keys.
+duplicate keys. Ref, service, and store metadata must not include raw
+secret-shaped keys such as `api_key`, tokens, passwords, `authorization`, or
+credentials; use local credential refs such as `api_key_ref` instead.
 
 Local hub storage defaults to:
 

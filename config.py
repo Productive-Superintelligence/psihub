@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -84,6 +85,8 @@ class LocalConfigResolver:
         validate_psi_ref(ref)
         if metadata is not None and not isinstance(metadata, Mapping):
             raise ValueError(f"Ref binding metadata must be a table: {ref}")
+        metadata_value = copy_boundary_value(metadata or {})
+        _reject_sensitive_metadata(metadata_value, f'refs."{ref}".metadata')
         url = _normalize_text_target(ref, "url", url)
         store = _normalize_text_target(ref, "store", store)
         path = _normalize_text_target(ref, "path", path)
@@ -94,7 +97,7 @@ class LocalConfigResolver:
             store=store,
             path=path,
             object=object,
-            metadata=copy_boundary_value(metadata or {}),
+            metadata=metadata_value,
         )
 
     def resolve(self, ref: str) -> ResolvedRef:
@@ -217,6 +220,7 @@ def _validate_table_name(value: str, label: str) -> None:
 def _validate_table_values(section: str, key: str, item: dict[str, Any]) -> None:
     if "metadata" in item and not isinstance(item["metadata"], dict):
         raise ValueError(f"[{section}.{key}.metadata] must be a TOML table.")
+    _reject_sensitive_metadata(item, f"{section}.{key}")
     if section == "services" and "port" in item:
         port = item["port"]
         if (
@@ -238,6 +242,39 @@ def _validate_table_values(section: str, key: str, item: dict[str, Any]) -> None
             raise ValueError(
                 f"[stores.{key}] path must be a non-empty string without whitespace."
             )
+
+
+def _reject_sensitive_metadata(value: Any, label: str) -> None:
+    if isinstance(value, Mapping):
+        for key, item in value.items():
+            if _is_sensitive_metadata_key(key):
+                raise ValueError(
+                    f"[{label}] must not include raw secret key {key!r}."
+                )
+            _reject_sensitive_metadata(item, label)
+    elif isinstance(value, (list, tuple)):
+        for item in value:
+            _reject_sensitive_metadata(item, label)
+
+
+def _is_sensitive_metadata_key(key: object) -> bool:
+    if not isinstance(key, str):
+        return False
+    normalized = re.sub(r"[^a-z0-9]+", "_", key.lower()).strip("_")
+    if not normalized:
+        return False
+    if normalized.endswith(("_ref", "_refs", "_reference", "_references")):
+        return False
+    parts = normalized.split("_")
+    if "api" in parts and "key" in parts:
+        return True
+    if "authorization" in parts or "credential" in parts or "credentials" in parts:
+        return True
+    if "password" in parts or "secret" in parts:
+        return True
+    if normalized == "token" or normalized.endswith("_token"):
+        return True
+    return False
 
 
 def _normalize_text_target(ref: str, name: str, value: Any) -> str | None:

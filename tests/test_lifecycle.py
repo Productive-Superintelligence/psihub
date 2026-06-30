@@ -2961,6 +2961,29 @@ def test_local_config_resolver_rejects_non_mapping_metadata():
         )
 
 
+def test_local_config_resolver_rejects_secret_ref_metadata_keys():
+    resolver = LocalConfigResolver()
+
+    resolver.bind(
+        "psi://demo/pkg/tactics/safe",
+        url="http://service",
+        metadata={"api_key_ref": "credentials/openai"},
+    )
+    assert resolver.resolve("psi://demo/pkg/tactics/safe").metadata == {
+        "api_key_ref": "credentials/openai"
+    }
+
+    with pytest.raises(ValueError, match="raw secret key"):
+        resolver.bind(
+            "psi://demo/pkg/tactics/local",
+            url="http://service",
+            metadata={
+                "api_key_ref": "credentials/openai",
+                "headers": {"authorization": "Bearer raw-token"},
+            },
+        )
+
+
 def test_local_config_resolver_rejects_non_table_ref_metadata(tmp_path):
     with pytest.raises(ValueError, match=r"\[refs\."):
         LocalConfigResolver.from_text(
@@ -2968,6 +2991,22 @@ def test_local_config_resolver_rejects_non_table_ref_metadata(tmp_path):
 [refs."psi://demo/pkg/tactics/local"]
 url = "http://service"
 metadata = "bad"
+""".lstrip(),
+            root=tmp_path / "workspace",
+        )
+
+
+def test_local_config_resolver_rejects_secret_ref_metadata_from_config(tmp_path):
+    with pytest.raises(ValueError, match="raw secret key"):
+        LocalConfigResolver.from_text(
+            """
+[refs."psi://demo/pkg/tactics/local"]
+url = "http://service"
+api_key = "raw-config-key"
+
+[refs."psi://demo/pkg/tactics/local".metadata]
+api_key_ref = "credentials/openai"
+headers = { authorization = "Bearer raw-config-token" }
 """.lstrip(),
             root=tmp_path / "workspace",
         )
@@ -3150,6 +3189,31 @@ owner = "demo"
     assert resolver.stores()["default"]["metadata"]["owner"] == "demo"
 
 
+def test_local_config_resolver_allows_credential_refs_in_service_store_tables(tmp_path):
+    resolver = LocalConfigResolver.from_text(
+        """
+[services.api]
+port = 8000
+api_key_ref = "credentials/service"
+
+[services.api.metadata]
+headers = { x_policy = "demo" }
+
+[stores.default]
+path = ".sssn"
+
+[stores.default.metadata]
+credential_ref = "credentials/store"
+""".lstrip(),
+        root=tmp_path / "workspace",
+    )
+
+    assert resolver.service("api")["api_key_ref"] == "credentials/service"
+    assert resolver.store("default")["metadata"]["credential_ref"] == (
+        "credentials/store"
+    )
+
+
 def test_local_config_resolver_rejects_invalid_service_store_tables(tmp_path):
     with pytest.raises(ValueError, match=r"\[services\.api\]"):
         LocalConfigResolver.from_text(
@@ -3227,6 +3291,36 @@ metadata = {value}
 """.lstrip(),
                 root=tmp_path / f"metadata-{index}",
             )
+
+
+def test_local_config_resolver_rejects_secret_service_store_metadata(tmp_path):
+    with pytest.raises(ValueError, match="raw secret key"):
+        LocalConfigResolver.from_text(
+            """
+[services.api]
+port = 8000
+api_key = "raw-service-key"
+
+[stores.default]
+path = ".sssn"
+""".lstrip(),
+            root=tmp_path / "service-secret",
+        )
+
+    with pytest.raises(ValueError, match="raw secret key"):
+        LocalConfigResolver.from_text(
+            """
+[services.api]
+port = 8000
+
+[stores.default]
+path = ".sssn"
+
+[stores.default.metadata]
+headers = { authorization = "Bearer raw-store-token" }
+""".lstrip(),
+            root=tmp_path / "store-secret",
+        )
 
 
 def make_lifecycle_package(tmp_path: Path) -> Path:
