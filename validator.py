@@ -371,7 +371,17 @@ def _validate_services(manifest: PackageManifest) -> list[ValidationIssue]:
             issues.extend(_validate_import(service.entry, manifest, ref))
         issues.extend(_validate_endpoint_metadata(service, ref))
         issues.extend(_validate_service_port_metadata(service, ref))
-        if service.tactic and service.tactic not in manifest.tactics:
+        if service.tactic is not None and _invalid_segment(service.tactic):
+            issues.append(
+                _invalid_local_ref(
+                    ref,
+                    "service_tactic_invalid",
+                    f"Service {name!r}",
+                    "tactic",
+                    service.tactic,
+                )
+            )
+        elif service.tactic and service.tactic not in manifest.tactics:
             issues.append(
                 ValidationIssue(
                     level="error",
@@ -381,7 +391,17 @@ def _validate_services(manifest: PackageManifest) -> list[ValidationIssue]:
                 )
             )
         for channel in (*service.subscribes, *service.publishes):
-            if channel not in manifest.channels:
+            if _invalid_segment(channel):
+                issues.append(
+                    _invalid_local_ref(
+                        ref,
+                        "service_channel_invalid",
+                        f"Service {name!r}",
+                        "channel",
+                        channel,
+                    )
+                )
+            elif channel not in manifest.channels:
                 issues.append(
                     ValidationIssue(
                         level="error",
@@ -451,7 +471,17 @@ def _validate_snapshots(manifest: PackageManifest) -> list[ValidationIssue]:
         ref = manifest.ref("snapshot", name)
         if snapshot.schema:
             issues.extend(_validate_schema_ref(snapshot.schema, manifest, ref))
-        if snapshot.channel and snapshot.channel not in manifest.channels:
+        if snapshot.channel is not None and _invalid_segment(snapshot.channel):
+            issues.append(
+                _invalid_local_ref(
+                    ref,
+                    "snapshot_channel_invalid",
+                    f"Snapshot {name!r}",
+                    "channel",
+                    snapshot.channel,
+                )
+            )
+        elif snapshot.channel and snapshot.channel not in manifest.channels:
             issues.append(
                 ValidationIssue(
                     level="error",
@@ -474,18 +504,76 @@ def _validate_runs(manifest: PackageManifest) -> list[ValidationIssue]:
             continue
         ref = manifest.ref("run", name)
         for service in run.services:
-            if service not in manifest.services:
+            if _invalid_segment(service):
+                issues.append(
+                    _invalid_local_ref(
+                        ref,
+                        "run_service_invalid",
+                        f"Run {name!r}",
+                        "service",
+                        service,
+                    )
+                )
+            elif service not in manifest.services:
                 issues.append(_missing(ref, "run_service_missing", name, service))
         for tactic in run.tactics:
-            if tactic not in manifest.tactics:
+            if _invalid_segment(tactic):
+                issues.append(
+                    _invalid_local_ref(
+                        ref,
+                        "run_tactic_invalid",
+                        f"Run {name!r}",
+                        "tactic",
+                        tactic,
+                    )
+                )
+            elif tactic not in manifest.tactics:
                 issues.append(_missing(ref, "run_tactic_missing", name, tactic))
         for channel in run.channels:
-            if channel not in manifest.channels:
+            if _invalid_segment(channel):
+                issues.append(
+                    _invalid_local_ref(
+                        ref,
+                        "run_channel_invalid",
+                        f"Run {name!r}",
+                        "channel",
+                        channel,
+                    )
+                )
+            elif channel not in manifest.channels:
                 issues.append(_missing(ref, "run_channel_missing", name, channel))
         for snapshot in run.snapshots:
-            if snapshot not in manifest.snapshots:
+            if _invalid_segment(snapshot):
+                issues.append(
+                    _invalid_local_ref(
+                        ref,
+                        "run_snapshot_invalid",
+                        f"Run {name!r}",
+                        "snapshot",
+                        snapshot,
+                    )
+                )
+            elif snapshot not in manifest.snapshots:
                 issues.append(_missing(ref, "run_snapshot_missing", name, snapshot))
     return issues
+
+
+def _invalid_local_ref(
+    resource: str,
+    code: str,
+    owner: str,
+    target_kind: str,
+    value: str,
+) -> ValidationIssue:
+    return ValidationIssue(
+        level="error",
+        code=code,
+        message=(
+            f"{owner} references malformed {target_kind} name {value!r}; "
+            "same-package refs must be non-empty path segments."
+        ),
+        resource=resource,
+    )
 
 
 def _validate_config(manifest: PackageManifest) -> list[ValidationIssue]:

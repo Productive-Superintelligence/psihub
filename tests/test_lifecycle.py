@@ -821,6 +821,25 @@ def test_validate_catches_missing_service_tactic(tmp_path):
     assert any(issue.code == "service_tactic_missing" for issue in report.issues)
 
 
+@pytest.mark.parametrize(
+    "value",
+    ("", "bad tactic", "bad/tactic", "bad%2Ftactic", "bad:tactic"),
+)
+def test_validate_catches_malformed_service_tactic_refs(tmp_path, value):
+    package = make_lifecycle_package(tmp_path)
+    text = (package / "psi.toml").read_text(encoding="utf-8")
+    (package / "psi.toml").write_text(
+        text.replace('tactic = "echo"', f'tactic = "{value}"'),
+        encoding="utf-8",
+    )
+
+    report = validate_package(package)
+
+    assert not report.ok
+    assert any(issue.code == "service_tactic_invalid" for issue in report.issues)
+    assert not any(issue.code == "service_tactic_missing" for issue in report.issues)
+
+
 def test_validate_catches_duplicate_resource_table_names(tmp_path):
     package = make_lifecycle_package(tmp_path)
     with (package / "psi.toml").open("a", encoding="utf-8") as handle:
@@ -866,6 +885,31 @@ def test_validate_catches_missing_service_channel_refs(tmp_path):
         assert any(issue.code == "service_channel_missing" for issue in report.issues)
 
 
+@pytest.mark.parametrize(
+    ("old", "new"),
+    [
+        ('subscribes = ["events"]', 'subscribes = ["bad channel"]'),
+        ('subscribes = ["events"]', 'subscribes = ["bad/channel"]'),
+        ('subscribes = ["events"]', 'subscribes = ["bad%2Fchannel"]'),
+        ('publishes = ["analysis"]', 'publishes = ["bad:channel"]'),
+        ('publishes = ["analysis"]', 'publishes = [""]'),
+    ],
+)
+def test_validate_catches_malformed_service_channel_refs(tmp_path, old, new):
+    package = make_combined_package(tmp_path)
+    manifest = package / "psi.toml"
+    manifest.write_text(
+        manifest.read_text(encoding="utf-8").replace(old, new, 1),
+        encoding="utf-8",
+    )
+
+    report = validate_package(package)
+
+    assert not report.ok
+    assert any(issue.code == "service_channel_invalid" for issue in report.issues)
+    assert not any(issue.code == "service_channel_missing" for issue in report.issues)
+
+
 def test_validate_checks_all_run_resource_refs(tmp_path):
     cases = [
         (
@@ -909,6 +953,71 @@ def test_validate_checks_all_run_resource_refs(tmp_path):
 
         assert not report.ok
         assert any(issue.code == code for issue in report.issues)
+
+
+@pytest.mark.parametrize(
+    ("name", "factory_name", "old", "new", "code", "missing_code"),
+    [
+        (
+            "service",
+            "lifecycle",
+            'services = ["api"]',
+            'services = ["bad service"]',
+            "run_service_invalid",
+            "run_service_missing",
+        ),
+        (
+            "tactic",
+            "lifecycle",
+            'services = ["api"]',
+            'services = ["api"]\ntactics = ["bad/tactic"]',
+            "run_tactic_invalid",
+            "run_tactic_missing",
+        ),
+        (
+            "channel",
+            "combined",
+            'channels = ["events", "analysis"]',
+            'channels = ["bad%2Fchannel"]',
+            "run_channel_invalid",
+            "run_channel_missing",
+        ),
+        (
+            "snapshot",
+            "combined",
+            'snapshots = ["latest_analysis"]',
+            'snapshots = ["bad:snapshot"]',
+            "run_snapshot_invalid",
+            "run_snapshot_missing",
+        ),
+    ],
+)
+def test_validate_checks_malformed_run_resource_refs(
+    tmp_path,
+    name,
+    factory_name,
+    old,
+    new,
+    code,
+    missing_code,
+):
+    factories = {
+        "lifecycle": make_lifecycle_package,
+        "combined": make_combined_package,
+    }
+    factory = factories[factory_name]
+    package = factory(tmp_path / name)
+    manifest = package / "psi.toml"
+    manifest.write_text(
+        manifest.read_text(encoding="utf-8").replace(old, new, 1),
+        encoding="utf-8",
+    )
+
+    report = validate_package(package)
+
+    assert not report.ok
+    assert any(issue.code == code for issue in report.issues)
+    assert not any(issue.code == missing_code for issue in report.issues)
 
 
 def test_validate_checks_schema_psi_refs(tmp_path):
@@ -1149,6 +1258,22 @@ def test_validate_checks_snapshot_refs(tmp_path):
     assert any(
         issue.code == "snapshot_channel_missing"
         for issue in missing_channel_report.issues
+    )
+
+    (package / "psi.toml").write_text(
+        original.replace('channel = "analysis"', 'channel = "bad/channel"'),
+        encoding="utf-8",
+    )
+    malformed_channel_report = validate_package(package)
+
+    assert not malformed_channel_report.ok
+    assert any(
+        issue.code == "snapshot_channel_invalid"
+        for issue in malformed_channel_report.issues
+    )
+    assert not any(
+        issue.code == "snapshot_channel_missing"
+        for issue in malformed_channel_report.issues
     )
 
     (package / "psi.toml").write_text(
