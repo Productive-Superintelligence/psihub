@@ -611,6 +611,18 @@ def _validate_declared_file(
             )
         ]
     base_dir = manifest.base_dir.resolve()
+    if _has_symlink_component(manifest.base_dir, Path(path)):
+        return [
+            ValidationIssue(
+                level="error",
+                code=code.replace("_missing", "_symlink"),
+                message=(
+                    f"{label} file path must resolve through regular package "
+                    f"files, not symlinks: {path}"
+                ),
+                resource=resource,
+            )
+        ]
     target = (base_dir / path).resolve()
     if not _is_relative_to(target, base_dir):
         return [
@@ -631,6 +643,15 @@ def _validate_declared_file(
             resource=resource,
         )
     ]
+
+
+def _has_symlink_component(base_dir: Path, path: Path) -> bool:
+    current = base_dir
+    for part in path.parts:
+        current = current / part
+        if current.is_symlink():
+            return True
+    return False
 
 
 def _invalid_portable_file_path(path: Any) -> bool:

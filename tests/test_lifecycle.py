@@ -1339,6 +1339,43 @@ def test_validate_rejects_absolute_declared_file_paths(tmp_path):
         assert any(issue.code == code for issue in windows_report.issues)
 
 
+def test_validate_rejects_symlinked_declared_file_paths(tmp_path):
+    replacements = [
+        ("docs/guide.md", "docs/guide-copy.md", "doc_path_symlink"),
+        ("examples/run.py", "examples/run-copy.py", "example_path_symlink"),
+        ("assets/logo.txt", "assets/logo-copy.txt", "asset_path_symlink"),
+    ]
+    for path, target_path, code in replacements:
+        package = make_rich_metadata_package(tmp_path / code)
+        target = package / target_path
+        target.write_bytes((package / path).read_bytes())
+        (package / path).unlink()
+        try:
+            (package / path).symlink_to(Path(target_path).name)
+        except OSError:
+            pytest.skip("symlinks are not available in this filesystem")
+
+        report = validate_package(package)
+
+        assert not report.ok
+        assert any(issue.code == code for issue in report.issues)
+
+
+def test_validate_rejects_declared_file_paths_under_symlinked_directories(tmp_path):
+    package = make_rich_metadata_package(tmp_path / "symlinked-doc-dir")
+    real_docs = package / "real-docs"
+    (package / "docs").rename(real_docs)
+    try:
+        (package / "docs").symlink_to("real-docs")
+    except OSError:
+        pytest.skip("symlinks are not available in this filesystem")
+
+    report = validate_package(package)
+
+    assert not report.ok
+    assert any(issue.code == "doc_path_symlink" for issue in report.issues)
+
+
 @pytest.mark.parametrize(
     "bad_path",
     [

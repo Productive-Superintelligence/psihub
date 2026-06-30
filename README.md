@@ -83,6 +83,8 @@ files.
 Validation accepts well-formed external `psi://.../schemas/name` refs, rejects
 malformed schema refs, and catches same-package schema refs that point at
 missing declared schemas.
+Doc, example, and asset package-file paths must stay portable and must not use
+symlinks, because local publish and download copies skip symlinks.
 Tactic examples should include an `input`, `output`, or `command`; empty
 examples produce a validation warning so cards stay useful.
 Packages should declare `[card]` metadata and `[docs.readme]` when a

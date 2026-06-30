@@ -45,7 +45,7 @@ policy_url = "http://127.0.0.1:8000"
 Doc, example, and asset resources use portable paths relative to the package
 root. Absolute paths are rejected during validation, and portable package-file
 paths must not contain whitespace, percent escapes, URL schemes, network-path
-prefixes, backslashes, or colon separators.
+prefixes, backslashes, colon separators, or symlinks.
 
 Validation catches malformed refs, missing same-package resources, invalid
 entrypoints, unbound services, duplicate package records, and run metadata that
