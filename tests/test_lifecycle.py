@@ -1912,6 +1912,65 @@ def test_cards_and_config_templates_skip_raw_secret_metadata(tmp_path):
     assert "access_token =" not in config
 
 
+def test_cards_skip_raw_secret_example_metadata(tmp_path):
+    record = PackageRecord(
+        org="demo",
+        name="example-secrets",
+        version="0.1.0",
+        kind="tactic",
+        description="Card example boundary.",
+        root=tmp_path,
+        manifest_path=tmp_path / "psi.toml",
+        validation=ValidationReport(ok=True),
+        resources=(
+            HubResource(
+                kind="tactic",
+                name="echo",
+                ref="psi://demo/example-secrets/tactics/echo",
+                metadata={
+                    "examples": [
+                        {
+                            "description": "Header-safe request.",
+                            "input": {
+                                "body": {
+                                    "text": "hello",
+                                    "access_token": "raw-example-token",
+                                },
+                                "headers": {
+                                    "authorization": "Bearer raw-example-auth",
+                                    "x-api-key": "raw-example-api-key",
+                                    "x-policy": "safe-example-policy",
+                                },
+                            },
+                            "output": {
+                                "password": "raw-example-password",
+                                "result": "ok",
+                            },
+                            "command": {
+                                "api_key": "raw-command-key",
+                                "argv": ["curl", "/run"],
+                            },
+                        }
+                    ]
+                },
+            ),
+        ),
+    )
+
+    card = render_package_card(record)
+    agent_card = render_agent_card(record)
+
+    for text in (card, agent_card):
+        assert "raw-example-token" not in text
+        assert "raw-example-auth" not in text
+        assert "raw-example-api-key" not in text
+        assert "raw-example-password" not in text
+        assert "raw-command-key" not in text
+        assert "safe-example-policy" in text
+        assert '"result":"ok"' in text
+        assert '"argv":["curl","/run"]' in text
+
+
 def test_card_rendering_skips_malformed_endpoint_metadata(tmp_path):
     record = PackageRecord(
         org="demo",

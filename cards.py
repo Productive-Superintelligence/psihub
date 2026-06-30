@@ -412,15 +412,15 @@ def _example_lines(metadata: dict[str, Any]) -> list[str]:
             continue
         parts: list[str] = []
         if "input" in example:
-            rendered = _json_inline(example["input"])
+            rendered = _json_public_inline(example["input"])
             if rendered is not None:
                 parts.append(f"`input={rendered}`")
         if "output" in example:
-            rendered = _json_inline(example["output"])
+            rendered = _json_public_inline(example["output"])
             if rendered is not None:
                 parts.append(f"`output={rendered}`")
         if "command" in example:
-            rendered = _json_inline(example["command"])
+            rendered = _json_public_inline(example["command"])
             if rendered is not None:
                 parts.append(f"`command={rendered}`")
         if not parts:
@@ -449,6 +449,44 @@ def _json_inline(value: Any) -> str | None:
         return json.dumps(value, sort_keys=True, separators=(",", ":"))
     except TypeError:
         return None
+
+
+_JSON_OMIT = object()
+
+
+def _json_public_inline(value: Any) -> str | None:
+    public_value = _json_public_value(value)
+    if public_value is _JSON_OMIT:
+        return None
+    return _json_inline(public_value)
+
+
+def _json_public_value(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        rendered: dict[str, Any] = {}
+        for key, item in sorted(value.items(), key=lambda pair: str(pair[0])):
+            if not isinstance(key, str):
+                return _JSON_OMIT
+            if _is_sensitive_metadata_key(key):
+                continue
+            public_item = _json_public_value(item)
+            if public_item is _JSON_OMIT:
+                return _JSON_OMIT
+            rendered[key] = public_item
+        if value and not rendered:
+            return _JSON_OMIT
+        return rendered
+    if isinstance(value, (list, tuple)):
+        rendered_items: list[Any] = []
+        for item in value:
+            public_item = _json_public_value(item)
+            if public_item is _JSON_OMIT:
+                return _JSON_OMIT
+            rendered_items.append(public_item)
+        return rendered_items
+    if value is None or isinstance(value, (str, bool, int, float)):
+        return value
+    return _JSON_OMIT
 
 
 def _mapping_summary(value: Any) -> str:
