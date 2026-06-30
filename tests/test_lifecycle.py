@@ -41,7 +41,7 @@ from psihub.models import (
     ValidationReport,
 )
 from psihub.refs import PSI_REF_SECTIONS, parse_psi_ref, validate_psi_ref
-from psihub.cli import main
+from psihub.cli import _serve_host, main
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -2120,6 +2120,8 @@ def test_cli_validate_publish_get_and_card(tmp_path, capsys):
         ["serve", "--host", " 127.0.0.1 "],
         ["serve", "--host", "bad host"],
         ["serve", "--host", "http://127.0.0.1"],
+        ["serve", "--host", "127.0.0.1:8787"],
+        ["serve", "--host", "localhost:8787"],
         ["serve", "--port", "0"],
         ["serve", "--port", "70000"],
     ],
@@ -2135,6 +2137,10 @@ def test_cli_serve_rejects_malformed_bindings_before_hub(tmp_path, capsys, args)
     assert output.out == ""
     assert "serve " in output.err
     assert not hub.exists()
+
+
+def test_cli_serve_host_accepts_bare_ipv6_addresses():
+    assert _serve_host("::1") == "::1"
 
 
 def test_cli_rejects_blank_hub_without_traceback(capsys):
