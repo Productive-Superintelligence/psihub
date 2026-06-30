@@ -31,13 +31,16 @@ store = ".sssn"
 in-process objects, HTTP URLs, local paths, store paths, service metadata, and
 settings.
 
-Each `[refs."psi://..."]` table must declare exactly one concrete target:
-`url`, `store`, or `path`. Extra keys are preserved as metadata for that
-binding.
+Each `[refs."psi://..."]` table must declare exactly one serializable concrete
+target: `url`, `store`, or `path`. Extra keys are preserved as metadata for
+that binding.
 For structured metadata, prefer an explicit nested
 `[refs."psi://...".metadata]` table. Legacy top-level extra keys are still read
 as metadata, and explicit metadata table values win when the same key appears
 in both places.
+In-process `object` bindings are available through
+`LocalConfigResolver.bind(..., object=...)`; they are not serialized into
+`.psi/config.toml`.
 `url` targets must be absolute HTTP(S) URLs, and text targets must not contain
 whitespace.
 Passive `[services.*]` and `[stores.*]` tables use the same path-segment name

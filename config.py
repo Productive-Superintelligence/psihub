@@ -51,6 +51,7 @@ class LocalConfigResolver:
         for ref, binding in refs.items():
             if not isinstance(binding, dict):
                 raise ValueError(f"Ref binding must be a table: {ref}")
+            _validate_serialized_ref_binding(ref, binding)
             resolver.bind(
                 ref,
                 url=binding.get("url"),
@@ -172,9 +173,17 @@ def _ref_binding_metadata(ref: str, binding: dict[str, Any]) -> dict[str, Any]:
     extras = {
         key: value
         for key, value in binding.items()
-        if key not in {"url", "store", "path", "metadata"}
+        if key not in {"url", "store", "path", "object", "metadata"}
     }
     return {**extras, **metadata}
+
+
+def _validate_serialized_ref_binding(ref: str, binding: dict[str, Any]) -> None:
+    if "object" in binding:
+        raise ValueError(
+            "Ref binding target 'object' is only supported for in-process "
+            f"LocalConfigResolver.bind(..., object=...) bindings: {ref}"
+        )
 
 
 def _table_of_tables(value: Any, name: str) -> dict[str, dict[str, Any]]:

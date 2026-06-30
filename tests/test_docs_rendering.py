@@ -89,6 +89,8 @@ def test_docs_site_builds_core_pages(tmp_path):
     assert "percent" in refs_html
     assert "escapes" in refs_html
     assert "absolute HTTP(S) URLs" in refs_html
+    assert "object</code> bindings" in refs_html
+    assert "not serialized into" in refs_html
     assert "text targets must not contain" in refs_html
     assert "whitespace" in refs_html
     assert "store table" in refs_html

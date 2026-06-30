@@ -2409,6 +2409,22 @@ store = ".sssn"
             root=tmp_path / "workspace",
         )
 
+    for index, body in enumerate(
+        (
+            'object = "local"',
+            'url = "http://service"\nobject = "local"',
+        ),
+        start=1,
+    ):
+        with pytest.raises(ValueError, match="object.*in-process"):
+            LocalConfigResolver.from_text(
+                f"""
+[refs."psi://demo/pkg/tactics/local"]
+{body}
+""".lstrip(),
+                root=tmp_path / f"object-workspace-{index}",
+            )
+
     resolver = LocalConfigResolver.from_text(
         """
 [refs."psi://demo/pkg/tactics/local"]
