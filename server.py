@@ -7,7 +7,7 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, Field, StrictStr, field_validator
+from pydantic import BaseModel, Field, StrictBool, StrictStr, field_validator
 
 from .local import LocalHub, PublishValidationError
 from .manifest import require_path_value
@@ -28,7 +28,7 @@ class ValidateRequest(_PackagePathRequest):
 
 
 class PublishRequest(_PackagePathRequest):
-    run_validation: bool = Field(default=True, alias="validate")
+    run_validation: StrictBool = Field(default=True, alias="validate")
 
 
 def create_app(*, hub: LocalHub | None = None, hub_root: str | Path = ".psihub"):

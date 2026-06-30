@@ -25,6 +25,12 @@ def test_local_hub_server_request_models_reject_malformed_paths(factory):
         factory()
 
 
+@pytest.mark.parametrize("value", ["false", "true", 0, 1])
+def test_local_hub_server_publish_request_rejects_non_bool_validate(value):
+    with pytest.raises(ValidationError):
+        PublishRequest(path=".", validate=value)
+
+
 def test_local_hub_server_rejects_blank_request_paths(tmp_path):
     app = create_app(hub=LocalHub(tmp_path / "hub"))
 
@@ -47,6 +53,26 @@ def test_local_hub_server_rejects_blank_request_paths(tmp_path):
     assert publish.status_code == 422
     assert "package path" in validation.text
     assert "package path" in publish.text
+
+
+def test_local_hub_server_rejects_non_bool_publish_validate(tmp_path):
+    app = create_app(hub=LocalHub(tmp_path / "hub"))
+
+    async def run():
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url="http://testserver",
+        ) as client:
+            return await client.post(
+                "/publish",
+                json={"path": ".", "validate": "false"},
+            )
+
+    response = asyncio.run(run())
+
+    assert response.status_code == 422
+    assert "validate" in response.text
 
 
 def test_local_hub_server_lifecycle(tmp_path):
