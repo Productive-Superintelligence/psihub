@@ -56,7 +56,9 @@ The local hub stores accepted packages under `.psihub/packages` and writes
 metadata under `.psihub/index`.
 Index records and JSON package metadata responses filter raw secret-shaped
 metadata keys from resource/card metadata while preserving credential refs such
-as `api_key_ref` and schema metadata.
+as `api_key_ref`/`apiKeyRef` and schema metadata. Snake_case, kebab-case, and
+camelCase secret keys such as `api_key`, `x-api-key`, `apiKey`, `accessToken`,
+and `clientSecret` are treated consistently.
 
 ## Download
 

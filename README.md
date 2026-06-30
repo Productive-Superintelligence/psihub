@@ -81,8 +81,8 @@ Package and agent cards render declared endpoint and tactic example metadata so
 custom service routes and concrete calls are visible without opening source
 files. Generated cards, config templates, local hub index records, and local
 hub JSON metadata responses filter raw secret-shaped metadata keys such as
-`api_key`, tokens, passwords, `authorization`, and credentials while preserving
-local refs such as `api_key_ref`.
+`api_key`, `apiKey`, tokens, `accessToken`, passwords, `authorization`, and
+credentials while preserving local refs such as `api_key_ref` and `apiKeyRef`.
 
 Validation accepts well-formed external `psi://.../schemas/name` refs, rejects
 malformed schema refs, and catches same-package schema refs that point at
@@ -112,8 +112,9 @@ In-process `object` bindings are registered with
 Use `[refs."psi://...".metadata]` for structured binding metadata. Legacy
 top-level extra keys still work, but the explicit metadata table wins on
 duplicate keys. Ref, service, and store metadata must not include raw
-secret-shaped keys such as `api_key`, tokens, passwords, `authorization`, or
-credentials; use local credential refs such as `api_key_ref` instead.
+secret-shaped keys such as `api_key`, `apiKey`, tokens, `accessToken`,
+passwords, `authorization`, or credentials; use local credential refs such as
+`api_key_ref` or `apiKeyRef` instead.
 
 Local hub storage defaults to:
 

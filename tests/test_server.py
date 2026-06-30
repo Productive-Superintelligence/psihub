@@ -122,7 +122,9 @@ def test_local_hub_server_filters_secret_metadata_json_responses(tmp_path):
         '[services.api.metadata]\n'
         'policy_url = "http://policy"\n'
         'api_key = "raw-service-key"\n'
-        'api_key_ref = "credentials/policy"',
+        'apiKey = "raw-camel-service-key"\n'
+        'api_key_ref = "credentials/policy"\n'
+        'apiKeyRef = "credentials/camel-policy"',
     )
     manifest.write_text(
         text
@@ -134,13 +136,19 @@ type = "object"
 [config.schema.properties.password]
 type = "string"
 
+[config.schema.properties.accessToken]
+type = "string"
+
 [config.defaults]
 api_key = "raw-config-key"
+accessToken = "raw-camel-config-token"
 api_key_ref = "credentials/openai"
+apiKeyRef = "credentials/camel-openai"
 mode = "safe-mode"
 
 [services.api.metadata.headers]
 authorization = "Bearer raw-service-auth"
+xAuthToken = "raw-camel-service-token"
 x_policy = "safe-policy"
 """,
         encoding="utf-8",
@@ -166,13 +174,19 @@ x_policy = "safe-policy"
     for response in (publish, listed, metadata):
         text = response.text
         assert "raw-service-key" not in text
+        assert "raw-camel-service-key" not in text
         assert "raw-service-auth" not in text
+        assert "raw-camel-service-token" not in text
         assert "raw-config-key" not in text
+        assert "raw-camel-config-token" not in text
         assert "credentials/policy" in text
+        assert "credentials/camel-policy" in text
         assert "credentials/openai" in text
+        assert "credentials/camel-openai" in text
         assert "safe-policy" in text
         assert "safe-mode" in text
         assert "password" in text
+        assert "accessToken" in text
 
     config_resource = next(
         resource
@@ -180,8 +194,17 @@ x_policy = "safe-policy"
         if resource["kind"] == "config"
     )
     assert "api_key" not in config_resource["metadata"]["defaults"]
+    assert "accessToken" not in config_resource["metadata"]["defaults"]
+    assert (
+        config_resource["metadata"]["defaults"]["apiKeyRef"]
+        == "credentials/camel-openai"
+    )
     assert (
         config_resource["metadata"]["schema"]["properties"]["password"]["type"]
+        == "string"
+    )
+    assert (
+        config_resource["metadata"]["schema"]["properties"]["accessToken"]["type"]
         == "string"
     )
 

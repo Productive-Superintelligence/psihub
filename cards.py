@@ -346,7 +346,7 @@ def _metadata_summary(metadata: dict[str, Any]) -> str:
 def _is_sensitive_metadata_key(key: object) -> bool:
     if not isinstance(key, str):
         return False
-    normalized = re.sub(r"[^a-z0-9]+", "_", key.lower()).strip("_")
+    normalized = _normalize_metadata_key(key)
     if not normalized:
         return False
     parts = normalized.split("_")
@@ -359,6 +359,12 @@ def _is_sensitive_metadata_key(key: object) -> bool:
     if "authorization" in parts or "credential" in parts or "credentials" in parts:
         return True
     return False
+
+
+def _normalize_metadata_key(key: str) -> str:
+    with_word_breaks = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", key)
+    with_word_breaks = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", with_word_breaks)
+    return re.sub(r"[^a-z0-9]+", "_", with_word_breaks.lower()).strip("_")
 
 
 def _endpoint_lines(metadata: dict[str, Any]) -> list[str]:

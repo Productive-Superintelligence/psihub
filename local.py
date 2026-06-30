@@ -434,13 +434,17 @@ def _resource_extra(resource: Any) -> dict[str, Any]:
 _SCHEMA_METADATA_KEYS = frozenset({"schema", "input_schema", "output_schema"})
 
 
+def _is_schema_metadata_key(key: object) -> bool:
+    return isinstance(key, str) and _normalize_metadata_key(key) in _SCHEMA_METADATA_KEYS
+
+
 def _public_resource_metadata(value: Any) -> Any:
     if isinstance(value, dict):
         metadata: dict[str, Any] = {}
         for key, item in value.items():
             if _is_sensitive_metadata_key(key):
                 continue
-            if key in _SCHEMA_METADATA_KEYS:
+            if _is_schema_metadata_key(key):
                 metadata[key] = item
             else:
                 metadata[key] = _public_resource_metadata(item)
@@ -455,7 +459,7 @@ def _public_resource_metadata(value: Any) -> Any:
 def _is_sensitive_metadata_key(key: object) -> bool:
     if not isinstance(key, str):
         return False
-    normalized = re.sub(r"[^a-z0-9]+", "_", key.lower()).strip("_")
+    normalized = _normalize_metadata_key(key)
     if not normalized:
         return False
     if normalized.endswith(("_ref", "_refs", "_reference", "_references")):
@@ -468,6 +472,12 @@ def _is_sensitive_metadata_key(key: object) -> bool:
     if "authorization" in parts or "credential" in parts or "credentials" in parts:
         return True
     return False
+
+
+def _normalize_metadata_key(key: str) -> str:
+    with_word_breaks = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", key)
+    with_word_breaks = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", with_word_breaks)
+    return re.sub(r"[^a-z0-9]+", "_", with_word_breaks.lower()).strip("_")
 
 
 def _package_copy_ignore(directory: str, names: list[str]) -> set[str]:
