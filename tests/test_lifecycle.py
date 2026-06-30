@@ -1947,6 +1947,8 @@ def test_local_publish_excludes_local_secret_config_and_cache_files(tmp_path):
         encoding="utf-8",
     )
     (package / ".envrc.example").write_text("export TOKEN=\n", encoding="utf-8")
+    (package / ".direnv").mkdir()
+    (package / ".direnv" / "allow").write_text("cached-env\n", encoding="utf-8")
     (package / ".psi").mkdir()
     (package / ".psi" / "config.toml").write_text("[refs]\n", encoding="utf-8")
     (package / ".psihub").mkdir()
@@ -1979,6 +1981,7 @@ def test_local_publish_excludes_local_secret_config_and_cache_files(tmp_path):
         ".env.local",
         ".envrc",
         ".envrc.local",
+        ".direnv/allow",
         ".psi/config.toml",
         ".psihub/index.json",
         "__pycache__/demo.cpython-312.pyc",

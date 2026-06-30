@@ -14,6 +14,7 @@ from .validator import validate_package
 
 
 PUBLISH_IGNORE_NAMES = {
+    ".direnv",
     ".git",
     ".mypy_cache",
     ".psi",

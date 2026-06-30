@@ -37,7 +37,7 @@ Use `--no-validate` only for intentionally incomplete local experiments.
 
 Publish copies package source into the hub, but skips local-only secret/config
 and cache material such as `.env`, `.env.local`, `.envrc`, `.envrc.local`,
-`.psi/`, `.psihub/`, virtualenvs, build output, and Python caches. Template
-files like `.env.example`, `.env.sample`, `.env.template`, `.envrc.example`,
-`.envrc.sample`, and `.envrc.template` remain publishable.
+`.direnv/`, `.psi/`, `.psihub/`, virtualenvs, build output, and Python caches.
+Template files like `.env.example`, `.env.sample`, `.env.template`,
+`.envrc.example`, `.envrc.sample`, and `.envrc.template` remain publishable.
 Symlinks are skipped rather than followed during publish and download copies.
