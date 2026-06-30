@@ -6,18 +6,20 @@ from dataclasses import dataclass
 from urllib.parse import unquote, urlparse
 
 
-PSI_REF_SECTIONS = {
-    "schemas",
-    "tactics",
-    "services",
-    "channels",
-    "snapshots",
-    "runs",
-    "configs",
-    "docs",
-    "examples",
-    "assets",
-}
+PSI_REF_SECTIONS = frozenset(
+    {
+        "schemas",
+        "tactics",
+        "services",
+        "channels",
+        "snapshots",
+        "runs",
+        "configs",
+        "docs",
+        "examples",
+        "assets",
+    }
+)
 
 
 @dataclass(frozen=True)

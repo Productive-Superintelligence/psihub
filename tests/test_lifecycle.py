@@ -2275,6 +2275,7 @@ def test_psi_ref_helpers_accept_known_resource_sections():
         "assets",
     }
     assert PSI_REF_SECTIONS == expected_sections
+    assert isinstance(PSI_REF_SECTIONS, frozenset)
 
     for resource_kind in expected_sections:
         ref = f"psi://demo/pkg/{resource_kind}/local"
