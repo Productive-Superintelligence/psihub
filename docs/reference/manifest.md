@@ -1,6 +1,7 @@
 # Manifest
 
 `psi.toml` is the package protocol owned by PsiHub.
+The manifest file itself must be a regular package file rather than a symlink.
 
 ```toml
 [package]

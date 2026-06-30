@@ -1214,6 +1214,22 @@ def test_validate_rejects_whitespace_package_identity_segments(tmp_path):
         assert any(issue.code == "manifest_load_failed" for issue in report.issues)
 
 
+def test_validate_rejects_symlinked_manifest_file(tmp_path):
+    package = make_lifecycle_package(tmp_path)
+    manifest = package / "psi.toml"
+    real_manifest = package / "psi-real.toml"
+    manifest.rename(real_manifest)
+    try:
+        manifest.symlink_to(real_manifest.name)
+    except OSError:
+        pytest.skip("symlinks are not available in this filesystem")
+
+    report = validate_package(package)
+
+    assert not report.ok
+    assert any(issue.code == "manifest_symlink" for issue in report.issues)
+
+
 def test_validate_rejects_path_control_resource_names(tmp_path):
     package = tmp_path / "invalid-resource"
     package.mkdir()

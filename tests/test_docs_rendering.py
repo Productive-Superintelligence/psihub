@@ -75,6 +75,7 @@ def test_docs_site_builds_core_pages(tmp_path):
     assert "does not launch package services" in local_hub_api_html
     assert "test_server.py" in local_hub_api_html
     assert "portable paths relative to the package" in manifest_html
+    assert "regular package file rather than a symlink" in manifest_html
     assert "Absolute paths are rejected" in manifest_html
     assert "package-file" in manifest_html
     assert "paths must not contain" in manifest_html

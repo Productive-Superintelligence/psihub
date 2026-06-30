@@ -8,7 +8,7 @@ from contextlib import contextmanager
 from pathlib import Path, PureWindowsPath
 from typing import Any, Iterator
 
-from .manifest import load_manifest, manifest_path
+from .manifest import load_manifest, manifest_path, require_path_value
 from .models import PackageManifest, ValidationIssue, ValidationReport
 from .refs import parse_psi_ref
 
@@ -35,7 +35,20 @@ ENDPOINT_SCOPES = {"store", "channel", "subscription", "artifact", "snapshot"}
 def validate_package(path: str | Path) -> ValidationReport:
     issues: list[ValidationIssue] = []
     try:
-        manifest = load_manifest(path)
+        source_manifest = _unresolved_manifest_path(path)
+        if source_manifest.is_symlink():
+            return ValidationReport(
+                ok=False,
+                issues=(
+                    ValidationIssue(
+                        level="error",
+                        code="manifest_symlink",
+                        message="psi.toml must be a regular package file, not a symlink.",
+                        resource="psi.toml",
+                    ),
+                ),
+            )
+        manifest = load_manifest(source_manifest)
     except Exception as exc:
         return ValidationReport(
             ok=False,
@@ -82,6 +95,13 @@ def _looks_like_duplicate_toml_name(message: str) -> bool:
         or ("duplicate" in normalized and "key" in normalized)
         or ("duplicate" in normalized and "table" in normalized)
     )
+
+
+def _unresolved_manifest_path(path: str | Path) -> Path:
+    value = Path(require_path_value(path, "manifest path")).expanduser()
+    if value.is_dir():
+        value = value / "psi.toml"
+    return value
 
 
 def import_entrypoint(entry: str, *, base_dir: Path | None = None) -> Any:

@@ -4,6 +4,7 @@ PsiHub is the local-first package hub for PSI packages.
 
 It owns the package protocol: `psi.toml`, validation, local publish/download,
 package cards, and local config templates. It does not launch services.
+`psi.toml` must be a regular package file rather than a symlink.
 
 ## Package Shape
 
