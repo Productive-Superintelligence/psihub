@@ -1230,6 +1230,20 @@ def test_validate_rejects_symlinked_manifest_file(tmp_path):
     assert any(issue.code == "manifest_symlink" for issue in report.issues)
 
 
+def test_load_manifest_rejects_symlinked_manifest_file(tmp_path):
+    package = make_lifecycle_package(tmp_path)
+    manifest = package / "psi.toml"
+    real_manifest = package / "psi-real.toml"
+    manifest.rename(real_manifest)
+    try:
+        manifest.symlink_to(real_manifest.name)
+    except OSError:
+        pytest.skip("symlinks are not available in this filesystem")
+
+    with pytest.raises(ValueError, match="regular package file"):
+        load_manifest(package)
+
+
 def test_validate_rejects_path_control_resource_names(tmp_path):
     package = tmp_path / "invalid-resource"
     package.mkdir()
@@ -1806,6 +1820,24 @@ def test_local_publish_excludes_local_secret_config_and_cache_files(tmp_path):
         assert (root / ".env.example").read_text(encoding="utf-8") == "TOKEN=\n"
     assert (record.root / "stored-linked-secret.txt").is_symlink()
     assert not (downloaded / "stored-linked-secret.txt").exists()
+
+
+def test_local_publish_without_validation_rejects_symlinked_manifest(tmp_path):
+    package = make_lifecycle_package(tmp_path)
+    manifest = package / "psi.toml"
+    real_manifest = package / "psi-real.toml"
+    manifest.rename(real_manifest)
+    try:
+        manifest.symlink_to(real_manifest.name)
+    except OSError:
+        pytest.skip("symlinks are not available in this filesystem")
+    hub = LocalHub(tmp_path / "hub")
+
+    with pytest.raises(ValueError, match="regular package file"):
+        hub.publish(package, validate=False)
+
+    assert not list(hub.packages_dir.rglob("psi-real.toml"))
+    assert not list(hub.packages_dir.rglob("psi.toml"))
 
 
 def test_local_hub_returns_isolated_package_records(tmp_path):

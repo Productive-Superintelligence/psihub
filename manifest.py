@@ -22,18 +22,25 @@ def require_path_value(value: Any, label: str = "path") -> str:
 
 
 def manifest_path(path: str | Path) -> Path:
-    value = Path(require_path_value(path, "manifest path")).expanduser()
-    if value.is_dir():
-        value = value / "psi.toml"
-    return value.resolve()
+    return _candidate_manifest_path(path).resolve()
 
 
 def load_manifest(path: str | Path) -> PackageManifest:
-    target = manifest_path(path)
+    target = _candidate_manifest_path(path)
+    if target.is_symlink():
+        raise ValueError("psi.toml must be a regular package file, not a symlink.")
+    target = target.resolve()
     data = _load_toml(target)
     manifest = PackageManifest.model_validate(data)
     manifest.base_dir = target.parent
     return manifest
+
+
+def _candidate_manifest_path(path: str | Path) -> Path:
+    value = Path(require_path_value(path, "manifest path")).expanduser()
+    if value.is_dir():
+        value = value / "psi.toml"
+    return value
 
 
 def init_package(
