@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import io
+import re
 import zipfile
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -63,16 +65,19 @@ def create_app(*, hub: LocalHub | None = None, hub_root: str | Path = ".psihub")
                 status_code=400,
                 detail=exc.report.model_dump(mode="json"),
             ) from exc
-        return jsonable_encoder(record)
+        return _public_record(record, jsonable_encoder)
 
     @app.get("/packages")
     async def list_packages() -> list[dict[str, Any]]:
-        return [jsonable_encoder(record) for record in local_hub.list()]
+        return [_public_record(record, jsonable_encoder) for record in local_hub.list()]
 
     @app.get("/packages/{org}/{name}")
     async def metadata(org: str, name: str, version: str | None = None) -> dict[str, Any]:
         try:
-            return jsonable_encoder(local_hub.get(f"{org}/{name}", version=version))
+            return _public_record(
+                local_hub.get(f"{org}/{name}", version=version),
+                jsonable_encoder,
+            )
         except (KeyError, ValueError) as exc:
             raise _lookup_error(exc) from exc
 
@@ -123,6 +128,61 @@ def _lookup_error(exc: Exception):
 
     status_code = 400 if isinstance(exc, ValueError) else 404
     return HTTPException(status_code=status_code, detail=str(exc))
+
+
+def _public_record(record: Any, jsonable_encoder: Any) -> dict[str, Any]:
+    return _public_payload(jsonable_encoder(record))
+
+
+def _public_payload(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        payload: dict[str, Any] = {}
+        for key, item in value.items():
+            if key == "metadata" and isinstance(item, Mapping):
+                payload[key] = _public_metadata(item)
+            else:
+                payload[key] = _public_payload(item)
+        return payload
+    if isinstance(value, list):
+        return [_public_payload(item) for item in value]
+    return value
+
+
+_SCHEMA_METADATA_KEYS = frozenset({"schema", "input_schema", "output_schema"})
+
+
+def _public_metadata(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        payload: dict[str, Any] = {}
+        for key, item in value.items():
+            if _is_sensitive_metadata_key(key):
+                continue
+            if key in _SCHEMA_METADATA_KEYS:
+                payload[key] = item
+            else:
+                payload[key] = _public_metadata(item)
+        return payload
+    if isinstance(value, list):
+        return [_public_metadata(item) for item in value]
+    return value
+
+
+def _is_sensitive_metadata_key(key: object) -> bool:
+    if not isinstance(key, str):
+        return False
+    normalized = re.sub(r"[^a-z0-9]+", "_", key.lower()).strip("_")
+    if not normalized:
+        return False
+    if normalized.endswith(("_ref", "_refs", "_reference", "_references")):
+        return False
+    parts = normalized.split("_")
+    if "api" in parts and "key" in parts:
+        return True
+    if "token" in parts or "secret" in parts or "password" in parts:
+        return True
+    if "authorization" in parts or "credential" in parts or "credentials" in parts:
+        return True
+    return False
 
 
 def _zip_folder(root: Path) -> bytes:

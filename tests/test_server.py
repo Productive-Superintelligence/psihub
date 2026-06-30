@@ -114,6 +114,78 @@ def test_local_hub_server_lifecycle(tmp_path):
         assert "psi.toml" in archive.namelist()
 
 
+def test_local_hub_server_filters_secret_metadata_json_responses(tmp_path):
+    package = make_lifecycle_package(tmp_path)
+    manifest = package / "psi.toml"
+    text = manifest.read_text(encoding="utf-8").replace(
+        '[services.api.metadata]\npolicy_url = "http://policy"',
+        '[services.api.metadata]\n'
+        'policy_url = "http://policy"\n'
+        'api_key = "raw-service-key"\n'
+        'api_key_ref = "credentials/policy"',
+    )
+    manifest.write_text(
+        text
+        + """
+
+[config.schema]
+type = "object"
+
+[config.schema.properties.password]
+type = "string"
+
+[config.defaults]
+api_key = "raw-config-key"
+api_key_ref = "credentials/openai"
+mode = "safe-mode"
+
+[services.api.metadata.headers]
+authorization = "Bearer raw-service-auth"
+x_policy = "safe-policy"
+""",
+        encoding="utf-8",
+    )
+    app = create_app(hub=LocalHub(tmp_path / "hub"))
+
+    async def run():
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url="http://testserver",
+        ) as client:
+            publish = await client.post(
+                "/publish",
+                json={"path": str(package), "validate": True},
+            )
+            listed = await client.get("/packages")
+            metadata = await client.get("/packages/demo/echo")
+        return publish, listed, metadata
+
+    publish, listed, metadata = asyncio.run(run())
+
+    for response in (publish, listed, metadata):
+        text = response.text
+        assert "raw-service-key" not in text
+        assert "raw-service-auth" not in text
+        assert "raw-config-key" not in text
+        assert "credentials/policy" in text
+        assert "credentials/openai" in text
+        assert "safe-policy" in text
+        assert "safe-mode" in text
+        assert "password" in text
+
+    config_resource = next(
+        resource
+        for resource in metadata.json()["resources"]
+        if resource["kind"] == "config"
+    )
+    assert "api_key" not in config_resource["metadata"]["defaults"]
+    assert (
+        config_resource["metadata"]["schema"]["properties"]["password"]["type"]
+        == "string"
+    )
+
+
 def test_local_hub_server_respects_version_query_and_numeric_latest(tmp_path):
     package = make_lifecycle_package(tmp_path)
     manifest = package / "psi.toml"

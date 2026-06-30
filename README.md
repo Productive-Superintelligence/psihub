@@ -79,7 +79,10 @@ incomplete local package.
 
 Package and agent cards render declared endpoint and tactic example metadata so
 custom service routes and concrete calls are visible without opening source
-files.
+files. Generated cards, config templates, and local hub JSON metadata responses
+filter raw secret-shaped metadata keys such as `api_key`, tokens, passwords,
+`authorization`, and credentials while preserving local refs such as
+`api_key_ref`.
 
 Validation accepts well-formed external `psi://.../schemas/name` refs, rejects
 malformed schema refs, and catches same-package schema refs that point at
