@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Mapping
 from typing import Any
 
 from .models import PackageRecord
@@ -257,7 +258,12 @@ def _settings_lines(record: PackageRecord) -> list[str]:
 def _metadata_lines(metadata: dict[str, Any]) -> list[str]:
     lines: list[str] = []
     for key, value in sorted(metadata.items()):
-        if key in {"url", "store", "path"} or value in (None, "", [], {}):
+        if key in {"url", "store", "path", "endpoints", "examples"} or value in (
+            None,
+            "",
+            [],
+            {},
+        ):
             continue
         rendered = _toml_value(value)
         if rendered is not None:
@@ -290,6 +296,16 @@ def _toml_value(value: Any) -> str | None:
         if any(item is None for item in rendered):
             return None
         return "[" + ", ".join(rendered_item for rendered_item in rendered if rendered_item) + "]"
+    if isinstance(value, Mapping):
+        rendered_items: list[str] = []
+        for key, item in sorted(value.items(), key=lambda pair: str(pair[0])):
+            if not isinstance(key, str):
+                return None
+            rendered = _toml_value(item)
+            if rendered is None:
+                return None
+            rendered_items.append(f"{_toml_key(key)} = {rendered}")
+        return "{ " + ", ".join(rendered_items) + " }"
     return None
 
 

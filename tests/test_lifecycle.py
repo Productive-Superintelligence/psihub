@@ -1564,6 +1564,47 @@ def test_config_template_escapes_quoted_ref_table_keys(tmp_path):
     assert resolver.resolve(ref).metadata == {"policy_url": "http://policy"}
 
 
+def test_config_template_preserves_structured_ref_metadata(tmp_path):
+    root = tmp_path / "structured-package"
+    root.mkdir()
+    manifest_path = root / "psi.toml"
+    manifest_path.write_text("", encoding="utf-8")
+    ref = "psi://demo/pkg/services/api"
+    record = PackageRecord(
+        org="demo",
+        name="pkg",
+        version="0.1.0",
+        kind="app",
+        root=root,
+        manifest_path=manifest_path,
+        resources=(
+            HubResource(
+                kind="service",
+                name="api",
+                ref=ref,
+                metadata={
+                    "headers": {"x-policy": "demo", "retry": True},
+                    "labels": ["alpha", "beta"],
+                    "limits": {"max_retries": 2},
+                },
+            ),
+        ),
+        validation=ValidationReport(ok=True),
+    )
+
+    config = psihub.render_config_template(record)
+    resolver = LocalConfigResolver.from_text(config, root=tmp_path / "workspace")
+
+    assert 'headers = { retry = true, x-policy = "demo" }' in config
+    assert 'labels = ["alpha", "beta"]' in config
+    assert "limits = { max_retries = 2 }" in config
+    assert resolver.resolve(ref).metadata == {
+        "headers": {"x-policy": "demo", "retry": True},
+        "labels": ["alpha", "beta"],
+        "limits": {"max_retries": 2},
+    }
+
+
 def test_card_rendering_skips_malformed_endpoint_metadata(tmp_path):
     record = PackageRecord(
         org="demo",
