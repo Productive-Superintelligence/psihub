@@ -40,7 +40,7 @@ from psihub.models import (
     ValidationIssue,
     ValidationReport,
 )
-from psihub.refs import parse_psi_ref, validate_psi_ref
+from psihub.refs import PSI_REF_SECTIONS, parse_psi_ref, validate_psi_ref
 from psihub.cli import main
 
 
@@ -2259,6 +2259,30 @@ def test_local_config_resolver_supports_registered_objects():
     resolver.bind("psi://demo/pkg/tactics/local", object=obj)
 
     assert resolver.resolve("psi://demo/pkg/tactics/local").object is obj
+
+
+def test_psi_ref_helpers_accept_known_resource_sections():
+    expected_sections = {
+        "schemas",
+        "tactics",
+        "services",
+        "channels",
+        "snapshots",
+        "runs",
+        "configs",
+        "docs",
+        "examples",
+        "assets",
+    }
+    assert PSI_REF_SECTIONS == expected_sections
+
+    for resource_kind in expected_sections:
+        ref = f"psi://demo/pkg/{resource_kind}/local"
+        parsed = parse_psi_ref(ref)
+
+        assert parsed.resource_kind == resource_kind
+        assert parsed.name == "local"
+        validate_psi_ref(ref)
 
 
 def test_local_config_resolver_rejects_invalid_refs(tmp_path):
