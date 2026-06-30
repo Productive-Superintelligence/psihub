@@ -6,6 +6,7 @@ from types import MappingProxyType
 
 import pytest
 from pydantic import ValidationError
+import psihub
 
 from psihub import (
     LocalConfigResolver,
@@ -15,6 +16,7 @@ from psihub import (
     init_package,
     load_manifest,
     manifest_path,
+    record_from_manifest,
     render_agent_card,
     render_package_card,
     validate_package,
@@ -51,6 +53,15 @@ def load_module(path: Path, name: str):
     assert spec.loader is not None
     spec.loader.exec_module(module)
     return module
+
+
+def test_public_package_exports_resource_models():
+    assert psihub.SchemaResource is SchemaResource
+    assert psihub.TacticResource is TacticResource
+    assert psihub.ServiceResource is ServiceResource
+    assert psihub.ChannelResource is ChannelResource
+    assert psihub.SnapshotResource is SnapshotResource
+    assert psihub.RunResource is RunResource
 
 
 def test_init_creates_manifest_and_readme(tmp_path):
@@ -359,6 +370,147 @@ def test_package_models_accept_nested_read_only_mapping_inputs():
     assert record.resources[0].metadata == {"nested": {"labels": ["hub"]}}
     assert record.card is not None
     assert record.card.metadata == {"nested": {"labels": ["card"]}}
+
+
+def test_record_from_manifest_preserves_canonical_resource_metadata(tmp_path):
+    manifest = PackageManifest(
+        package=PackageInfo(org="demo", name="canonical", version="0.1.0"),
+        tactics={
+            "echo": TacticResource(
+                entry="demo.tactics:Echo",
+                input="demo.schemas:EchoInput",
+                output="demo.schemas:EchoOutput",
+                runtime="pydantic-ai",
+                examples=({"input": {"text": "hello"}},),
+                metadata={
+                    "runtime": "spoofed-runtime",
+                    "input": "spoofed-input",
+                    "output": "spoofed-output",
+                    "examples": [{"input": {"text": "spoofed"}}],
+                    "label": "user",
+                },
+            ),
+        },
+        services={
+            "api": ServiceResource(
+                entry="demo.service:app",
+                tactic="echo",
+                transport="fastapi",
+                subscribes=("events",),
+                publishes=("analysis",),
+                metadata={
+                    "tactic": "spoofed",
+                    "transport": "zmq",
+                    "subscribes": ["spoofed"],
+                    "publishes": ["spoofed"],
+                    "port": 8800,
+                },
+            ),
+        },
+        channels={
+            "events": ChannelResource(
+                schema="demo.schemas:Event",
+                form="log",
+                metadata={"schema": "spoofed", "form": "queue"},
+            ),
+        },
+        snapshots={
+            "latest": SnapshotResource(
+                schema="demo.schemas:Analysis",
+                channel="analysis",
+                metadata={"schema": "spoofed", "channel": "spoofed"},
+            ),
+        },
+        runs={
+            "demo": RunResource(
+                services=("api",),
+                tactics=("echo",),
+                channels=("events",),
+                snapshots=("latest",),
+                metadata={
+                    "services": ["spoofed"],
+                    "tactics": ["spoofed"],
+                    "channels": ["spoofed"],
+                    "snapshots": ["spoofed"],
+                },
+            ),
+        },
+        config=ConfigResource(
+            schema={"properties": {"model": {"type": "string"}}},
+            defaults={"sample_rate": 2},
+            metadata={
+                "schema": {"properties": {"model": {"type": "integer"}}},
+                "defaults": {"sample_rate": 99},
+            },
+        ),
+        docs={
+            "guide": DocResource(
+                path="docs/guide.md",
+                title="Guide",
+                metadata={"path": "spoofed.md", "title": "Spoofed"},
+            ),
+        },
+        examples={
+            "quickstart": ExampleResource(
+                path="examples/run.py",
+                command="python examples/run.py",
+                metadata={
+                    "path": "spoofed.py",
+                    "command": "python spoofed.py",
+                },
+            ),
+        },
+        assets={
+            "logo": AssetResource(
+                path="assets/logo.svg",
+                media_type="image/svg+xml",
+                metadata={
+                    "path": "spoofed.svg",
+                    "media_type": "text/plain",
+                },
+            ),
+        },
+        base_dir=tmp_path,
+    )
+
+    record = record_from_manifest(manifest, validation=ValidationReport(ok=True))
+    resources = {(resource.kind, resource.name): resource for resource in record.resources}
+
+    tactic = resources[("tactic", "echo")]
+    assert tactic.metadata["runtime"] == "pydantic-ai"
+    assert tactic.metadata["input"] == "demo.schemas:EchoInput"
+    assert tactic.metadata["output"] == "demo.schemas:EchoOutput"
+    assert tactic.metadata["examples"] == [{"input": {"text": "hello"}}]
+    assert tactic.metadata["label"] == "user"
+
+    service = resources[("service", "api")]
+    assert service.metadata["tactic"] == "echo"
+    assert service.metadata["transport"] == "fastapi"
+    assert service.metadata["subscribes"] == ["events"]
+    assert service.metadata["publishes"] == ["analysis"]
+    assert service.metadata["port"] == 8800
+
+    assert resources[("channel", "events")].metadata["schema"] == "demo.schemas:Event"
+    assert resources[("channel", "events")].metadata["form"] == "log"
+    assert resources[("snapshot", "latest")].metadata["schema"] == "demo.schemas:Analysis"
+    assert resources[("snapshot", "latest")].metadata["channel"] == "analysis"
+    assert resources[("run", "demo")].metadata["services"] == ["api"]
+    assert resources[("run", "demo")].metadata["tactics"] == ["echo"]
+    assert resources[("run", "demo")].metadata["channels"] == ["events"]
+    assert resources[("run", "demo")].metadata["snapshots"] == ["latest"]
+    assert resources[("config", "default")].metadata["schema"] == {
+        "properties": {"model": {"type": "string"}}
+    }
+    assert resources[("config", "default")].metadata["defaults"] == {"sample_rate": 2}
+    assert resources[("doc", "guide")].metadata["path"] == "docs/guide.md"
+    assert resources[("doc", "guide")].metadata["title"] == "Guide"
+    assert resources[("example", "quickstart")].metadata["path"] == "examples/run.py"
+    assert (
+        resources[("example", "quickstart")].metadata["command"]
+        == "python examples/run.py"
+    )
+    assert resources[("asset", "logo")].metadata["path"] == "assets/logo.svg"
+    assert resources[("asset", "logo")].metadata["media_type"] == "image/svg+xml"
 
 
 @pytest.mark.parametrize(

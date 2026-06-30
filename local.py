@@ -214,7 +214,7 @@ def record_from_manifest(
                 ref=manifest.ref("schema", name),
                 entry=schema.entry,
                 description=schema.description,
-                metadata={**_resource_extra(schema), **schema.metadata},
+                metadata=_resource_metadata(schema),
             )
         )
     for name, tactic in manifest.tactics.items():
@@ -225,14 +225,13 @@ def record_from_manifest(
                 ref=manifest.ref("tactic", name),
                 entry=tactic.entry,
                 description=tactic.description,
-                metadata={
-                    "runtime": tactic.runtime,
-                    "input": tactic.input,
-                    "output": tactic.output,
-                    **_resource_extra(tactic),
-                    **tactic.metadata,
-                    "examples": list(tactic.examples),
-                },
+                metadata=_resource_metadata(
+                    tactic,
+                    runtime=tactic.runtime,
+                    input=tactic.input,
+                    output=tactic.output,
+                    examples=list(tactic.examples),
+                ),
             )
         )
     for name, service in manifest.services.items():
@@ -243,14 +242,13 @@ def record_from_manifest(
                 ref=manifest.ref("service", name),
                 entry=service.entry,
                 description=service.description,
-                metadata={
-                    "tactic": service.tactic,
-                    "transport": service.transport,
-                    "subscribes": list(service.subscribes),
-                    "publishes": list(service.publishes),
-                    **_resource_extra(service),
-                    **service.metadata,
-                },
+                metadata=_resource_metadata(
+                    service,
+                    tactic=service.tactic,
+                    transport=service.transport,
+                    subscribes=list(service.subscribes),
+                    publishes=list(service.publishes),
+                ),
             )
         )
     for name, channel in manifest.channels.items():
@@ -260,12 +258,11 @@ def record_from_manifest(
                 name=name,
                 ref=manifest.ref("channel", name),
                 description=channel.description,
-                metadata={
-                    "schema": channel.schema,
-                    "form": channel.form,
-                    **_resource_extra(channel),
-                    **channel.metadata,
-                },
+                metadata=_resource_metadata(
+                    channel,
+                    schema=channel.schema,
+                    form=channel.form,
+                ),
             )
         )
     for name, snapshot in manifest.snapshots.items():
@@ -275,12 +272,11 @@ def record_from_manifest(
                 name=name,
                 ref=manifest.ref("snapshot", name),
                 description=snapshot.description,
-                metadata={
-                    "schema": snapshot.schema,
-                    "channel": snapshot.channel,
-                    **_resource_extra(snapshot),
-                    **snapshot.metadata,
-                },
+                metadata=_resource_metadata(
+                    snapshot,
+                    schema=snapshot.schema,
+                    channel=snapshot.channel,
+                ),
             )
         )
     for name, run in manifest.runs.items():
@@ -290,14 +286,13 @@ def record_from_manifest(
                 name=name,
                 ref=manifest.ref("run", name),
                 description=run.description,
-                metadata={
-                    "services": list(run.services),
-                    "tactics": list(run.tactics),
-                    "channels": list(run.channels),
-                    "snapshots": list(run.snapshots),
-                    **_resource_extra(run),
-                    **run.metadata,
-                },
+                metadata=_resource_metadata(
+                    run,
+                    services=list(run.services),
+                    tactics=list(run.tactics),
+                    channels=list(run.channels),
+                    snapshots=list(run.snapshots),
+                ),
             )
         )
     if manifest.config is not None:
@@ -307,12 +302,11 @@ def record_from_manifest(
                 name="default",
                 ref=manifest.ref("config", "default"),
                 description=manifest.config.description,
-                metadata={
-                    "schema": manifest.config.schema,
-                    "defaults": manifest.config.defaults,
-                    **_resource_extra(manifest.config),
-                    **manifest.config.metadata,
-                },
+                metadata=_resource_metadata(
+                    manifest.config,
+                    schema=manifest.config.schema,
+                    defaults=manifest.config.defaults,
+                ),
             )
         )
     for name, doc in manifest.docs.items():
@@ -323,12 +317,11 @@ def record_from_manifest(
                 ref=manifest.ref("doc", name),
                 entry=doc.path,
                 description=doc.description,
-                metadata={
-                    "title": doc.title,
-                    "path": doc.path,
-                    **_resource_extra(doc),
-                    **doc.metadata,
-                },
+                metadata=_resource_metadata(
+                    doc,
+                    title=doc.title,
+                    path=doc.path,
+                ),
             )
         )
     for name, example in manifest.examples.items():
@@ -339,12 +332,11 @@ def record_from_manifest(
                 ref=manifest.ref("example", name),
                 entry=example.path,
                 description=example.description,
-                metadata={
-                    "path": example.path,
-                    "command": example.command,
-                    **_resource_extra(example),
-                    **example.metadata,
-                },
+                metadata=_resource_metadata(
+                    example,
+                    path=example.path,
+                    command=example.command,
+                ),
             )
         )
     for name, asset in manifest.assets.items():
@@ -355,12 +347,11 @@ def record_from_manifest(
                 ref=manifest.ref("asset", name),
                 entry=asset.path,
                 description=asset.description,
-                metadata={
-                    "path": asset.path,
-                    "media_type": asset.media_type,
-                    **_resource_extra(asset),
-                    **asset.metadata,
-                },
+                metadata=_resource_metadata(
+                    asset,
+                    path=asset.path,
+                    media_type=asset.media_type,
+                ),
             )
         )
     return PackageRecord(
@@ -375,6 +366,14 @@ def record_from_manifest(
         validation=validation or ValidationReport(ok=False),
         card=manifest.card,
     )
+
+
+def _resource_metadata(resource: Any, **canonical: Any) -> dict[str, Any]:
+    return {
+        **_resource_extra(resource),
+        **getattr(resource, "metadata", {}),
+        **canonical,
+    }
 
 
 def _resource_extra(resource: Any) -> dict[str, Any]:
