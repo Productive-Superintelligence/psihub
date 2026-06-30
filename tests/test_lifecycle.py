@@ -1842,6 +1842,76 @@ def test_config_template_preserves_structured_ref_metadata(tmp_path):
     }
 
 
+def test_cards_and_config_templates_skip_raw_secret_metadata(tmp_path):
+    root = tmp_path / "secret-metadata-package"
+    root.mkdir()
+    manifest_path = root / "psi.toml"
+    manifest_path.write_text("", encoding="utf-8")
+    record = PackageRecord(
+        org="demo",
+        name="secrets",
+        version="0.1.0",
+        kind="app",
+        root=root,
+        manifest_path=manifest_path,
+        resources=(
+            HubResource(
+                kind="service",
+                name="api",
+                ref="psi://demo/secrets/services/api",
+                metadata={
+                    "api_key": "raw-api-key",
+                    "github_token": "raw-token",
+                    "password": "raw-password",
+                    "authorization": "Bearer raw-auth",
+                    "headers": {
+                        "authorization": "Bearer nested-auth",
+                        "x-api-key": "nested-api-key",
+                        "x-policy": "safe-policy",
+                    },
+                    "label": "safe-label",
+                    "api_key_ref": "credentials/openai",
+                },
+            ),
+            HubResource(
+                kind="config",
+                name="defaults",
+                ref="psi://demo/secrets/configs/defaults",
+                metadata={
+                    "defaults": {
+                        "api_key": "raw-setting-key",
+                        "access_token": "raw-setting-token",
+                        "model": "demo-model",
+                        "api_key_ref": "credentials/openai",
+                    }
+                },
+            ),
+        ),
+        validation=ValidationReport(ok=True),
+    )
+
+    config = psihub.render_config_template(record)
+    card = psihub.render_package_card(record)
+    agent_card = psihub.render_agent_card(record)
+
+    for text in (config, card, agent_card):
+        assert "raw-api-key" not in text
+        assert "raw-token" not in text
+        assert "raw-password" not in text
+        assert "raw-auth" not in text
+        assert "nested-auth" not in text
+        assert "nested-api-key" not in text
+        assert "raw-setting-key" not in text
+        assert "raw-setting-token" not in text
+        assert "safe-label" in text
+        assert "safe-policy" in text
+        assert "credentials/openai" in text
+    assert 'model = "demo-model"' in config
+    assert 'api_key_ref = "credentials/openai"' in config
+    assert "api_key =" not in config
+    assert "access_token =" not in config
+
+
 def test_card_rendering_skips_malformed_endpoint_metadata(tmp_path):
     record = PackageRecord(
         org="demo",

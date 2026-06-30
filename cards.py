@@ -241,13 +241,13 @@ def _settings_lines(record: PackageRecord) -> list[str]:
         defaults = resource.metadata.get("defaults")
         if not isinstance(defaults, dict):
             continue
-        rendered = [
-            f"{_toml_key(key)} = {value}"
-            for key, value in (
-                (key, _toml_value(value)) for key, value in sorted(defaults.items())
-            )
-            if value is not None
-        ]
+        rendered: list[str] = []
+        for key, item in sorted(defaults.items()):
+            if _is_sensitive_metadata_key(key):
+                continue
+            value = _toml_public_value(item)
+            if value is not None:
+                rendered.append(f"{_toml_key(key)} = {value}")
         if rendered:
             if not settings:
                 settings.append("[settings]")
@@ -263,9 +263,9 @@ def _metadata_lines(metadata: dict[str, Any]) -> list[str]:
             "",
             [],
             {},
-        ):
+        ) or _is_sensitive_metadata_key(key):
             continue
-        rendered = _toml_value(value)
+        rendered = _toml_public_value(value)
         if rendered is not None:
             lines.append(f"{_toml_key(key)} = {rendered}")
     return lines
@@ -309,15 +309,56 @@ def _toml_value(value: Any) -> str | None:
     return None
 
 
+def _toml_public_value(value: Any) -> str | None:
+    if isinstance(value, Mapping):
+        rendered_items: list[str] = []
+        for key, item in sorted(value.items(), key=lambda pair: str(pair[0])):
+            if not isinstance(key, str) or _is_sensitive_metadata_key(key):
+                continue
+            rendered = _toml_public_value(item)
+            if rendered is None:
+                return None
+            rendered_items.append(f"{_toml_key(key)} = {rendered}")
+        if not rendered_items:
+            return None
+        return "{ " + ", ".join(rendered_items) + " }"
+    if isinstance(value, (list, tuple)):
+        rendered = [_toml_public_value(item) for item in value]
+        if any(item is None for item in rendered):
+            return None
+        return "[" + ", ".join(rendered_item for rendered_item in rendered if rendered_item) + "]"
+    return _toml_value(value)
+
+
 def _metadata_summary(metadata: dict[str, Any]) -> str:
     parts: list[str] = []
     for key, value in sorted(metadata.items()):
         if key in {"defaults", "endpoints", "examples", "schema"}:
             continue
-        rendered = _toml_value(value)
+        if _is_sensitive_metadata_key(key):
+            continue
+        rendered = _toml_public_value(value)
         if rendered is not None:
             parts.append(f"`{key}={rendered}`")
     return ", ".join(parts)
+
+
+def _is_sensitive_metadata_key(key: object) -> bool:
+    if not isinstance(key, str):
+        return False
+    normalized = re.sub(r"[^a-z0-9]+", "_", key.lower()).strip("_")
+    if not normalized:
+        return False
+    parts = normalized.split("_")
+    if normalized.endswith(("_ref", "_refs", "_reference", "_references")):
+        return False
+    if "api" in parts and "key" in parts:
+        return True
+    if "token" in parts or "secret" in parts or "password" in parts:
+        return True
+    if "authorization" in parts or "credential" in parts or "credentials" in parts:
+        return True
+    return False
 
 
 def _endpoint_lines(metadata: dict[str, Any]) -> list[str]:
@@ -415,7 +456,9 @@ def _mapping_summary(value: Any) -> str:
         return ""
     parts: list[str] = []
     for key, item in sorted(value.items()):
-        rendered = _toml_value(item)
+        if _is_sensitive_metadata_key(key):
+            continue
+        rendered = _toml_public_value(item)
         if rendered is not None:
             parts.append(f"`{key}={rendered}`")
     return ", ".join(parts)
