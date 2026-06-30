@@ -20,8 +20,13 @@ def test_downloaded_package_composes_lllm_tactic_and_sssn_channels(tmp_path):
         return {"summary": payload["text"].upper()}
 
     tactic_ref = manifest.ref("tactic", "analyze")
+    analyzer_ref = manifest.ref("service", "analyzer")
     events_ref = manifest.ref("channel", "events")
     analysis_ref = manifest.ref("channel", "analysis")
+    config_tactic = TacticResolver.from_config(tmp_path / "workspace").resolve(
+        tactic_ref
+    )
+    config_tactic_metadata = config_tactic.info().metadata
 
     tactic_resolver = TacticResolver()
     tactic_resolver.register(tactic_ref, as_tactic(analyze, input_type=dict, output_type=dict))
@@ -50,6 +55,11 @@ def test_downloaded_package_composes_lllm_tactic_and_sssn_channels(tmp_path):
 
     assert record.validation.ok
     assert validate_package(downloaded).ok
+    assert config_tactic_metadata["input"] == "analysis_input"
+    assert config_tactic_metadata["output"] == "analysis_output"
+    assert config_tactic_metadata["runtime"] == "python"
+    assert config.resolve(analyzer_ref).metadata["subscribes"] == ["events"]
+    assert config.resolve(analyzer_ref).metadata["publishes"] == ["analysis"]
     assert config.resolve(tactic_ref).url.endswith("/tactics/analyze")
     assert config.resolve(analysis_ref).store == ".sssn"
     assert output == {"summary": "HELLO"}
