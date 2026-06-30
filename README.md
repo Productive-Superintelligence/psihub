@@ -101,6 +101,8 @@ Local `.psi/config.toml` binding keys are also validated as strict
 `psi://org/package/resources/name` refs with known PSI resource sections.
 Each binding must declare exactly one serializable concrete target: `url`,
 `store`, or `path`; other keys are kept as metadata.
+URL targets must be absolute HTTP(S) URLs without query strings, fragments, or
+embedded credentials.
 In-process `object` bindings are registered with
 `LocalConfigResolver.bind(..., object=...)` and are not serialized into
 `.psi/config.toml`.

@@ -300,6 +300,10 @@ def _validate_url_target(ref: str, value: str) -> None:
         raise ValueError(
             f"Ref binding target 'url' must be an absolute HTTP(S) URL: {ref}"
         )
+    if parsed.username is not None or parsed.password is not None:
+        raise ValueError(
+            f"Ref binding target 'url' must not include embedded credentials: {ref}"
+        )
     if parsed.query or parsed.fragment:
         raise ValueError(
             f"Ref binding target 'url' must not include query or fragment parts: {ref}"

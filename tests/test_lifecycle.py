@@ -2852,10 +2852,14 @@ def test_local_config_resolver_rejects_malformed_url_targets(tmp_path):
         "/service",
         "ftp://service",
         "http://",
+        "http://user:pass@service",
         "http://service?env=dev",
         "http://service#dev",
     ):
-        with pytest.raises(ValueError, match="absolute HTTP|query or fragment"):
+        with pytest.raises(
+            ValueError,
+            match="absolute HTTP|embedded credentials|query or fragment",
+        ):
             resolver.bind("psi://demo/pkg/tactics/local", url=url)
 
     resolver.bind("psi://demo/pkg/tactics/prefixed", url="http://service/base")
@@ -2868,12 +2872,16 @@ def test_local_config_resolver_rejects_malformed_url_targets(tmp_path):
             "service",
             "/service",
             "ftp://service",
+            "http://user:pass@service",
             "http://service?env=dev",
             "http://service#dev",
         ),
         start=1,
     ):
-        with pytest.raises(ValueError, match="absolute HTTP|query or fragment"):
+        with pytest.raises(
+            ValueError,
+            match="absolute HTTP|embedded credentials|query or fragment",
+        ):
             LocalConfigResolver.from_text(
                 f"""
 [refs."psi://demo/pkg/tactics/local"]
