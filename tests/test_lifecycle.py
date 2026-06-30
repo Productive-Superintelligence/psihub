@@ -2670,12 +2670,33 @@ def test_local_config_resolver_rejects_non_string_targets(tmp_path):
 
 def test_local_config_resolver_rejects_malformed_url_targets(tmp_path):
     resolver = LocalConfigResolver()
-    for url in ("service", "/service", "ftp://service", "http://"):
-        with pytest.raises(ValueError, match="absolute HTTP"):
+    for url in (
+        "service",
+        "/service",
+        "ftp://service",
+        "http://",
+        "http://service?env=dev",
+        "http://service#dev",
+    ):
+        with pytest.raises(ValueError, match="absolute HTTP|query or fragment"):
             resolver.bind("psi://demo/pkg/tactics/local", url=url)
 
-    for index, url in enumerate(("service", "/service", "ftp://service"), start=1):
-        with pytest.raises(ValueError, match="absolute HTTP"):
+    resolver.bind("psi://demo/pkg/tactics/prefixed", url="http://service/base")
+    assert resolver.resolve("psi://demo/pkg/tactics/prefixed").url == (
+        "http://service/base"
+    )
+
+    for index, url in enumerate(
+        (
+            "service",
+            "/service",
+            "ftp://service",
+            "http://service?env=dev",
+            "http://service#dev",
+        ),
+        start=1,
+    ):
+        with pytest.raises(ValueError, match="absolute HTTP|query or fragment"):
             LocalConfigResolver.from_text(
                 f"""
 [refs."psi://demo/pkg/tactics/local"]

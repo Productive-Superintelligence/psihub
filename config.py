@@ -296,8 +296,11 @@ def _validate_text_target(ref: str, name: str, value: Any) -> None:
 
 def _validate_url_target(ref: str, value: str) -> None:
     parsed = urlparse(value)
-    if parsed.scheme in {"http", "https"} and parsed.netloc:
-        return
-    raise ValueError(
-        f"Ref binding target 'url' must be an absolute HTTP(S) URL: {ref}"
-    )
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise ValueError(
+            f"Ref binding target 'url' must be an absolute HTTP(S) URL: {ref}"
+        )
+    if parsed.query or parsed.fragment:
+        raise ValueError(
+            f"Ref binding target 'url' must not include query or fragment parts: {ref}"
+        )
