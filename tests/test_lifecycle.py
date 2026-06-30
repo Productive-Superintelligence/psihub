@@ -2271,6 +2271,15 @@ url = "http://service"
             root=tmp_path / "workspace",
         )
 
+    with pytest.raises(ValueError, match="unknown resource"):
+        LocalConfigResolver.from_text(
+            """
+[refs."psi://demo/pkg/widgets/local"]
+store = ".sssn"
+""".lstrip(),
+            root=tmp_path / "unknown-resource-workspace",
+        )
+
     resolver = LocalConfigResolver()
 
     with pytest.raises(ValueError, match="query"):
