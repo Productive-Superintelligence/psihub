@@ -33,6 +33,9 @@ SAFE_ENV_TEMPLATE_NAMES = {
     ".env.example",
     ".env.sample",
     ".env.template",
+    ".envrc.example",
+    ".envrc.sample",
+    ".envrc.template",
 }
 
 
@@ -426,6 +429,10 @@ def _should_ignore_publish_name(name: str) -> bool:
     if name == ".env":
         return True
     if name.startswith(".env.") and name not in SAFE_ENV_TEMPLATE_NAMES:
+        return True
+    if name == ".envrc":
+        return True
+    if name.startswith(".envrc.") and name not in SAFE_ENV_TEMPLATE_NAMES:
         return True
     return (
         name.endswith(".egg-info")

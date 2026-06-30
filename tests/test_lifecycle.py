@@ -1941,6 +1941,12 @@ def test_local_publish_excludes_local_secret_config_and_cache_files(tmp_path):
     (package / ".env").write_text("TOKEN=secret\n", encoding="utf-8")
     (package / ".env.local").write_text("TOKEN=local-secret\n", encoding="utf-8")
     (package / ".env.example").write_text("TOKEN=\n", encoding="utf-8")
+    (package / ".envrc").write_text("export TOKEN=secret\n", encoding="utf-8")
+    (package / ".envrc.local").write_text(
+        "export TOKEN=local-secret\n",
+        encoding="utf-8",
+    )
+    (package / ".envrc.example").write_text("export TOKEN=\n", encoding="utf-8")
     (package / ".psi").mkdir()
     (package / ".psi" / "config.toml").write_text("[refs]\n", encoding="utf-8")
     (package / ".psihub").mkdir()
@@ -1971,6 +1977,8 @@ def test_local_publish_excludes_local_secret_config_and_cache_files(tmp_path):
     excluded = (
         ".env",
         ".env.local",
+        ".envrc",
+        ".envrc.local",
         ".psi/config.toml",
         ".psihub/index.json",
         "__pycache__/demo.cpython-312.pyc",
@@ -1982,6 +1990,9 @@ def test_local_publish_excludes_local_secret_config_and_cache_files(tmp_path):
         for relative in excluded:
             assert not (root / relative).exists()
         assert (root / ".env.example").read_text(encoding="utf-8") == "TOKEN=\n"
+        assert (root / ".envrc.example").read_text(encoding="utf-8") == (
+            "export TOKEN=\n"
+        )
     assert (record.root / "stored-linked-secret.txt").is_symlink()
     assert not (downloaded / "stored-linked-secret.txt").exists()
 
