@@ -68,7 +68,7 @@ class LocalHub:
         shutil.copytree(
             source_manifest.base_dir or manifest_path(package_path).parent,
             destination,
-            ignore=_publish_ignore,
+            ignore=_package_copy_ignore,
         )
         manifest = load_manifest(destination)
         record = record_from_manifest(manifest, validation=report)
@@ -117,7 +117,7 @@ class LocalHub:
                     "download target already exists and is not a directory."
                 )
             shutil.rmtree(target)
-        shutil.copytree(record.root, target)
+        shutil.copytree(record.root, target, ignore=_package_copy_ignore)
         return target
 
     def list(self) -> tuple[PackageRecord, ...]:
@@ -380,7 +380,7 @@ def _resource_extra(resource: Any) -> dict[str, Any]:
     return dict(getattr(resource, "model_extra", None) or {})
 
 
-def _publish_ignore(directory: str, names: list[str]) -> set[str]:
+def _package_copy_ignore(directory: str, names: list[str]) -> set[str]:
     root = Path(directory)
     return {
         name

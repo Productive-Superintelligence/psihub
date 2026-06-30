@@ -1731,6 +1731,10 @@ def test_local_publish_excludes_local_secret_config_and_cache_files(tmp_path):
     hub = LocalHub(tmp_path / "hub")
 
     record = hub.publish(package)
+    try:
+        (record.root / "stored-linked-secret.txt").symlink_to(outside_secret)
+    except OSError:
+        pytest.skip("symlinks are not available in this filesystem")
     downloaded = hub.download("demo/echo", tmp_path / "downloaded")
 
     excluded = (
@@ -1747,6 +1751,8 @@ def test_local_publish_excludes_local_secret_config_and_cache_files(tmp_path):
         for relative in excluded:
             assert not (root / relative).exists()
         assert (root / ".env.example").read_text(encoding="utf-8") == "TOKEN=\n"
+    assert (record.root / "stored-linked-secret.txt").is_symlink()
+    assert not (downloaded / "stored-linked-secret.txt").exists()
 
 
 def test_local_hub_returns_isolated_package_records(tmp_path):

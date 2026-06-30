@@ -36,4 +36,4 @@ Publish copies package source into the hub, but skips local-only secret/config
 and cache material such as `.env`, `.env.local`, `.psi/`, `.psihub/`,
 virtualenvs, build output, and Python caches. Template files like
 `.env.example`, `.env.sample`, and `.env.template` remain publishable.
-Symlinks are skipped rather than followed.
+Symlinks are skipped rather than followed during publish and download copies.
