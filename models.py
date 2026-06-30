@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from copy import deepcopy
 from pathlib import Path
 from typing import Any, Literal, get_args
 
 from pydantic import BaseModel, ConfigDict, Field, StrictStr, computed_field, model_validator
 
+from ._copy import copy_boundary_value
 from .refs import parse_psi_ref
 
 PackageKind = Literal["tactic", "channel", "service", "app", "library", "mixed"]
@@ -176,7 +176,7 @@ class ConfigResource(BaseModel):
 
     @property
     def schema(self) -> dict[str, Any]:
-        return deepcopy(self.config_schema)
+        return copy_boundary_value(self.config_schema)
 
     def model_post_init(self, __context: Any) -> None:
         _isolate_fields(self, "config_schema", "defaults", "metadata")
@@ -404,7 +404,11 @@ def _validate_resource_kind(value: str) -> None:
 
 def _isolate_fields(model: BaseModel, *field_names: str) -> None:
     for field_name in field_names:
-        object.__setattr__(model, field_name, deepcopy(getattr(model, field_name)))
+        object.__setattr__(
+            model,
+            field_name,
+            copy_boundary_value(getattr(model, field_name)),
+        )
     extra = getattr(model, "__pydantic_extra__", None)
     if extra is not None:
-        object.__setattr__(model, "__pydantic_extra__", deepcopy(extra))
+        object.__setattr__(model, "__pydantic_extra__", copy_boundary_value(extra))

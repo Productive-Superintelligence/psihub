@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+from ._copy import copy_boundary_value
 from .manifest import require_path_value
 from .refs import validate_psi_ref
 
@@ -45,7 +45,7 @@ class LocalConfigResolver:
         settings = data.get("settings", {})
         if not isinstance(settings, dict):
             raise ValueError("[settings] must be a TOML table.")
-        resolver._settings = deepcopy(settings)
+        resolver._settings = copy_boundary_value(settings)
         resolver._services = _table_of_tables(data.get("services", {}), "services")
         resolver._stores = _table_of_tables(data.get("stores", {}), "stores")
         for ref, binding in refs.items():
@@ -99,7 +99,7 @@ class LocalConfigResolver:
             store=store,
             path=path,
             object=object,
-            metadata=deepcopy(dict(metadata or {})),
+            metadata=copy_boundary_value(metadata or {}),
         )
 
     def resolve(self, ref: str) -> ResolvedRef:
@@ -114,28 +114,28 @@ class LocalConfigResolver:
         return tuple(sorted(self._bindings))
 
     def settings(self) -> dict[str, Any]:
-        return deepcopy(self._settings)
+        return copy_boundary_value(self._settings)
 
     def setting(self, key: str, default: Any = None) -> Any:
-        return deepcopy(self._settings.get(key, default))
+        return copy_boundary_value(self._settings.get(key, default))
 
     def services(self) -> dict[str, dict[str, Any]]:
-        return deepcopy(self._services)
+        return copy_boundary_value(self._services)
 
     def service(self, name: str) -> dict[str, Any]:
         _validate_table_name(name, f"services.{name}")
         try:
-            return deepcopy(self._services[name])
+            return copy_boundary_value(self._services[name])
         except KeyError as exc:
             raise KeyError(f"Service config is not bound: {name}") from exc
 
     def stores(self) -> dict[str, dict[str, Any]]:
-        return deepcopy(self._stores)
+        return copy_boundary_value(self._stores)
 
     def store(self, name: str) -> dict[str, Any]:
         _validate_table_name(name, f"stores.{name}")
         try:
-            return deepcopy(self._stores[name])
+            return copy_boundary_value(self._stores[name])
         except KeyError as exc:
             raise KeyError(f"Store config is not bound: {name}") from exc
 
@@ -147,7 +147,9 @@ def _copy_binding(binding: ResolvedRef) -> ResolvedRef:
         store=binding.store,
         path=binding.path,
         object=binding.object,
-        metadata=deepcopy(binding.metadata) if binding.metadata is not None else None,
+        metadata=(
+            copy_boundary_value(binding.metadata) if binding.metadata is not None else None
+        ),
     )
 
 
@@ -177,7 +179,7 @@ def _table_of_tables(value: Any, name: str) -> dict[str, dict[str, Any]]:
             raise ValueError(f"[{name}.{key}] must use a non-empty path-segment name.")
         key_text = key
         _validate_table_name(key_text, f"{name}.{key_text}")
-        item_copy = deepcopy(item)
+        item_copy = copy_boundary_value(item)
         _validate_table_values(name, key_text, item_copy)
         result[key_text] = item_copy
     return result

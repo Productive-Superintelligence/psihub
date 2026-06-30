@@ -226,6 +226,141 @@ def test_package_models_isolate_mutable_inputs():
             record.resources_by_kind(kind)  # type: ignore[arg-type]
 
 
+def test_package_models_accept_nested_read_only_mapping_inputs():
+    example_inner = {"items": ["one"]}
+    tactic_inner = {"labels": ["tactic"]}
+    custom_inner = {"label": "extra"}
+    schema_inner = {"type": "string"}
+    default_inner = {"port": 8000}
+    config_inner = {"labels": ["config"]}
+    schema_meta_inner = {"labels": ["schema"]}
+    service_inner = {"labels": ["service"]}
+    channel_inner = {"labels": ["channel"]}
+    snapshot_inner = {"labels": ["snapshot"]}
+    run_inner = {"labels": ["run"]}
+    doc_inner = {"labels": ["doc"]}
+    example_meta_inner = {"labels": ["example"]}
+    asset_inner = {"labels": ["asset"]}
+    card_inner = {"labels": ["card"]}
+    hub_inner = {"labels": ["hub"]}
+
+    tactic = TacticResource(
+        entry="demo.tactics:Echo",
+        examples=({"input": MappingProxyType(example_inner)},),
+        metadata={"nested": MappingProxyType(tactic_inner)},
+        custom=MappingProxyType(custom_inner),
+    )
+    config = ConfigResource(
+        schema={"properties": {"model": MappingProxyType(schema_inner)}},
+        defaults={"service": MappingProxyType(default_inner)},
+        metadata={"nested": MappingProxyType(config_inner)},
+    )
+    manifest = PackageManifest(
+        package=PackageInfo(org="demo", name="pkg"),
+        schemas={
+            "event": SchemaResource(
+                entry="demo.schemas:Event",
+                metadata={"nested": MappingProxyType(schema_meta_inner)},
+            )
+        },
+        tactics={"echo": tactic},
+        services={
+            "api": ServiceResource(
+                entry="demo.service:app",
+                metadata={"nested": MappingProxyType(service_inner)},
+            )
+        },
+        channels={
+            "events": ChannelResource(
+                schema="demo.schemas:Event",
+                metadata={"nested": MappingProxyType(channel_inner)},
+            )
+        },
+        snapshots={
+            "state": SnapshotResource(
+                channel="events",
+                metadata={"nested": MappingProxyType(snapshot_inner)},
+            )
+        },
+        runs={"demo": RunResource(metadata={"nested": MappingProxyType(run_inner)})},
+        config=config,
+        docs={
+            "readme": DocResource(
+                path="README.md",
+                metadata={"nested": MappingProxyType(doc_inner)},
+            )
+        },
+        examples={
+            "demo": ExampleResource(
+                command="python examples/demo.py",
+                metadata={"nested": MappingProxyType(example_meta_inner)},
+            )
+        },
+        assets={
+            "logo": AssetResource(
+                path="assets/logo.svg",
+                metadata={"nested": MappingProxyType(asset_inner)},
+            )
+        },
+        card=CardResource(metadata={"nested": MappingProxyType(card_inner)}),
+    )
+    resource = HubResource(
+        kind="tactic",
+        name="echo",
+        ref="psi://demo/pkg/tactics/echo",
+        metadata={"nested": MappingProxyType(hub_inner)},
+    )
+    record = PackageRecord(
+        org="demo",
+        name="pkg",
+        version="0.1.0",
+        kind="tactic",
+        root=Path("."),
+        manifest_path=Path("psi.toml"),
+        resources=(resource,),
+        validation=ValidationReport(ok=True),
+        card=manifest.card,
+    )
+
+    example_inner["items"].append("changed")
+    tactic_inner["labels"].append("changed")
+    custom_inner["label"] = "changed"
+    schema_inner["type"] = "integer"
+    default_inner["port"] = 9000
+    config_inner["labels"].append("changed")
+    schema_meta_inner["labels"].append("changed")
+    service_inner["labels"].append("changed")
+    channel_inner["labels"].append("changed")
+    snapshot_inner["labels"].append("changed")
+    run_inner["labels"].append("changed")
+    doc_inner["labels"].append("changed")
+    example_meta_inner["labels"].append("changed")
+    asset_inner["labels"].append("changed")
+    card_inner["labels"].append("changed")
+    hub_inner["labels"].append("changed")
+
+    assert tactic.examples == ({"input": {"items": ["one"]}},)
+    assert tactic.metadata == {"nested": {"labels": ["tactic"]}}
+    assert tactic.custom == {"label": "extra"}
+    assert config.schema == {"properties": {"model": {"type": "string"}}}
+    assert config.defaults == {"service": {"port": 8000}}
+    assert config.metadata == {"nested": {"labels": ["config"]}}
+    assert manifest.schemas["event"].metadata == {"nested": {"labels": ["schema"]}}
+    assert manifest.tactics["echo"].metadata == {"nested": {"labels": ["tactic"]}}
+    assert manifest.services["api"].metadata == {"nested": {"labels": ["service"]}}
+    assert manifest.channels["events"].metadata == {"nested": {"labels": ["channel"]}}
+    assert manifest.snapshots["state"].metadata == {"nested": {"labels": ["snapshot"]}}
+    assert manifest.runs["demo"].metadata == {"nested": {"labels": ["run"]}}
+    assert manifest.docs["readme"].metadata == {"nested": {"labels": ["doc"]}}
+    assert manifest.examples["demo"].metadata == {"nested": {"labels": ["example"]}}
+    assert manifest.assets["logo"].metadata == {"nested": {"labels": ["asset"]}}
+    assert manifest.card is not None
+    assert manifest.card.metadata == {"nested": {"labels": ["card"]}}
+    assert record.resources[0].metadata == {"nested": {"labels": ["hub"]}}
+    assert record.card is not None
+    assert record.card.metadata == {"nested": {"labels": ["card"]}}
+
+
 @pytest.mark.parametrize(
     "factory",
     [
@@ -2046,14 +2181,15 @@ metadata = "bad"
 
 def test_local_config_resolver_returns_isolated_binding_metadata():
     resolver = LocalConfigResolver()
-    metadata = {"headers": {"x-policy": "demo"}}
+    headers = {"x-policy": "demo"}
+    metadata = {"headers": MappingProxyType(headers)}
     resolver.bind(
         "psi://demo/pkg/tactics/local",
         url="http://service",
         metadata=MappingProxyType(metadata),
     )
 
-    metadata["headers"]["x-policy"] = "changed"
+    headers["x-policy"] = "changed"
     resolved = resolver.resolve("psi://demo/pkg/tactics/local")
     assert resolved.metadata == {"headers": {"x-policy": "demo"}}
 
