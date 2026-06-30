@@ -38,6 +38,11 @@ SAFE_ENV_TEMPLATE_NAMES = {
     ".envrc.sample",
     ".envrc.template",
 }
+SECRET_CONFIG_FILE_NAMES = {
+    ".netrc",
+    ".npmrc",
+    ".pypirc",
+}
 
 
 class PublishValidationError(ValueError):
@@ -426,6 +431,8 @@ def _package_copy_ignore(directory: str, names: list[str]) -> set[str]:
 
 def _should_ignore_publish_name(name: str) -> bool:
     if name in PUBLISH_IGNORE_NAMES:
+        return True
+    if name in SECRET_CONFIG_FILE_NAMES:
         return True
     if name == ".env":
         return True

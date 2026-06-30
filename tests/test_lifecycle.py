@@ -1949,6 +1949,9 @@ def test_local_publish_excludes_local_secret_config_and_cache_files(tmp_path):
     (package / ".envrc.example").write_text("export TOKEN=\n", encoding="utf-8")
     (package / ".direnv").mkdir()
     (package / ".direnv" / "allow").write_text("cached-env\n", encoding="utf-8")
+    (package / ".netrc").write_text("machine example login token\n", encoding="utf-8")
+    (package / ".pypirc").write_text("[pypi]\ntoken=secret\n", encoding="utf-8")
+    (package / ".npmrc").write_text("//registry/:_authToken=secret\n", encoding="utf-8")
     (package / ".psi").mkdir()
     (package / ".psi" / "config.toml").write_text("[refs]\n", encoding="utf-8")
     (package / ".psihub").mkdir()
@@ -1982,6 +1985,9 @@ def test_local_publish_excludes_local_secret_config_and_cache_files(tmp_path):
         ".envrc",
         ".envrc.local",
         ".direnv/allow",
+        ".netrc",
+        ".pypirc",
+        ".npmrc",
         ".psi/config.toml",
         ".psihub/index.json",
         "__pycache__/demo.cpython-312.pyc",
