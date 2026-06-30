@@ -51,11 +51,12 @@ def init_package(
     kind: str = "mixed",
     force: bool = False,
 ) -> Path:
+    force_value = _bool_value("force", force)
     root = Path(require_path_value(path, "package path")).expanduser()
     package_name = root.resolve().name if name is None else name
     package = PackageInfo(org=org, name=package_name, kind=kind)
     target = root / "psi.toml"
-    if target.exists() and not force:
+    if target.exists() and not force_value:
         return target
     root.mkdir(parents=True, exist_ok=True)
     target.write_text(
@@ -83,6 +84,12 @@ def init_package(
     if not readme.exists():
         readme.write_text(f"# {package.name}\n\nPsi package.\n", encoding="utf-8")
     return target
+
+
+def _bool_value(label: str, value: Any) -> bool:
+    if not isinstance(value, bool):
+        raise TypeError(f"{label} must be a boolean.")
+    return value
 
 
 def _load_toml(path: Path) -> dict[str, Any]:

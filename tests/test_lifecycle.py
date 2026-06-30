@@ -104,6 +104,23 @@ def test_init_rejects_invalid_manifest_identity_before_write(tmp_path):
     assert not encoded_target.exists()
 
 
+@pytest.mark.parametrize("value", ["false", "true", 0, 1])
+def test_init_rejects_coerced_force_flag_without_rewrite(tmp_path, value):
+    target = tmp_path / "force"
+    manifest = init_package(target, org="demo", name="force")
+    original = manifest.read_text(encoding="utf-8")
+
+    with pytest.raises(TypeError, match="force"):
+        init_package(
+            target,
+            org="demo",
+            name="changed",
+            force=value,  # type: ignore[arg-type]
+        )
+
+    assert manifest.read_text(encoding="utf-8") == original
+
+
 def test_public_path_helpers_reject_blank_or_non_path_values(tmp_path):
     for value in ("   ", " package ", 123):
         with pytest.raises(ValueError, match="manifest path"):
