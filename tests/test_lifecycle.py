@@ -685,6 +685,12 @@ def test_validation_issue_allows_common_code_separators():
     assert issue.code == "schema_ref_kind_mismatch"
 
 
+@pytest.mark.parametrize("value", ["false", "true", 0, 1])
+def test_validation_report_rejects_coerced_ok_flag(value):
+    with pytest.raises(ValidationError):
+        ValidationReport(ok=value)  # type: ignore[arg-type]
+
+
 def test_package_manifest_ref_rejects_invalid_resource_kind():
     manifest = PackageManifest(package=PackageInfo(org="demo", name="pkg"))
 

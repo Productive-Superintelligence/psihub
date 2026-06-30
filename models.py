@@ -5,7 +5,15 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Literal, get_args
 
-from pydantic import BaseModel, ConfigDict, Field, StrictStr, computed_field, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictBool,
+    StrictStr,
+    computed_field,
+    model_validator,
+)
 
 from ._copy import copy_boundary_value
 from .refs import parse_psi_ref
@@ -320,7 +328,7 @@ class ValidationIssue(BaseModel):
 class ValidationReport(BaseModel):
     model_config = ConfigDict(frozen=True)
 
-    ok: bool
+    ok: StrictBool
     issues: tuple[ValidationIssue, ...] = Field(default_factory=tuple)
 
     def model_post_init(self, __context: Any) -> None:
