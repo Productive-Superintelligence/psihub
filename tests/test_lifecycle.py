@@ -2078,9 +2078,28 @@ def test_local_publish_excludes_local_secret_config_and_cache_files(tmp_path):
     (package / ".envrc.example").write_text("export TOKEN=\n", encoding="utf-8")
     (package / ".direnv").mkdir()
     (package / ".direnv" / "allow").write_text("cached-env\n", encoding="utf-8")
+    (package / ".ssh").mkdir()
+    (package / ".ssh" / "id_ed25519").write_text(
+        "local-private-key\n",
+        encoding="utf-8",
+    )
+    (package / ".aws").mkdir()
+    (package / ".aws" / "credentials").write_text(
+        "[default]\nkey=secret\n",
+        encoding="utf-8",
+    )
+    (package / ".azure").mkdir()
+    (package / ".azure" / "accessTokens.json").write_text("[]\n", encoding="utf-8")
+    (package / ".gcloud").mkdir()
+    (package / ".gcloud" / "application_default_credentials.json").write_text(
+        "{}\n",
+        encoding="utf-8",
+    )
     (package / ".netrc").write_text("machine example login token\n", encoding="utf-8")
     (package / ".pypirc").write_text("[pypi]\ntoken=secret\n", encoding="utf-8")
     (package / ".npmrc").write_text("//registry/:_authToken=secret\n", encoding="utf-8")
+    (package / "id_rsa").write_text("local-private-key\n", encoding="utf-8")
+    (package / "id_ed25519").write_text("local-private-key\n", encoding="utf-8")
     (package / ".psi").mkdir()
     (package / ".psi" / "config.toml").write_text("[refs]\n", encoding="utf-8")
     (package / ".psihub").mkdir()
@@ -2114,9 +2133,15 @@ def test_local_publish_excludes_local_secret_config_and_cache_files(tmp_path):
         ".envrc",
         ".envrc.local",
         ".direnv/allow",
+        ".ssh/id_ed25519",
+        ".aws/credentials",
+        ".azure/accessTokens.json",
+        ".gcloud/application_default_credentials.json",
         ".netrc",
         ".pypirc",
         ".npmrc",
+        "id_rsa",
+        "id_ed25519",
         ".psi/config.toml",
         ".psihub/index.json",
         "__pycache__/demo.cpython-312.pyc",

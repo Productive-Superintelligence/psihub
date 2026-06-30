@@ -123,11 +123,12 @@ When a local hub is reopened, index records must still point at the deterministi
 
 Local publish copies package source into the hub while excluding local-only
 secret/config/cache material such as `.env`, `.env.local`, `.envrc`,
-`.envrc.local`, `.netrc`, `.pypirc`, `.npmrc`, `.direnv/`, `.psi/`,
-`.psihub/`, virtualenvs, build output, and Python caches. Template files such
-as `.env.example`, `.env.sample`, `.env.template`, `.envrc.example`,
-`.envrc.sample`, and `.envrc.template` are preserved. Symlinks are skipped
-rather than followed during publish and download copies.
+`.envrc.local`, `.netrc`, `.pypirc`, `.npmrc`, `.ssh/`, `.aws/`, `.azure/`,
+`.gcloud/`, root-level private key files such as `id_ed25519` and `id_rsa`,
+`.direnv/`, `.psi/`, `.psihub/`, virtualenvs, build output, and Python caches.
+Template files such as `.env.example`, `.env.sample`, `.env.template`,
+`.envrc.example`, `.envrc.sample`, and `.envrc.template` are preserved.
+Symlinks are skipped rather than followed during publish and download copies.
 
 Generated config templates assign multiple service refs distinct default local
 ports in manifest order. A service can declare `port` in its metadata to prefer

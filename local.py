@@ -14,13 +14,17 @@ from .validator import validate_package
 
 
 PUBLISH_IGNORE_NAMES = {
+    ".aws",
+    ".azure",
     ".direnv",
+    ".gcloud",
     ".git",
     ".mypy_cache",
     ".psi",
     ".psihub",
     ".pytest_cache",
     ".ruff_cache",
+    ".ssh",
     ".tox",
     ".venv",
     "__pycache__",
@@ -42,6 +46,10 @@ SECRET_CONFIG_FILE_NAMES = {
     ".netrc",
     ".npmrc",
     ".pypirc",
+    "id_dsa",
+    "id_ecdsa",
+    "id_ed25519",
+    "id_rsa",
 }
 
 
