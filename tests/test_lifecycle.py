@@ -2308,6 +2308,29 @@ policy_url = "http://policy"
     assert binding.metadata == {"policy_url": "http://policy"}
 
 
+def test_local_config_resolver_flattens_ref_metadata_table(tmp_path):
+    resolver = LocalConfigResolver.from_text(
+        """
+[refs."psi://demo/pkg/tactics/local"]
+url = "http://service"
+policy_url = "http://legacy"
+label = "legacy-extra"
+
+[refs."psi://demo/pkg/tactics/local".metadata]
+policy_url = "http://policy"
+headers = { x_policy = "demo" }
+""".lstrip(),
+        root=tmp_path / "workspace",
+    )
+
+    binding = resolver.resolve("psi://demo/pkg/tactics/local")
+    assert binding.metadata == {
+        "policy_url": "http://policy",
+        "label": "legacy-extra",
+        "headers": {"x_policy": "demo"},
+    }
+
+
 def test_local_config_resolver_rejects_non_mapping_metadata():
     resolver = LocalConfigResolver()
 

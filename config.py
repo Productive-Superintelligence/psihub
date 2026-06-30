@@ -51,18 +51,12 @@ class LocalConfigResolver:
         for ref, binding in refs.items():
             if not isinstance(binding, dict):
                 raise ValueError(f"Ref binding must be a table: {ref}")
-            if "metadata" in binding and not isinstance(binding["metadata"], dict):
-                raise ValueError(f'[refs."{ref}".metadata] must be a TOML table.')
             resolver.bind(
                 ref,
                 url=binding.get("url"),
                 store=binding.get("store"),
                 path=binding.get("path"),
-                metadata={
-                    key: value
-                    for key, value in binding.items()
-                    if key not in {"url", "store", "path"}
-                },
+                metadata=_ref_binding_metadata(ref, binding),
             )
         return resolver
 
@@ -166,6 +160,21 @@ def _config_text_value(value: Any) -> str:
     if not isinstance(value, str):
         raise ValueError("config text must be a string.")
     return value
+
+
+def _ref_binding_metadata(ref: str, binding: dict[str, Any]) -> dict[str, Any]:
+    if "metadata" in binding:
+        metadata = binding["metadata"]
+        if not isinstance(metadata, dict):
+            raise ValueError(f'[refs."{ref}".metadata] must be a TOML table.')
+    else:
+        metadata = {}
+    extras = {
+        key: value
+        for key, value in binding.items()
+        if key not in {"url", "store", "path", "metadata"}
+    }
+    return {**extras, **metadata}
 
 
 def _table_of_tables(value: Any, name: str) -> dict[str, dict[str, Any]]:
