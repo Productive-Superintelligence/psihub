@@ -2031,6 +2031,18 @@ def test_local_config_resolver_rejects_non_mapping_metadata():
         )
 
 
+def test_local_config_resolver_rejects_non_table_ref_metadata(tmp_path):
+    with pytest.raises(ValueError, match=r"\[refs\."):
+        LocalConfigResolver.from_text(
+            """
+[refs."psi://demo/pkg/tactics/local"]
+url = "http://service"
+metadata = "bad"
+""".lstrip(),
+            root=tmp_path / "workspace",
+        )
+
+
 def test_local_config_resolver_returns_isolated_binding_metadata():
     resolver = LocalConfigResolver()
     metadata = {"headers": {"x-policy": "demo"}}

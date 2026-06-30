@@ -50,6 +50,8 @@ class LocalConfigResolver:
         for ref, binding in refs.items():
             if not isinstance(binding, dict):
                 raise ValueError(f"Ref binding must be a table: {ref}")
+            if "metadata" in binding and not isinstance(binding["metadata"], dict):
+                raise ValueError(f'[refs."{ref}".metadata] must be a TOML table.')
             resolver.bind(
                 ref,
                 url=binding.get("url"),
