@@ -1912,6 +1912,62 @@ def test_cards_and_config_templates_skip_raw_secret_metadata(tmp_path):
     assert "access_token =" not in config
 
 
+def test_local_publish_filters_secret_metadata_from_index_records(tmp_path):
+    package = make_lifecycle_package(tmp_path)
+    manifest = package / "psi.toml"
+    text = manifest.read_text(encoding="utf-8").replace(
+        '[services.api.metadata]\npolicy_url = "http://policy"',
+        '[services.api.metadata]\n'
+        'policy_url = "http://policy"\n'
+        'api_key = "raw-service-key"\n'
+        'api_key_ref = "credentials/policy"',
+    )
+    manifest.write_text(
+        text
+        + """
+
+[config.schema]
+type = "object"
+
+[config.schema.properties.password]
+type = "string"
+
+[config.defaults]
+api_key = "raw-config-key"
+api_key_ref = "credentials/openai"
+mode = "safe-mode"
+
+[services.api.metadata.headers]
+authorization = "Bearer raw-service-auth"
+x_policy = "safe-policy"
+""",
+        encoding="utf-8",
+    )
+    hub_root = tmp_path / "hub"
+    record = LocalHub(hub_root).publish(package)
+    index_text = (hub_root / "index" / "packages.json").read_text(encoding="utf-8")
+    reopened = LocalHub(hub_root).get("demo/echo")
+
+    for text_value in (str(record.model_dump(mode="json")), index_text):
+        assert "raw-service-key" not in text_value
+        assert "raw-service-auth" not in text_value
+        assert "raw-config-key" not in text_value
+        assert "credentials/policy" in text_value
+        assert "credentials/openai" in text_value
+        assert "safe-policy" in text_value
+        assert "safe-mode" in text_value
+        assert "password" in text_value
+
+    service = next(resource for resource in record.resources if resource.kind == "service")
+    config = next(resource for resource in reopened.resources if resource.kind == "config")
+
+    assert "api_key" not in service.metadata
+    assert service.metadata["headers"] == {"x_policy": "safe-policy"}
+    assert "api_key" not in config.metadata["defaults"]
+    assert config.metadata["defaults"]["api_key_ref"] == "credentials/openai"
+    assert config.metadata["schema"]["properties"]["password"]["type"] == "string"
+
+
 def test_cards_skip_raw_secret_example_metadata(tmp_path):
     record = PackageRecord(
         org="demo",

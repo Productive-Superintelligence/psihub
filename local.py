@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 from pathlib import Path
 from typing import Any
@@ -417,15 +418,56 @@ def record_from_manifest(
 
 
 def _resource_metadata(resource: Any, **canonical: Any) -> dict[str, Any]:
-    return {
-        **_resource_extra(resource),
-        **getattr(resource, "metadata", {}),
-        **canonical,
-    }
+    return _public_resource_metadata(
+        {
+            **_resource_extra(resource),
+            **getattr(resource, "metadata", {}),
+            **canonical,
+        }
+    )
 
 
 def _resource_extra(resource: Any) -> dict[str, Any]:
     return dict(getattr(resource, "model_extra", None) or {})
+
+
+_SCHEMA_METADATA_KEYS = frozenset({"schema", "input_schema", "output_schema"})
+
+
+def _public_resource_metadata(value: Any) -> Any:
+    if isinstance(value, dict):
+        metadata: dict[str, Any] = {}
+        for key, item in value.items():
+            if _is_sensitive_metadata_key(key):
+                continue
+            if key in _SCHEMA_METADATA_KEYS:
+                metadata[key] = item
+            else:
+                metadata[key] = _public_resource_metadata(item)
+        return metadata
+    if isinstance(value, list):
+        return [_public_resource_metadata(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(_public_resource_metadata(item) for item in value)
+    return value
+
+
+def _is_sensitive_metadata_key(key: object) -> bool:
+    if not isinstance(key, str):
+        return False
+    normalized = re.sub(r"[^a-z0-9]+", "_", key.lower()).strip("_")
+    if not normalized:
+        return False
+    if normalized.endswith(("_ref", "_refs", "_reference", "_references")):
+        return False
+    parts = normalized.split("_")
+    if "api" in parts and "key" in parts:
+        return True
+    if "token" in parts or "secret" in parts or "password" in parts:
+        return True
+    if "authorization" in parts or "credential" in parts or "credentials" in parts:
+        return True
+    return False
 
 
 def _package_copy_ignore(directory: str, names: list[str]) -> set[str]:

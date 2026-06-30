@@ -54,9 +54,9 @@ curl -X POST http://127.0.0.1:8710/publish \
 Publishing with `validate: true` rejects packages that have validation errors.
 The local hub stores accepted packages under `.psihub/packages` and writes
 metadata under `.psihub/index`.
-JSON package metadata responses filter raw secret-shaped metadata keys from
-resource/card metadata while preserving credential refs such as `api_key_ref`
-and schema metadata.
+Index records and JSON package metadata responses filter raw secret-shaped
+metadata keys from resource/card metadata while preserving credential refs such
+as `api_key_ref` and schema metadata.
 
 ## Download
 
