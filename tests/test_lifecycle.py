@@ -1862,21 +1862,27 @@ def test_cards_and_config_templates_skip_raw_secret_metadata(tmp_path):
                 metadata={
                     "api_key": "raw-api-key",
                     "apiKey": "raw-camel-api-key",
+                    "apikey": "raw-compact-api-key",
                     "github_token": "raw-token",
                     "githubToken": "raw-camel-token",
+                    "githubtoken": "raw-compact-token",
                     "clientSecret": "raw-camel-secret",
+                    "clientsecret": "raw-compact-secret",
                     "password": "raw-password",
                     "authorization": "Bearer raw-auth",
                     "headers": {
                         "authorization": "Bearer nested-auth",
                         "x-api-key": "nested-api-key",
                         "xAuthToken": "nested-camel-token",
+                        "xauthtoken": "nested-compact-token",
                         "x-policy": "safe-policy",
                     },
                     "label": "safe-label",
                     "api_key_ref": "credentials/openai",
                     "apiKeyRef": "credentials/camel-openai",
+                    "apikeyref": "credentials/compact-openai",
                     "clientSecretRef": "credentials/camel-secret",
+                    "clientsecretref": "credentials/compact-secret",
                 },
             ),
             HubResource(
@@ -1888,9 +1894,11 @@ def test_cards_and_config_templates_skip_raw_secret_metadata(tmp_path):
                         "api_key": "raw-setting-key",
                         "access_token": "raw-setting-token",
                         "accessToken": "raw-camel-setting-token",
+                        "accesstoken": "raw-compact-setting-token",
                         "model": "demo-model",
                         "api_key_ref": "credentials/openai",
                         "apiKeyRef": "credentials/camel-openai",
+                        "apikeyref": "credentials/compact-openai",
                     }
                 },
             ),
@@ -1905,29 +1913,39 @@ def test_cards_and_config_templates_skip_raw_secret_metadata(tmp_path):
     for text in (config, card, agent_card):
         assert "raw-api-key" not in text
         assert "raw-camel-api-key" not in text
+        assert "raw-compact-api-key" not in text
         assert "raw-token" not in text
         assert "raw-camel-token" not in text
+        assert "raw-compact-token" not in text
         assert "raw-camel-secret" not in text
+        assert "raw-compact-secret" not in text
         assert "raw-password" not in text
         assert "raw-auth" not in text
         assert "nested-auth" not in text
         assert "nested-api-key" not in text
         assert "nested-camel-token" not in text
+        assert "nested-compact-token" not in text
         assert "raw-setting-key" not in text
         assert "raw-setting-token" not in text
         assert "raw-camel-setting-token" not in text
+        assert "raw-compact-setting-token" not in text
         assert "safe-label" in text
         assert "safe-policy" in text
         assert "credentials/openai" in text
         assert "credentials/camel-openai" in text
         assert "credentials/camel-secret" in text
+        assert "credentials/compact-openai" in text
+        assert "credentials/compact-secret" in text
     assert 'model = "demo-model"' in config
     assert 'api_key_ref = "credentials/openai"' in config
     assert 'apiKeyRef = "credentials/camel-openai"' in config
+    assert 'apikeyref = "credentials/compact-openai"' in config
     assert "api_key =" not in config
     assert "apiKey =" not in config
+    assert "apikey =" not in config
     assert "access_token =" not in config
     assert "accessToken =" not in config
+    assert "accesstoken =" not in config
 
 
 def test_local_publish_filters_secret_metadata_from_index_records(tmp_path):
@@ -1939,8 +1957,10 @@ def test_local_publish_filters_secret_metadata_from_index_records(tmp_path):
         'policy_url = "http://policy"\n'
         'api_key = "raw-service-key"\n'
         'apiKey = "raw-camel-service-key"\n'
+        'apikey = "raw-compact-service-key"\n'
         'api_key_ref = "credentials/policy"\n'
-        'apiKeyRef = "credentials/camel-policy"',
+        'apiKeyRef = "credentials/camel-policy"\n'
+        'apikeyref = "credentials/compact-policy"',
     )
     manifest.write_text(
         text
@@ -1958,13 +1978,16 @@ type = "string"
 [config.defaults]
 api_key = "raw-config-key"
 accessToken = "raw-camel-config-token"
+accesstoken = "raw-compact-config-token"
 api_key_ref = "credentials/openai"
 apiKeyRef = "credentials/camel-openai"
+apikeyref = "credentials/compact-openai"
 mode = "safe-mode"
 
 [services.api.metadata.headers]
 authorization = "Bearer raw-service-auth"
 xAuthToken = "raw-camel-service-token"
+xauthtoken = "raw-compact-service-token"
 x_policy = "safe-policy"
 """,
         encoding="utf-8",
@@ -1977,14 +2000,19 @@ x_policy = "safe-policy"
     for text_value in (str(record.model_dump(mode="json")), index_text):
         assert "raw-service-key" not in text_value
         assert "raw-camel-service-key" not in text_value
+        assert "raw-compact-service-key" not in text_value
         assert "raw-service-auth" not in text_value
         assert "raw-camel-service-token" not in text_value
+        assert "raw-compact-service-token" not in text_value
         assert "raw-config-key" not in text_value
         assert "raw-camel-config-token" not in text_value
+        assert "raw-compact-config-token" not in text_value
         assert "credentials/policy" in text_value
         assert "credentials/camel-policy" in text_value
+        assert "credentials/compact-policy" in text_value
         assert "credentials/openai" in text_value
         assert "credentials/camel-openai" in text_value
+        assert "credentials/compact-openai" in text_value
         assert "safe-policy" in text_value
         assert "safe-mode" in text_value
         assert "password" in text_value
@@ -1995,11 +2023,14 @@ x_policy = "safe-policy"
 
     assert "api_key" not in service.metadata
     assert "apiKey" not in service.metadata
+    assert "apikey" not in service.metadata
     assert service.metadata["headers"] == {"x_policy": "safe-policy"}
     assert "api_key" not in config.metadata["defaults"]
     assert "accessToken" not in config.metadata["defaults"]
+    assert "accesstoken" not in config.metadata["defaults"]
     assert config.metadata["defaults"]["api_key_ref"] == "credentials/openai"
     assert config.metadata["defaults"]["apiKeyRef"] == "credentials/camel-openai"
+    assert config.metadata["defaults"]["apikeyref"] == "credentials/compact-openai"
     assert config.metadata["schema"]["properties"]["password"]["type"] == "string"
     assert config.metadata["schema"]["properties"]["accessToken"]["type"] == "string"
 
@@ -2028,11 +2059,13 @@ def test_cards_skip_raw_secret_example_metadata(tmp_path):
                                     "text": "hello",
                                     "access_token": "raw-example-token",
                                     "accessToken": "raw-camel-example-token",
+                                    "accesstoken": "raw-compact-example-token",
                                 },
                                 "headers": {
                                     "authorization": "Bearer raw-example-auth",
                                     "x-api-key": "raw-example-api-key",
                                     "xAuthToken": "raw-example-camel-token",
+                                    "xauthtoken": "raw-example-compact-token",
                                     "x-policy": "safe-example-policy",
                                 },
                             },
@@ -2043,6 +2076,7 @@ def test_cards_skip_raw_secret_example_metadata(tmp_path):
                             "command": {
                                 "api_key": "raw-command-key",
                                 "apiKey": "raw-camel-command-key",
+                                "apikey": "raw-compact-command-key",
                                 "argv": ["curl", "/run"],
                             },
                         }
@@ -2058,12 +2092,15 @@ def test_cards_skip_raw_secret_example_metadata(tmp_path):
     for text in (card, agent_card):
         assert "raw-example-token" not in text
         assert "raw-camel-example-token" not in text
+        assert "raw-compact-example-token" not in text
         assert "raw-example-auth" not in text
         assert "raw-example-api-key" not in text
         assert "raw-example-camel-token" not in text
+        assert "raw-example-compact-token" not in text
         assert "raw-example-password" not in text
         assert "raw-command-key" not in text
         assert "raw-camel-command-key" not in text
+        assert "raw-compact-command-key" not in text
         assert "safe-example-policy" in text
         assert '"result":"ok"' in text
         assert '"argv":["curl","/run"]' in text
@@ -3068,13 +3105,17 @@ def test_local_config_resolver_rejects_secret_ref_metadata_keys():
         metadata={
             "api_key_ref": "credentials/openai",
             "apiKeyRef": "credentials/camel-openai",
+            "apikeyref": "credentials/compact-openai",
             "clientSecretRef": "credentials/camel-secret",
+            "clientsecretref": "credentials/compact-secret",
         },
     )
     assert resolver.resolve("psi://demo/pkg/tactics/safe").metadata == {
         "api_key_ref": "credentials/openai",
         "apiKeyRef": "credentials/camel-openai",
+        "apikeyref": "credentials/compact-openai",
         "clientSecretRef": "credentials/camel-secret",
+        "clientsecretref": "credentials/compact-secret",
     }
 
     with pytest.raises(ValueError, match="raw secret key"):
@@ -3083,7 +3124,7 @@ def test_local_config_resolver_rejects_secret_ref_metadata_keys():
             url="http://service",
             metadata={
                 "api_key_ref": "credentials/openai",
-                "headers": {"xAuthToken": "Bearer raw-token"},
+                "headers": {"xauthtoken": "Bearer raw-token"},
             },
         )
 
@@ -3106,11 +3147,11 @@ def test_local_config_resolver_rejects_secret_ref_metadata_from_config(tmp_path)
             """
 [refs."psi://demo/pkg/tactics/local"]
 url = "http://service"
-apiKey = "raw-config-key"
+apikey = "raw-config-key"
 
 [refs."psi://demo/pkg/tactics/local".metadata]
 api_key_ref = "credentials/openai"
-headers = { xAuthToken = "Bearer raw-config-token" }
+headers = { xauthtoken = "Bearer raw-config-token" }
 """.lstrip(),
             root=tmp_path / "workspace",
         )
@@ -3403,7 +3444,7 @@ def test_local_config_resolver_rejects_secret_service_store_metadata(tmp_path):
             """
 [services.api]
 port = 8000
-apiKey = "raw-service-key"
+apikey = "raw-service-key"
 
 [stores.default]
 path = ".sssn"
@@ -3421,7 +3462,7 @@ port = 8000
 path = ".sssn"
 
 [stores.default.metadata]
-headers = { xAuthToken = "Bearer raw-store-token" }
+headers = { xauthtoken = "Bearer raw-store-token" }
 """.lstrip(),
             root=tmp_path / "store-secret",
         )

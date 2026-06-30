@@ -123,8 +123,10 @@ def test_local_hub_server_filters_secret_metadata_json_responses(tmp_path):
         'policy_url = "http://policy"\n'
         'api_key = "raw-service-key"\n'
         'apiKey = "raw-camel-service-key"\n'
+        'apikey = "raw-compact-service-key"\n'
         'api_key_ref = "credentials/policy"\n'
-        'apiKeyRef = "credentials/camel-policy"',
+        'apiKeyRef = "credentials/camel-policy"\n'
+        'apikeyref = "credentials/compact-policy"',
     )
     manifest.write_text(
         text
@@ -142,13 +144,16 @@ type = "string"
 [config.defaults]
 api_key = "raw-config-key"
 accessToken = "raw-camel-config-token"
+accesstoken = "raw-compact-config-token"
 api_key_ref = "credentials/openai"
 apiKeyRef = "credentials/camel-openai"
+apikeyref = "credentials/compact-openai"
 mode = "safe-mode"
 
 [services.api.metadata.headers]
 authorization = "Bearer raw-service-auth"
 xAuthToken = "raw-camel-service-token"
+xauthtoken = "raw-compact-service-token"
 x_policy = "safe-policy"
 """,
         encoding="utf-8",
@@ -175,14 +180,19 @@ x_policy = "safe-policy"
         text = response.text
         assert "raw-service-key" not in text
         assert "raw-camel-service-key" not in text
+        assert "raw-compact-service-key" not in text
         assert "raw-service-auth" not in text
         assert "raw-camel-service-token" not in text
+        assert "raw-compact-service-token" not in text
         assert "raw-config-key" not in text
         assert "raw-camel-config-token" not in text
+        assert "raw-compact-config-token" not in text
         assert "credentials/policy" in text
         assert "credentials/camel-policy" in text
+        assert "credentials/compact-policy" in text
         assert "credentials/openai" in text
         assert "credentials/camel-openai" in text
+        assert "credentials/compact-openai" in text
         assert "safe-policy" in text
         assert "safe-mode" in text
         assert "password" in text
@@ -195,9 +205,14 @@ x_policy = "safe-policy"
     )
     assert "api_key" not in config_resource["metadata"]["defaults"]
     assert "accessToken" not in config_resource["metadata"]["defaults"]
+    assert "accesstoken" not in config_resource["metadata"]["defaults"]
     assert (
         config_resource["metadata"]["defaults"]["apiKeyRef"]
         == "credentials/camel-openai"
+    )
+    assert (
+        config_resource["metadata"]["defaults"]["apikeyref"]
+        == "credentials/compact-openai"
     )
     assert (
         config_resource["metadata"]["schema"]["properties"]["password"]["type"]
