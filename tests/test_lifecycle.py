@@ -3277,6 +3277,8 @@ def test_local_config_resolver_rejects_malformed_url_targets(tmp_path):
         "ftp://service",
         "http://",
         "http://user:pass@service",
+        "http://service;session=demo/base",
+        "http://service/base;session=demo",
         "http://service?env=dev",
         "http://service#dev",
     ):
@@ -3297,6 +3299,8 @@ def test_local_config_resolver_rejects_malformed_url_targets(tmp_path):
             "/service",
             "ftp://service",
             "http://user:pass@service",
+            "http://service;session=demo/base",
+            "http://service/base;session=demo",
             "http://service?env=dev",
             "http://service#dev",
         ),

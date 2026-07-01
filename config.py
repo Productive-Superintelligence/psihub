@@ -321,7 +321,14 @@ def _validate_url_target(ref: str, value: str) -> None:
         raise ValueError(
             f"Ref binding target 'url' must not include embedded credentials: {ref}"
         )
-    if parsed.query or parsed.fragment:
+    if (
+        ";" in parsed.netloc
+        or parsed.params
+        or ";" in parsed.path
+        or parsed.query
+        or parsed.fragment
+    ):
         raise ValueError(
-            f"Ref binding target 'url' must not include query or fragment parts: {ref}"
+            "Ref binding target 'url' must not include URL params, query "
+            f"or fragment parts: {ref}"
         )

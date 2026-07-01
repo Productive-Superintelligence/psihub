@@ -45,8 +45,9 @@ credentials; use local credential refs such as `api_key_ref`, `apiKeyRef`, or
 In-process `object` bindings are available through
 `LocalConfigResolver.bind(..., object=...)`; they are not serialized into
 `.psi/config.toml`.
-`url` targets must be absolute HTTP(S) URLs without query strings, fragments,
-or embedded credentials, and text targets must not contain whitespace.
+`url` targets must be absolute HTTP(S) URLs without URL params, query strings,
+fragments, or embedded credentials, and text targets must not contain
+whitespace.
 Passive `[services.*]` and `[stores.*]` tables use the same path-segment name
 rules, and store table `path` values must be non-empty strings without
 whitespace.
