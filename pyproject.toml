@@ -35,7 +35,6 @@ Issues = "https://github.com/Productive-Superintelligence/psihub/issues"
 
 [tool.setuptools]
 packages = ["psihub"]
-package-dir = {"psihub" = "."}
 
 [tool.setuptools.package-data]
 psihub = ["py.typed"]

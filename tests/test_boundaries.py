@@ -13,8 +13,9 @@ from psihub._metadata import (
 
 
 ROOT = Path(__file__).resolve().parents[1]
+PACKAGE_ROOT = ROOT / "psihub"
 PACKAGE_SOURCES = sorted(
-    path for path in ROOT.glob("*.py") if path.name != "__init__.py"
+    path for path in PACKAGE_ROOT.glob("*.py") if path.name != "__init__.py"
 )
 FORBIDDEN_IMPORT_ROOTS = (
     "subprocess",
@@ -67,7 +68,7 @@ def test_psihub_package_does_not_launch_dependency_services():
 
 
 def test_only_cli_serve_launches_the_local_hub_api():
-    tree = ast.parse((ROOT / "cli.py").read_text(encoding="utf-8"))
+    tree = ast.parse((PACKAGE_ROOT / "cli.py").read_text(encoding="utf-8"))
     aliases = _import_aliases(tree)
     uvicorn_calls = [
         call
