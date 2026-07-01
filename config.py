@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from ._copy import copy_boundary_value
+from ._copy import copy_boundary_value, metadata_mapping_value
 from ._metadata import is_sensitive_metadata_key as _is_sensitive_metadata_key
 from .manifest import require_path_value
 from .refs import validate_psi_ref
@@ -85,7 +85,12 @@ class LocalConfigResolver:
         validate_psi_ref(ref)
         if metadata is not None and not isinstance(metadata, Mapping):
             raise ValueError(f"Ref binding metadata must be a table: {ref}")
-        metadata_value = copy_boundary_value(metadata or {})
+        try:
+            metadata_value = (
+                {} if metadata is None else metadata_mapping_value("metadata", metadata)
+            )
+        except TypeError as exc:
+            raise ValueError(f"{exc}: {ref}") from exc
         _reject_sensitive_metadata(metadata_value, f'refs."{ref}".metadata')
         url = _normalize_text_target(ref, "url", url)
         store = _normalize_text_target(ref, "store", store)

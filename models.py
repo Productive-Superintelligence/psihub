@@ -12,10 +12,11 @@ from pydantic import (
     StrictBool,
     StrictStr,
     computed_field,
+    field_validator,
     model_validator,
 )
 
-from ._copy import copy_boundary_value
+from ._copy import copy_boundary_value, metadata_field_value
 from .refs import parse_psi_ref
 
 PackageKind = Literal["tactic", "channel", "service", "app", "library", "mixed"]
@@ -32,6 +33,13 @@ ResourceKind = Literal[
     "asset",
 ]
 RESOURCE_KIND_VALUES = frozenset(get_args(ResourceKind))
+
+
+class _MetadataModel(BaseModel):
+    @field_validator("metadata", mode="before", check_fields=False)
+    @classmethod
+    def _validate_metadata(cls, value: Any) -> Any:
+        return metadata_field_value("metadata", value)
 
 
 class PackageInfo(BaseModel):
@@ -65,7 +73,7 @@ class PackageInfo(BaseModel):
         return f"{self.org}/{self.name}"
 
 
-class SchemaResource(BaseModel):
+class SchemaResource(_MetadataModel):
     model_config = ConfigDict(extra="allow")
 
     entry: StrictStr | None = None
@@ -76,7 +84,7 @@ class SchemaResource(BaseModel):
         _isolate_fields(self, "metadata")
 
 
-class TacticResource(BaseModel):
+class TacticResource(_MetadataModel):
     model_config = ConfigDict(extra="allow")
 
     entry: StrictStr
@@ -96,7 +104,7 @@ class TacticResource(BaseModel):
         return self
 
 
-class ServiceResource(BaseModel):
+class ServiceResource(_MetadataModel):
     model_config = ConfigDict(extra="allow")
 
     entry: StrictStr | None = None
@@ -116,7 +124,7 @@ class ServiceResource(BaseModel):
         return self
 
 
-class ChannelResource(BaseModel):
+class ChannelResource(_MetadataModel):
     model_config = ConfigDict(extra="allow")
 
     schema_ref: StrictStr | None = Field(default=None, alias="schema")
@@ -137,7 +145,7 @@ class ChannelResource(BaseModel):
         return self
 
 
-class SnapshotResource(BaseModel):
+class SnapshotResource(_MetadataModel):
     model_config = ConfigDict(extra="allow")
 
     schema_ref: StrictStr | None = Field(default=None, alias="schema")
@@ -153,7 +161,7 @@ class SnapshotResource(BaseModel):
         _isolate_fields(self, "metadata")
 
 
-class RunResource(BaseModel):
+class RunResource(_MetadataModel):
     model_config = ConfigDict(extra="allow")
 
     services: tuple[StrictStr, ...] = Field(default_factory=tuple)
@@ -174,7 +182,7 @@ class RunResource(BaseModel):
         )
 
 
-class ConfigResource(BaseModel):
+class ConfigResource(_MetadataModel):
     model_config = ConfigDict(extra="allow")
 
     config_schema: dict[str, Any] = Field(default_factory=dict, alias="schema")
@@ -190,7 +198,7 @@ class ConfigResource(BaseModel):
         _isolate_fields(self, "config_schema", "defaults", "metadata")
 
 
-class DocResource(BaseModel):
+class DocResource(_MetadataModel):
     model_config = ConfigDict(extra="allow")
 
     path: StrictStr
@@ -202,7 +210,7 @@ class DocResource(BaseModel):
         _isolate_fields(self, "metadata")
 
 
-class ExampleResource(BaseModel):
+class ExampleResource(_MetadataModel):
     model_config = ConfigDict(extra="allow")
 
     path: StrictStr | None = None
@@ -214,7 +222,7 @@ class ExampleResource(BaseModel):
         _isolate_fields(self, "metadata")
 
 
-class AssetResource(BaseModel):
+class AssetResource(_MetadataModel):
     model_config = ConfigDict(extra="allow")
 
     path: StrictStr
@@ -226,7 +234,7 @@ class AssetResource(BaseModel):
         _isolate_fields(self, "metadata")
 
 
-class CardResource(BaseModel):
+class CardResource(_MetadataModel):
     model_config = ConfigDict(extra="allow")
 
     summary: StrictStr = ""
@@ -286,7 +294,7 @@ class PackageManifest(BaseModel):
         return f"psi://{self.package.org}/{self.package.name}/{plural}/{name}"
 
 
-class HubResource(BaseModel):
+class HubResource(_MetadataModel):
     """Indexed package resource."""
 
     model_config = ConfigDict(frozen=True)

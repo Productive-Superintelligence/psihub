@@ -585,6 +585,40 @@ def test_package_models_reject_bytes_for_declared_string_fields(factory):
 @pytest.mark.parametrize(
     "factory",
     [
+        lambda metadata: SchemaResource(metadata=metadata),
+        lambda metadata: TacticResource(entry="demo.tactics:Echo", metadata=metadata),
+        lambda metadata: ServiceResource(metadata=metadata),
+        lambda metadata: ChannelResource(metadata=metadata),
+        lambda metadata: SnapshotResource(metadata=metadata),
+        lambda metadata: RunResource(metadata=metadata),
+        lambda metadata: ConfigResource(metadata=metadata),
+        lambda metadata: DocResource(path="README.md", metadata=metadata),
+        lambda metadata: ExampleResource(metadata=metadata),
+        lambda metadata: AssetResource(path="assets/logo.svg", metadata=metadata),
+        lambda metadata: CardResource(metadata=metadata),
+        lambda metadata: HubResource(
+            kind="tactic",
+            name="echo",
+            ref="psi://demo/pkg/tactics/echo",
+            metadata=metadata,
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    "metadata",
+    [
+        {b"owner": "tests"},
+        {"nested": {b"owner": "tests"}},
+    ],
+)
+def test_package_metadata_models_reject_non_string_keys(factory, metadata):
+    with pytest.raises(ValidationError, match="metadata"):
+        factory(metadata)
+
+
+@pytest.mark.parametrize(
+    "factory",
+    [
         lambda: PackageInfo(org="demo", name="   "),
         lambda: PackageInfo(org="   ", name="pkg"),
         lambda: PackageInfo(org="demo", name="pkg", version="   "),
@@ -3150,6 +3184,24 @@ def test_local_config_resolver_rejects_non_mapping_metadata():
             "psi://demo/pkg/tactics/local",
             url="http://service",
             metadata=["bad"],  # type: ignore[arg-type]
+        )
+
+
+@pytest.mark.parametrize(
+    "metadata",
+    [
+        {b"policy_url": "http://policy"},
+        {"headers": {b"x-policy": "demo"}},
+    ],
+)
+def test_local_config_resolver_rejects_non_string_metadata_keys(metadata):
+    resolver = LocalConfigResolver()
+
+    with pytest.raises(ValueError, match="metadata"):
+        resolver.bind(
+            "psi://demo/pkg/tactics/local",
+            url="http://service",
+            metadata=metadata,  # type: ignore[arg-type]
         )
 
 

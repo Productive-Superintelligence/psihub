@@ -117,6 +117,8 @@ secret-shaped keys such as `api_key`/`apiKey`/`apikey`, tokens,
 `accessToken`/`accesstoken`, passwords, cookies, `authorization`, or
 credentials; use local credential refs such as `api_key_ref`, `apiKeyRef`, or
 `apikeyref` instead.
+Metadata maps must use string keys; direct Python metadata with non-string keys
+is rejected before Pydantic can coerce keys into text.
 
 Local hub storage defaults to:
 

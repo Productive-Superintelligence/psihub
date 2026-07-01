@@ -438,6 +438,8 @@ def _public_resource_metadata(value: Any) -> Any:
     if isinstance(value, dict):
         metadata: dict[str, Any] = {}
         for key, item in value.items():
+            if not isinstance(key, str):
+                continue
             if _is_sensitive_metadata_key(key):
                 continue
             if _is_schema_metadata_key(key):

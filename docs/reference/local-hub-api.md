@@ -61,6 +61,7 @@ kebab-case, camelCase, and collapsed lowercase secret keys such as `api_key`,
 `x-api-key`, `apiKey`, `apikey`, `accessToken`, `accesstoken`, `clientSecret`,
 `clientsecret`, `cookie`, `set-cookie`, and `sessionCookie` are treated
 consistently.
+Resource and card metadata maps must use string keys, including nested maps.
 
 ## Download
 
