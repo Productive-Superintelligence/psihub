@@ -47,7 +47,7 @@ def create_app(*, hub: LocalHub | None = None, hub_root: str | Path = ".psihub")
         raise RuntimeError("Install psihub[server] to use the FastAPI server.") from exc
 
     local_hub = hub or LocalHub(hub_root)
-    app = FastAPI(title="PsiHub Local Hub", version="0.0.1a1")
+    app = FastAPI(title="PsiHub Local Hub", version="0.0.1")
     app.state.psihub = local_hub
 
     @app.get("/health")
