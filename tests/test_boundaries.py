@@ -5,6 +5,12 @@ import sys
 import textwrap
 from pathlib import Path
 
+from psihub._metadata import (
+    is_public_sensitive_metadata_key,
+    is_schema_metadata_key,
+    is_sensitive_metadata_key,
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_SOURCES = sorted(
@@ -85,6 +91,20 @@ def test_top_level_import_does_not_require_optional_service_dependencies(tmp_pat
         "psihub",
         ("fastapi", "httpx", "uvicorn"),
     )
+
+
+def test_metadata_key_helpers_preserve_public_and_config_policy_split():
+    assert is_sensitive_metadata_key("apiKey")
+    assert is_sensitive_metadata_key("sessionCookie")
+    assert is_sensitive_metadata_key("set-cookie")
+    assert not is_sensitive_metadata_key("apiKeyRef")
+    assert not is_sensitive_metadata_key("cookieRef")
+    assert not is_sensitive_metadata_key("token_count")
+
+    assert is_public_sensitive_metadata_key("token_count")
+    assert is_public_sensitive_metadata_key("sessionCookie")
+    assert not is_public_sensitive_metadata_key("cookieRef")
+    assert is_schema_metadata_key("inputSchema")
 
 
 def _import_aliases(tree: ast.AST) -> dict[str, str]:

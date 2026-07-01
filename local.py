@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import json
-import re
 import shutil
 from pathlib import Path
 from typing import Any
 
+from ._metadata import (
+    is_public_sensitive_metadata_key as _is_sensitive_metadata_key,
+    is_schema_metadata_key as _is_schema_metadata_key,
+)
 from .cards import render_agent_card, render_config_template, render_package_card
 from .manifest import load_manifest, manifest_path, require_path_value
 from .models import HubResource, PackageManifest, PackageRecord, ValidationReport
@@ -431,13 +434,6 @@ def _resource_extra(resource: Any) -> dict[str, Any]:
     return dict(getattr(resource, "model_extra", None) or {})
 
 
-_SCHEMA_METADATA_KEYS = frozenset({"schema", "input_schema", "output_schema"})
-
-
-def _is_schema_metadata_key(key: object) -> bool:
-    return isinstance(key, str) and _normalize_metadata_key(key) in _SCHEMA_METADATA_KEYS
-
-
 def _public_resource_metadata(value: Any) -> Any:
     if isinstance(value, dict):
         metadata: dict[str, Any] = {}
@@ -454,41 +450,6 @@ def _public_resource_metadata(value: Any) -> Any:
     if isinstance(value, tuple):
         return tuple(_public_resource_metadata(item) for item in value)
     return value
-
-
-def _is_sensitive_metadata_key(key: object) -> bool:
-    if not isinstance(key, str):
-        return False
-    normalized = _normalize_metadata_key(key)
-    if not normalized:
-        return False
-    compact = normalized.replace("_", "")
-    if normalized.endswith(("_ref", "_refs", "_reference", "_references")):
-        return False
-    if compact.endswith(("ref", "refs", "reference", "references")):
-        return False
-    parts = normalized.split("_")
-    if "api" in parts and "key" in parts:
-        return True
-    if compact.endswith("apikey"):
-        return True
-    if "token" in parts or "secret" in parts or "password" in parts:
-        return True
-    if compact == "token" or compact.endswith(("token", "secret", "password")):
-        return True
-    if "cookie" in parts:
-        return True
-    if compact == "cookie" or compact.endswith("cookie"):
-        return True
-    if "authorization" in parts or "credential" in parts or "credentials" in parts:
-        return True
-    return False
-
-
-def _normalize_metadata_key(key: str) -> str:
-    with_word_breaks = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", key)
-    with_word_breaks = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", with_word_breaks)
-    return re.sub(r"[^a-z0-9]+", "_", with_word_breaks.lower()).strip("_")
 
 
 def _package_copy_ignore(directory: str, names: list[str]) -> set[str]:

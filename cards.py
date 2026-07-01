@@ -7,6 +7,9 @@ import re
 from collections.abc import Mapping
 from typing import Any
 
+from ._metadata import (
+    is_public_sensitive_metadata_key as _is_sensitive_metadata_key,
+)
 from .models import PackageRecord
 from .validator import HTTP_METHODS
 
@@ -341,41 +344,6 @@ def _metadata_summary(metadata: dict[str, Any]) -> str:
         if rendered is not None:
             parts.append(f"`{key}={rendered}`")
     return ", ".join(parts)
-
-
-def _is_sensitive_metadata_key(key: object) -> bool:
-    if not isinstance(key, str):
-        return False
-    normalized = _normalize_metadata_key(key)
-    if not normalized:
-        return False
-    compact = normalized.replace("_", "")
-    parts = normalized.split("_")
-    if normalized.endswith(("_ref", "_refs", "_reference", "_references")):
-        return False
-    if compact.endswith(("ref", "refs", "reference", "references")):
-        return False
-    if "api" in parts and "key" in parts:
-        return True
-    if compact.endswith("apikey"):
-        return True
-    if "token" in parts or "secret" in parts or "password" in parts:
-        return True
-    if compact == "token" or compact.endswith(("token", "secret", "password")):
-        return True
-    if "cookie" in parts:
-        return True
-    if compact == "cookie" or compact.endswith("cookie"):
-        return True
-    if "authorization" in parts or "credential" in parts or "credentials" in parts:
-        return True
-    return False
-
-
-def _normalize_metadata_key(key: str) -> str:
-    with_word_breaks = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", key)
-    with_word_breaks = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", with_word_breaks)
-    return re.sub(r"[^a-z0-9]+", "_", with_word_breaks.lower()).strip("_")
 
 
 def _endpoint_lines(metadata: dict[str, Any]) -> list[str]:

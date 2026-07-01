@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -10,6 +9,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from ._copy import copy_boundary_value
+from ._metadata import is_sensitive_metadata_key as _is_sensitive_metadata_key
 from .manifest import require_path_value
 from .refs import validate_psi_ref
 
@@ -255,45 +255,6 @@ def _reject_sensitive_metadata(value: Any, label: str) -> None:
     elif isinstance(value, (list, tuple)):
         for item in value:
             _reject_sensitive_metadata(item, label)
-
-
-def _is_sensitive_metadata_key(key: object) -> bool:
-    if not isinstance(key, str):
-        return False
-    normalized = _normalize_metadata_key(key)
-    if not normalized:
-        return False
-    compact = normalized.replace("_", "")
-    if normalized.endswith(("_ref", "_refs", "_reference", "_references")):
-        return False
-    if compact.endswith(("ref", "refs", "reference", "references")):
-        return False
-    parts = normalized.split("_")
-    if "api" in parts and "key" in parts:
-        return True
-    if compact.endswith("apikey"):
-        return True
-    if "authorization" in parts or "credential" in parts or "credentials" in parts:
-        return True
-    if "password" in parts or "secret" in parts:
-        return True
-    if compact.endswith(("password", "secret")):
-        return True
-    if "cookie" in parts:
-        return True
-    if compact == "cookie" or compact.endswith("cookie"):
-        return True
-    if normalized == "token" or normalized.endswith("_token"):
-        return True
-    if compact == "token" or compact.endswith("token"):
-        return True
-    return False
-
-
-def _normalize_metadata_key(key: str) -> str:
-    with_word_breaks = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", key)
-    with_word_breaks = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", with_word_breaks)
-    return re.sub(r"[^a-z0-9]+", "_", with_word_breaks.lower()).strip("_")
 
 
 def _normalize_text_target(ref: str, name: str, value: Any) -> str | None:
