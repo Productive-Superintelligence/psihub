@@ -63,6 +63,18 @@ Choose a download destination outside `.psihub` so downloaded copies never
 overwrite hub storage. Downloads are normal folders, not symlinks into the
 hub.
 
+## Whole-System Fixtures
+
+PsiHub lifecycle tests include a deterministic societal analysts fixture suite.
+It publishes source-channel, analyst-tactic, combined analyst, aggregate-report,
+and downstream decision-review packages into a local hub, downloads them into a
+clean workspace, generates cards and config templates, then runs a local harness
+with dummy SSSN channels and LLLM tactics.
+
+The fixture is intentionally offline and synthetic. It proves package metadata,
+refs, cards, config templates, downloaded-package reuse, and local composition;
+it does not make financial, political, cultural, or trading recommendations.
+
 ## Serve
 
 The local hub API exposes package metadata and downloads to local tools:
