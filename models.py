@@ -39,6 +39,20 @@ ResourceKind = Literal[
     "asset",
 ]
 RESOURCE_KIND_VALUES = frozenset(get_args(ResourceKind))
+PRIMARY_SECTION_VALUES = frozenset(
+    {
+        "schemas",
+        "tactics",
+        "services",
+        "channels",
+        "snapshots",
+        "runs",
+        "config",
+        "docs",
+        "examples",
+        "assets",
+    }
+)
 
 
 class _MetadataModel(BaseModel):
@@ -71,6 +85,8 @@ class PackageInfo(BaseModel):
         _validate_segment(self.org, "package.org")
         _validate_segment(self.name, "package.name")
         _validate_segment(self.version, "package.version")
+        if self.primary is not None:
+            _validate_primary_ref(self.primary)
         return self
 
     @computed_field
@@ -419,6 +435,16 @@ def _validate_segment(value: str, field_name: str) -> None:
         or any(ch in value for ch in "/:\\%")
     ):
         raise ValueError(f"{field_name} must be a non-empty path segment.")
+
+
+def _validate_primary_ref(value: str) -> None:
+    if not isinstance(value, str) or "." not in value:
+        raise ValueError("package.primary must have shape section.name.")
+    section, name = value.split(".", 1)
+    if section not in PRIMARY_SECTION_VALUES:
+        expected = ", ".join(sorted(PRIMARY_SECTION_VALUES))
+        raise ValueError(f"package.primary section must be one of: {expected}.")
+    _validate_segment(name, "package.primary name")
 
 
 def _validate_token(value: str, field_name: str) -> None:

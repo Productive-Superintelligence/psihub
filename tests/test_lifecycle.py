@@ -648,6 +648,8 @@ def test_package_public_maps_reject_non_string_keys(factory):
         lambda: PackageInfo(org="demo", name="bad%2Fpkg"),
         lambda: PackageInfo(org="demo", name="pkg", version="0.1.0 beta"),
         lambda: PackageInfo(org="demo", name="pkg", version="0.1.0%20beta"),
+        lambda: PackageInfo(org="demo", name="pkg", primary="tactics.bad tactic"),
+        lambda: PackageInfo(org="demo", name="pkg", primary="tactics.bad%2Ftactic"),
         lambda: HubResource(
             kind="tactic",
             name="bad tactic",
@@ -702,6 +704,20 @@ def test_package_public_maps_reject_non_string_keys(factory):
 def test_package_identity_models_reject_malformed_segments(factory):
     with pytest.raises(ValueError, match="path segment"):
         factory()
+
+
+@pytest.mark.parametrize(
+    "primary",
+    [
+        "",
+        "   ",
+        "tactics",
+        "badsection.echo",
+    ],
+)
+def test_package_info_rejects_malformed_primary_values(primary):
+    with pytest.raises(ValueError, match="package.primary"):
+        PackageInfo(org="demo", name="pkg", primary=primary)
 
 
 @pytest.mark.parametrize(
@@ -1441,6 +1457,7 @@ def test_validate_rejects_whitespace_package_identity_segments(tmp_path):
         ("org", 'org = "demo"', 'org = "demo org"'),
         ("name", 'name = "echo"', 'name = "bad echo"'),
         ("version", 'version = "0.1.0"', 'version = "0.1.0 beta"'),
+        ("primary", 'primary = "tactics.echo"', 'primary = "tactics.bad echo"'),
     ]
     for field, original, replacement in replacements:
         package = make_lifecycle_package(tmp_path / f"whitespace-{field}")
