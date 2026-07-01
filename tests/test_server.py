@@ -114,6 +114,41 @@ def test_local_hub_server_lifecycle(tmp_path):
         assert "psi.toml" in archive.namelist()
 
 
+def test_local_hub_server_download_skips_late_secret_files_and_symlinks(tmp_path):
+    package = make_lifecycle_package(tmp_path)
+    hub = LocalHub(tmp_path / "hub")
+    record = hub.publish(package)
+    (record.root / ".env").write_text("TOKEN=secret\n", encoding="utf-8")
+    (record.root / ".env.example").write_text("TOKEN=\n", encoding="utf-8")
+    outside = tmp_path / "outside-secret.txt"
+    outside.write_text("TOKEN=outside\n", encoding="utf-8")
+    symlink_created = False
+    try:
+        (record.root / "linked-secret.txt").symlink_to(outside)
+        symlink_created = True
+    except OSError:
+        pass
+    app = create_app(hub=hub)
+
+    async def run():
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url="http://testserver",
+        ) as client:
+            return await client.get("/packages/demo/echo/download")
+
+    response = asyncio.run(run())
+
+    assert response.status_code == 200
+    with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+        names = set(archive.namelist())
+        assert ".env" not in names
+        assert ".env.example" in names
+        if symlink_created:
+            assert "linked-secret.txt" not in names
+
+
 def test_local_hub_server_filters_secret_metadata_json_responses(tmp_path):
     package = make_lifecycle_package(tmp_path)
     manifest = package / "psi.toml"

@@ -14,7 +14,7 @@ from ._metadata import (
     is_public_sensitive_metadata_key as _is_sensitive_metadata_key,
     is_schema_metadata_key as _is_schema_metadata_key,
 )
-from .local import LocalHub, PublishValidationError
+from .local import LocalHub, PublishValidationError, _should_ignore_publish_name
 from .manifest import require_path_value
 from .validator import validate_package
 
@@ -173,6 +173,17 @@ def _zip_folder(root: Path) -> bytes:
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
         for path in sorted(root.rglob("*")):
+            if _skip_zip_path(root, path):
+                continue
             if path.is_file():
                 archive.write(path, path.relative_to(root))
     return buffer.getvalue()
+
+
+def _skip_zip_path(root: Path, path: Path) -> bool:
+    current = root
+    for part in path.relative_to(root).parts:
+        current = current / part
+        if _should_ignore_publish_name(part) or current.is_symlink():
+            return True
+    return False
