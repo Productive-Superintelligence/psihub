@@ -2242,9 +2242,20 @@ def test_card_rendering_skips_malformed_endpoint_metadata(tmp_path):
                         },
                         {"method": 123, "path": "/coerced-method"},
                         {"method": "GET", "path": 123},
+                        {"method": "GET", "path": "relative"},
                         {"method": "GET", "path": "/bad name"},
+                        {"method": "GET", "path": "/bad%2Fpath"},
+                        {"method": "GET", "path": "//example.com/bad"},
+                        {"method": "GET", "path": "/bad?query=true"},
+                        {"method": "GET", "path": "/bad#fragment"},
+                        {"method": "GET", "path": "http://example.com/bad"},
                         {"method": "TRACE", "path": "/trace"},
                         {"method": "GET", "path": "/bad-label", "name": 123},
+                        {
+                            "method": "GET",
+                            "path": "/bad-percent-label",
+                            "name": "bad%2Flabel",
+                        },
                     ]
                 },
             ),
@@ -2258,9 +2269,16 @@ def test_card_rendering_skips_malformed_endpoint_metadata(tmp_path):
         assert "Endpoint: `POST /ok` (ok, run)" in text
         assert "coerced-method" not in text
         assert "GET 123" not in text
+        assert "relative" not in text
         assert "/bad name" not in text
+        assert "/bad%2Fpath" not in text
+        assert "//example.com/bad" not in text
+        assert "/bad?query=true" not in text
+        assert "/bad#fragment" not in text
+        assert "http://example.com/bad" not in text
         assert "/trace" not in text
         assert "/bad-label" not in text
+        assert "/bad-percent-label" not in text
 
 
 def test_card_rendering_skips_malformed_example_metadata(tmp_path):

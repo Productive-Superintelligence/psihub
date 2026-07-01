@@ -365,23 +365,39 @@ def _endpoint_line(endpoint: dict[str, Any]) -> str | None:
     method_value = endpoint.get("method")
     method = method_value.upper() if isinstance(method_value, str) else ""
     path = endpoint.get("path")
-    if (
-        method not in HTTP_METHODS
-        or not isinstance(path, str)
-        or not path
-        or "%" in path
-        or any(ch.isspace() for ch in path)
-    ):
+    if method not in HTTP_METHODS or not _valid_endpoint_path(path):
         return None
     suffix_parts: list[str] = []
     for value in (endpoint.get("name"), endpoint.get("mode") or endpoint.get("scope")):
         if value in (None, ""):
             continue
-        if not isinstance(value, str) or any(ch.isspace() for ch in value):
+        if not _valid_endpoint_label(value):
             return None
         suffix_parts.append(value)
     suffix = f" ({', '.join(suffix_parts)})" if suffix_parts else ""
     return f"  - Endpoint: `{method} {path}`{suffix}"
+
+
+def _valid_endpoint_path(path: Any) -> bool:
+    return (
+        isinstance(path, str)
+        and path.startswith("/")
+        and not path.startswith("//")
+        and "%" not in path
+        and not any(ch.isspace() for ch in path)
+        and "?" not in path
+        and "#" not in path
+        and "://" not in path
+    )
+
+
+def _valid_endpoint_label(value: Any) -> bool:
+    return (
+        isinstance(value, str)
+        and bool(value)
+        and "%" not in value
+        and not any(ch.isspace() for ch in value)
+    )
 
 
 def _example_lines(metadata: dict[str, Any]) -> list[str]:
