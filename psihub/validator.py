@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-import importlib
-import sys
-from contextlib import contextmanager
 from pathlib import Path, PureWindowsPath
-from typing import Any, Iterator
+from typing import Any
 
 from .endpoints import (
     ENDPOINT_MODES,
@@ -16,6 +13,7 @@ from .endpoints import (
     valid_endpoint_path,
     validate_endpoint_metadata as _validate_endpoint_metadata,
 )
+from .entrypoints import import_entrypoint
 from .manifest import load_manifest, manifest_path, require_path_value
 from .models import PackageManifest, ValidationIssue, ValidationReport
 from .refs import parse_psi_ref
@@ -105,38 +103,6 @@ def _unresolved_manifest_path(path: str | Path) -> Path:
     if value.is_dir():
         value = value / "psi.toml"
     return value
-
-
-def import_entrypoint(entry: str, *, base_dir: Path | None = None) -> Any:
-    if (
-        not isinstance(entry, str)
-        or not entry
-        or entry != entry.strip()
-    ):
-        raise ValueError(f"Entrypoint must have shape module:attribute: {entry}")
-    module_name, sep, attr_path = entry.partition(":")
-    if (
-        not sep
-        or not _entrypoint_segments(module_name)
-        or not _entrypoint_segments(attr_path)
-    ):
-        raise ValueError(f"Entrypoint must have shape module:attribute: {entry}")
-    root_module = module_name.split(".", 1)[0]
-    with _import_path(base_dir, root_module=root_module):
-        module = importlib.import_module(module_name)
-        value: Any = module
-        for part in attr_path.split("."):
-            value = getattr(value, part)
-        return value
-
-
-def _entrypoint_segments(value: str) -> bool:
-    return all(
-        part
-        and not any(ch.isspace() for ch in part)
-        and not any(ch in part for ch in "/\\:%")
-        for part in value.split(".")
-    )
 
 
 def _validate_readme(manifest: PackageManifest) -> list[ValidationIssue]:
@@ -851,38 +817,3 @@ def _missing(ref: str, code: str, run_name: str, missing_name: str) -> Validatio
         message=f"Run {run_name!r} references missing resource {missing_name!r}.",
         resource=ref,
     )
-
-
-@contextmanager
-def _import_path(
-    base_dir: Path | None,
-    *,
-    root_module: str | None = None,
-) -> Iterator[None]:
-    if base_dir is None:
-        yield
-        return
-    value = str(base_dir)
-    isolated_modules: dict[str, Any] = {}
-    isolate = root_module is not None and (
-        (base_dir / root_module).exists() or (base_dir / f"{root_module}.py").exists()
-    )
-    if isolate:
-        for name in list(sys.modules):
-            if name == root_module or name.startswith(f"{root_module}."):
-                isolated_modules[name] = sys.modules.pop(name)
-    sys.path.insert(0, value)
-    importlib.invalidate_caches()
-    try:
-        yield
-    finally:
-        try:
-            sys.path.remove(value)
-        except ValueError:
-            pass
-        if isolate:
-            for name in list(sys.modules):
-                if name == root_module or name.startswith(f"{root_module}."):
-                    sys.modules.pop(name, None)
-            sys.modules.update(isolated_modules)
-        importlib.invalidate_caches()

@@ -34,6 +34,7 @@ def test_sdist_includes_repo_materials(tmp_path):
         "mkdocs.yml",
         "psihub/__init__.py",
         "psihub/endpoints.py",
+        "psihub/entrypoints.py",
         "psihub/py.typed",
         "psihub/refs.py",
         "psihub/server.py",

@@ -2,6 +2,7 @@
 
 from .cards import render_agent_card, render_config_template, render_package_card
 from .config import LocalConfigResolver, ResolvedRef
+from .entrypoints import import_entrypoint
 from .local import LocalHub, PublishValidationError, record_from_manifest
 from .manifest import init_package, load_manifest, manifest_path
 from .models import (
@@ -23,7 +24,7 @@ from .models import (
     ValidationIssue,
     ValidationReport,
 )
-from .validator import import_entrypoint, validate_package
+from .validator import validate_package
 from .server import create_app
 
 __version__ = "0.1.0"
