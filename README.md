@@ -13,13 +13,13 @@ package cards, and local config templates. It does not launch services.
 ## Install
 
 ```bash
-python -m pip install --pre psihub
+python -m pip install psihub
 ```
 
-For the first alpha explicitly:
+For a reproducible install:
 
 ```bash
-python -m pip install psihub==0.0.1a1
+python -m pip install psihub==0.0.1
 ```
 
 ## Package Shape
