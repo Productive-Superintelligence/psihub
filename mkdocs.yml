@@ -7,14 +7,14 @@ copyright: "PsiHub"
 
 theme:
   name: material
+  custom_dir: docs/overrides
   logo: assets/logo.svg
   favicon: assets/logo.svg
   palette:
     - scheme: default
-      primary: black
+      primary: white
       accent: black
   features:
-    - navigation.tabs
     - navigation.sections
     - navigation.instant
     - navigation.top
@@ -23,14 +23,15 @@ theme:
     - content.tabs.link
 
 nav:
-  - Overview: index.md
-  - Getting Started: getting-started.md
-  - Concepts:
-      - Packages: concepts/packages.md
-      - Refs And Config: concepts/refs-and-config.md
-  - Guides:
-      - Local Hub: guides/local-hub.md
-      - Cards And Agent Cards: guides/cards.md
+  - Overview:
+      - Overview: index.md
+      - Getting Started: getting-started.md
+      - Concepts:
+          - Packages: concepts/packages.md
+          - Refs And Config: concepts/refs-and-config.md
+      - Guides:
+          - Local Hub: guides/local-hub.md
+          - Cards And Agent Cards: guides/cards.md
   - Tutorials:
       - Local Package Lifecycle: tutorials/local-package-lifecycle.md
   - Reference:

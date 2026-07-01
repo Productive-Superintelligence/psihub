@@ -1,4 +1,5 @@
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -8,6 +9,14 @@ import pytest
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def chromium_executable() -> str | None:
+    return (
+        shutil.which("chromium")
+        or shutil.which("chromium-browser")
+        or shutil.which("google-chrome")
+    )
 
 
 def build_docs(tmp_path: Path) -> Path:
@@ -105,6 +114,56 @@ def test_docs_site_builds_core_pages(tmp_path):
     assert "psi://demo/echo/schemas/echo_output" in refs_html
     assert ".md-header," in custom_css
     assert "background-color: #ffffff;" in custom_css
+    assert ".psi-header-nav" in custom_css
+    assert ".psi-header-nav__link" in custom_css
+    assert ".psi-drawer-sections" in custom_css
+    assert ".psi-drawer-sections__link" in custom_css
+    assert "overflow-x: auto;" in custom_css
+    assert "psi-header-nav" in index_html
+    assert 'class="md-tabs"' not in index_html
+    assert 'data-md-component="source"' in index_html
+    assert "Productive-Superintelligence/psihub" in index_html
+
+
+def test_docs_sidebar_scopes_to_active_top_nav_section(tmp_path):
+    playwright = pytest.importorskip("playwright.sync_api")
+    chromium = chromium_executable()
+    if not chromium:
+        pytest.skip("Chromium executable is not available")
+
+    site_dir = build_docs(tmp_path)
+
+    with playwright.sync_playwright() as p:
+        browser = p.chromium.launch(
+            executable_path=chromium,
+            headless=True,
+            args=["--no-sandbox"],
+        )
+        page = browser.new_page(viewport={"width": 1280, "height": 900})
+        page.goto(
+            (site_dir / "reference" / "manifest" / "index.html").as_uri(),
+            wait_until="domcontentloaded",
+        )
+        reference_sidebar = page.locator(
+            ".md-sidebar--primary .md-nav--primary > .md-nav__list"
+        ).inner_text()
+        page.goto(
+            (site_dir / "guides" / "local-hub" / "index.html").as_uri(),
+            wait_until="domcontentloaded",
+        )
+        guide_sidebar = page.locator(
+            ".md-sidebar--primary .md-nav--primary > .md-nav__list"
+        ).inner_text()
+        page.close()
+        browser.close()
+
+    assert "Manifest" in reference_sidebar
+    assert "CLI" in reference_sidebar
+    assert "Local Hub API" in reference_sidebar
+    assert "Packages" not in reference_sidebar
+    assert "Local Hub" in guide_sidebar
+    assert "Cards And Agent Cards" in guide_sidebar
+    assert "Manifest" not in guide_sidebar
 
 
 def test_cli_reference_lists_local_lifecycle_commands():
