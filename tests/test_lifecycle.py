@@ -1408,6 +1408,28 @@ def test_local_publish_rejects_invalid_packages_by_default(tmp_path):
     assert record.key == "demo/echo@0.1.0"
 
 
+def test_local_publish_rejects_path_control_declared_files_without_validation(tmp_path):
+    replacements = [
+        ("docs/guide.md", "../outside.txt", "doc path"),
+        ("examples/run.py", "examples/bad%2Frun.py", "example path"),
+        ("assets/logo.txt", "assets/logo.txt:bad", "asset path"),
+    ]
+    for original_path, unsafe_path, message in replacements:
+        package = make_rich_metadata_package(tmp_path / message.replace(" ", "-"))
+        text = (package / "psi.toml").read_text(encoding="utf-8")
+        (package / "psi.toml").write_text(
+            text.replace(
+                f'path = "{original_path}"',
+                f"path = {json.dumps(unsafe_path)}",
+            ),
+            encoding="utf-8",
+        )
+        hub = LocalHub(tmp_path / f"hub-{message.replace(' ', '-')}")
+
+        with pytest.raises(ValueError, match=message):
+            hub.publish(package, validate=False)
+
+
 def test_validate_checks_package_kind_primary_metadata(tmp_path):
     package = make_lifecycle_package(tmp_path)
     text = (package / "psi.toml").read_text(encoding="utf-8")

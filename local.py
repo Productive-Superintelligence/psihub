@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import shutil
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any
 
 from ._metadata import (
@@ -362,46 +362,53 @@ def record_from_manifest(
             )
         )
     for name, doc in manifest.docs.items():
+        path = _record_file_path(manifest, doc.path, "doc")
         resources.append(
             HubResource(
                 kind="doc",
                 name=name,
                 ref=manifest.ref("doc", name),
-                entry=doc.path,
+                entry=path,
                 description=doc.description,
                 metadata=_resource_metadata(
                     doc,
                     title=doc.title,
-                    path=doc.path,
+                    path=path,
                 ),
             )
         )
     for name, example in manifest.examples.items():
+        path = (
+            _record_file_path(manifest, example.path, "example")
+            if example.path is not None
+            else None
+        )
         resources.append(
             HubResource(
                 kind="example",
                 name=name,
                 ref=manifest.ref("example", name),
-                entry=example.path,
+                entry=path,
                 description=example.description,
                 metadata=_resource_metadata(
                     example,
-                    path=example.path,
+                    path=path,
                     command=example.command,
                 ),
             )
         )
     for name, asset in manifest.assets.items():
+        path = _record_file_path(manifest, asset.path, "asset")
         resources.append(
             HubResource(
                 kind="asset",
                 name=name,
                 ref=manifest.ref("asset", name),
-                entry=asset.path,
+                entry=path,
                 description=asset.description,
                 metadata=_resource_metadata(
                     asset,
-                    path=asset.path,
+                    path=path,
                     media_type=asset.media_type,
                 ),
             )
@@ -432,6 +439,46 @@ def _resource_metadata(resource: Any, **canonical: Any) -> dict[str, Any]:
 
 def _resource_extra(resource: Any) -> dict[str, Any]:
     return dict(getattr(resource, "model_extra", None) or {})
+
+
+def _record_file_path(manifest: PackageManifest, path: str, label: str) -> str:
+    if (
+        not isinstance(path, str)
+        or not path
+        or path != path.strip()
+        or path.startswith("//")
+        or "%" in path
+        or "\\" in path
+        or "://" in path
+        or ":" in path
+        or any(ch.isspace() for ch in path)
+        or Path(path).is_absolute()
+        or PureWindowsPath(path).is_absolute()
+        or any(part in {"", ".", ".."} for part in path.split("/"))
+    ):
+        raise ValueError(
+            f"{label} path must be a portable relative package path."
+        )
+    if manifest.base_dir is not None:
+        base_dir = manifest.base_dir.resolve()
+        relative = Path(path)
+        if _has_symlink_component(manifest.base_dir, relative):
+            raise ValueError(
+                f"{label} path must not traverse symlink components."
+            )
+        target = (base_dir / relative).resolve()
+        if not _is_relative_to(target, base_dir):
+            raise ValueError(f"{label} path must stay inside the package.")
+    return path
+
+
+def _has_symlink_component(base_dir: Path, path: Path) -> bool:
+    current = base_dir
+    for part in path.parts:
+        current = current / part
+        if current.is_symlink():
+            return True
+    return False
 
 
 def _public_resource_metadata(value: Any) -> Any:
