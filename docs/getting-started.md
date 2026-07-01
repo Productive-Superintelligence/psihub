@@ -5,6 +5,12 @@ renders cards, and downloads a clean copy.
 
 ## Install
 
+Install the alpha from PyPI:
+
+```bash
+python -m pip install --pre psihub
+```
+
 Install PsiHub in editable mode while developing:
 
 ```bash
