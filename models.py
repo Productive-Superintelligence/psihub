@@ -385,6 +385,10 @@ class PackageRecord(BaseModel):
         _validate_segment(self.org, "record.org")
         _validate_segment(self.name, "record.name")
         _validate_segment(self.version, "record.version")
+        for resource in self.resources:
+            parsed = parse_psi_ref(resource.ref)
+            if parsed.org != self.org or parsed.package != self.name:
+                raise ValueError("resource ref must match record identifier.")
         return self
 
     @computed_field

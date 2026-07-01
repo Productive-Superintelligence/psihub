@@ -705,6 +705,35 @@ def test_package_identity_models_reject_malformed_segments(factory):
 
 
 @pytest.mark.parametrize(
+    "resource",
+    [
+        HubResource(
+            kind="tactic",
+            name="echo",
+            ref="psi://other/echo/tactics/echo",
+        ),
+        HubResource(
+            kind="tactic",
+            name="echo",
+            ref="psi://demo/other/tactics/echo",
+        ),
+    ],
+)
+def test_package_record_rejects_cross_package_resource_refs(resource):
+    with pytest.raises(ValueError, match="record identifier"):
+        PackageRecord(
+            org="demo",
+            name="echo",
+            version="0.1.0",
+            kind="tactic",
+            root=Path("."),
+            manifest_path=Path("psi.toml"),
+            resources=(resource,),
+            validation=ValidationReport(ok=True),
+        )
+
+
+@pytest.mark.parametrize(
     "value",
     (
         "",
@@ -2636,6 +2665,25 @@ def test_local_hub_rejects_path_control_record_identity_on_load(tmp_path):
     index_path.write_text(json.dumps(payload), encoding="utf-8")
 
     with pytest.raises(ValueError, match="path segment"):
+        LocalHub(hub_root)
+
+
+def test_local_hub_rejects_cross_package_resource_ref_on_load(tmp_path):
+    package = make_lifecycle_package(tmp_path)
+    hub_root = tmp_path / "hub"
+    LocalHub(hub_root).publish(package)
+    index_path = hub_root / "index" / "packages.json"
+    payload = json.loads(index_path.read_text(encoding="utf-8"))
+    payload["records"][0]["record"]["resources"][0]["ref"] = payload["records"][0][
+        "record"
+    ]["resources"][0]["ref"].replace(
+        "psi://demo/echo/",
+        "psi://other/echo/",
+        1,
+    )
+    index_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="record identifier"):
         LocalHub(hub_root)
 
 
