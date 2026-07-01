@@ -12,6 +12,7 @@ from ._metadata import (
     is_schema_metadata_key as _is_schema_metadata_key,
 )
 from .cards import render_agent_card, render_config_template, render_package_card
+from .files import has_symlink_component, invalid_portable_file_path, is_relative_to
 from .manifest import load_manifest, manifest_path, require_path_value
 from .models import HubResource, PackageManifest, PackageRecord, ValidationReport
 from .validator import validate_package
@@ -130,7 +131,7 @@ class LocalHub:
         record = self.get(identifier, version=version)
         target = destination_root / record.name
         target_resolved = target.resolve(strict=False)
-        if _is_relative_to(target_resolved, self.root):
+        if is_relative_to(target_resolved, self.root):
             raise ValueError(
                 "download destination must resolve outside the local hub root."
             )
@@ -443,13 +444,7 @@ def _resource_extra(resource: Any) -> dict[str, Any]:
 
 def _record_file_path(manifest: PackageManifest, path: str, label: str) -> str:
     if (
-        not isinstance(path, str)
-        or not path
-        or path != path.strip()
-        or path.startswith("//")
-        or "%" in path
-        or "\\" in path
-        or "://" in path
+        invalid_portable_file_path(path)
         or ":" in path
         or any(ch.isspace() for ch in path)
         or Path(path).is_absolute()
@@ -462,23 +457,14 @@ def _record_file_path(manifest: PackageManifest, path: str, label: str) -> str:
     if manifest.base_dir is not None:
         base_dir = manifest.base_dir.resolve()
         relative = Path(path)
-        if _has_symlink_component(manifest.base_dir, relative):
+        if has_symlink_component(manifest.base_dir, relative):
             raise ValueError(
                 f"{label} path must not traverse symlink components."
             )
         target = (base_dir / relative).resolve()
-        if not _is_relative_to(target, base_dir):
+        if not is_relative_to(target, base_dir):
             raise ValueError(f"{label} path must stay inside the package.")
     return path
-
-
-def _has_symlink_component(base_dir: Path, path: Path) -> bool:
-    current = base_dir
-    for part in path.parts:
-        current = current / part
-        if current.is_symlink():
-            return True
-    return False
 
 
 def _public_resource_metadata(value: Any) -> Any:
@@ -529,14 +515,6 @@ def _should_ignore_publish_name(name: str) -> bool:
         or name.endswith(".pyo")
         or name == ".coverage"
     )
-
-
-def _is_relative_to(path: Path, base: Path) -> bool:
-    try:
-        path.relative_to(base)
-    except ValueError:
-        return False
-    return True
 
 
 def _split_identifier(identifier: str) -> tuple[str, str]:
