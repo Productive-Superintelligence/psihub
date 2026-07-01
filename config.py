@@ -247,6 +247,7 @@ def _validate_table_values(section: str, key: str, item: dict[str, Any]) -> None
             raise ValueError(
                 f"[stores.{key}] path must be a non-empty string without whitespace."
             )
+        _validate_local_path_target(f"stores.{key}", "path", path)
 
 
 def _reject_sensitive_metadata(value: Any, label: str) -> None:
@@ -314,6 +315,27 @@ def _validate_text_target(ref: str, name: str, value: Any) -> None:
     if name == "url":
         _validate_url_target(ref, value)
         return
+    if name in {"store", "path"}:
+        _validate_local_path_target(ref, name, value)
+        return
+
+
+def _validate_local_path_target(label: str, name: str, value: str) -> None:
+    bad = value.startswith(("/", "~")) or any(ch in value for ch in "\\:%?#;")
+    parts = value.split("/")
+    if value == ".":
+        return
+    if bad or any(part in {"", ".", ".."} or part.startswith("~") for part in parts):
+        if label.startswith("psi://"):
+            prefix = f"Ref binding target {name!r}"
+            suffix = f": {label}"
+        else:
+            prefix = f"[{label}] {name}"
+            suffix = ""
+        raise ValueError(
+            f"{prefix} must be a portable relative path without traversal "
+            f"or URL syntax{suffix}"
+        )
 
 
 def _validate_url_target(ref: str, value: str) -> None:

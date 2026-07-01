@@ -3446,6 +3446,46 @@ def test_local_config_resolver_rejects_non_string_targets(tmp_path):
             )
 
 
+def test_local_config_resolver_rejects_path_control_text_targets(tmp_path):
+    resolver = LocalConfigResolver()
+    resolver.bind("psi://demo/pkg/channels/data", store=".sssn")
+    resolver.bind("psi://demo/pkg/docs/guide", path="docs/guide.md")
+
+    unsafe_targets = (
+        "../outside",
+        "data/../outside",
+        "/tmp/sssn",
+        "C:/tmp/sssn",
+        "C:\\tmp\\sssn",
+        "//server/share",
+        "\\\\server\\share",
+        "http://service/store",
+        "data//store",
+        "data/%2E%2E/store",
+        "data?store=1",
+        "data#latest",
+        "data;params",
+        "~/.sssn",
+        "data/~user/store",
+    )
+    for name in ("store", "path"):
+        for index, target in enumerate(unsafe_targets):
+            with pytest.raises(ValueError, match="portable relative path"):
+                resolver.bind(
+                    f"psi://demo/pkg/channels/{name}",
+                    **{name: target},
+                )
+
+            with pytest.raises(ValueError, match="portable relative path"):
+                LocalConfigResolver.from_text(
+                    f"""
+[refs."psi://demo/pkg/channels/{name}"]
+{name} = {json.dumps(target)}
+""".lstrip(),
+                    root=tmp_path / f"{name}-{index}",
+                )
+
+
 def test_local_config_resolver_rejects_malformed_url_targets(tmp_path):
     resolver = LocalConfigResolver()
     for url in (
@@ -3664,6 +3704,31 @@ port = {port}
 path = {path}
 """.lstrip(),
                 root=tmp_path / f"path-{index}",
+            )
+
+    for index, path in enumerate(
+        (
+            '"../outside"',
+            '"/tmp/sssn"',
+            '"C:/tmp/sssn"',
+            '"C:\\\\tmp\\\\sssn"',
+            '"//server/share"',
+            '"data//store"',
+            '"data/%2E%2E/store"',
+            '"data?store=1"',
+            '"data#latest"',
+            '"data;params"',
+            '"~/.sssn"',
+        ),
+        start=1,
+    ):
+        with pytest.raises(ValueError, match="portable relative path"):
+            LocalConfigResolver.from_text(
+                f"""
+[stores.default]
+path = {path}
+""".lstrip(),
+                root=tmp_path / f"path-control-{index}",
             )
 
     for index, (section, name, value) in enumerate(
