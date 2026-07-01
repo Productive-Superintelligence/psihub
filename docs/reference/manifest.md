@@ -55,6 +55,7 @@ Same-package references such as `service.tactic`, `service.subscribes`,
 `snapshot.channel`, and `runs.*` resource lists must use local resource names
 that are non-empty path segments.
 
-Custom endpoint metadata uses plain route paths, names, and tags; avoid
-whitespace and percent escapes in those fields, and do not use `//`
-network-path prefixes for route paths.
+Custom endpoint metadata uses plain route paths, names, and tags. Route paths
+must be `/`-prefixed and avoid empty or dot segments, backslashes, colons, path
+params, queries, fragments, URLs, network-path prefixes, whitespace, and
+percent escapes.

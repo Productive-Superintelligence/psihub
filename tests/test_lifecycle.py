@@ -1263,6 +1263,29 @@ def test_validate_checks_endpoint_metadata(tmp_path):
         for issue in network_path_report.issues
     )
 
+    for invalid_path in (
+        "/analyze//fast",
+        "/./analyze",
+        "/analyze/../fast",
+        "/analyze\\fast",
+        "/analyze:fast",
+        "/analyze;session=demo",
+    ):
+        (package / "psi.toml").write_text(
+            original.replace(
+                'path = "/analyze"',
+                f"path = {json.dumps(invalid_path)}",
+            ),
+            encoding="utf-8",
+        )
+        route_control_report = validate_package(package)
+
+        assert not route_control_report.ok
+        assert any(
+            issue.code == "endpoint_path_invalid"
+            for issue in route_control_report.issues
+        )
+
     (package / "psi.toml").write_text(
         original.replace('name = "analyze"', 'name = "bad name"'),
         encoding="utf-8",
@@ -2317,6 +2340,12 @@ def test_card_rendering_skips_malformed_endpoint_metadata(tmp_path):
                         {"method": "GET", "path": "/bad?query=true"},
                         {"method": "GET", "path": "/bad#fragment"},
                         {"method": "GET", "path": "http://example.com/bad"},
+                        {"method": "GET", "path": "/bad//segment"},
+                        {"method": "GET", "path": "/./bad"},
+                        {"method": "GET", "path": "/bad/../segment"},
+                        {"method": "GET", "path": "/bad\\path"},
+                        {"method": "GET", "path": "/bad:path"},
+                        {"method": "GET", "path": "/bad;session=demo"},
                         {"method": "TRACE", "path": "/trace"},
                         {"method": "GET", "path": "/bad-label", "name": 123},
                         {
@@ -2324,6 +2353,8 @@ def test_card_rendering_skips_malformed_endpoint_metadata(tmp_path):
                             "path": "/bad-percent-label",
                             "name": "bad%2Flabel",
                         },
+                        {"method": "GET", "path": "/bad-mode", "mode": "batch"},
+                        {"method": "GET", "path": "/bad-scope", "scope": "wrong"},
                     ]
                 },
             ),
@@ -2344,9 +2375,17 @@ def test_card_rendering_skips_malformed_endpoint_metadata(tmp_path):
         assert "/bad?query=true" not in text
         assert "/bad#fragment" not in text
         assert "http://example.com/bad" not in text
+        assert "/bad//segment" not in text
+        assert "/./bad" not in text
+        assert "/bad/../segment" not in text
+        assert "/bad\\path" not in text
+        assert "/bad:path" not in text
+        assert "/bad;session=demo" not in text
         assert "/trace" not in text
         assert "/bad-label" not in text
         assert "/bad-percent-label" not in text
+        assert "/bad-mode" not in text
+        assert "/bad-scope" not in text
 
 
 def test_card_rendering_skips_malformed_example_metadata(tmp_path):

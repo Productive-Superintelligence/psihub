@@ -11,7 +11,12 @@ from ._metadata import (
     is_public_sensitive_metadata_key as _is_sensitive_metadata_key,
 )
 from .models import PackageRecord
-from .validator import HTTP_METHODS
+from .validator import (
+    ENDPOINT_MODES,
+    ENDPOINT_SCOPES,
+    HTTP_METHODS,
+    valid_endpoint_path,
+)
 
 
 def render_agent_card(record: PackageRecord) -> str:
@@ -365,30 +370,26 @@ def _endpoint_line(endpoint: dict[str, Any]) -> str | None:
     method_value = endpoint.get("method")
     method = method_value.upper() if isinstance(method_value, str) else ""
     path = endpoint.get("path")
-    if method not in HTTP_METHODS or not _valid_endpoint_path(path):
+    if method not in HTTP_METHODS or not valid_endpoint_path(path):
         return None
     suffix_parts: list[str] = []
-    for value in (endpoint.get("name"), endpoint.get("mode") or endpoint.get("scope")):
-        if value in (None, ""):
-            continue
-        if not _valid_endpoint_label(value):
+    name = endpoint.get("name")
+    if name not in (None, ""):
+        if not _valid_endpoint_label(name):
             return None
-        suffix_parts.append(value)
+        suffix_parts.append(name)
+    mode = endpoint.get("mode")
+    scope = endpoint.get("scope")
+    if mode not in (None, ""):
+        if mode not in ENDPOINT_MODES:
+            return None
+        suffix_parts.append(mode)
+    elif scope not in (None, ""):
+        if scope not in ENDPOINT_SCOPES:
+            return None
+        suffix_parts.append(scope)
     suffix = f" ({', '.join(suffix_parts)})" if suffix_parts else ""
     return f"  - Endpoint: `{method} {path}`{suffix}"
-
-
-def _valid_endpoint_path(path: Any) -> bool:
-    return (
-        isinstance(path, str)
-        and path.startswith("/")
-        and not path.startswith("//")
-        and "%" not in path
-        and not any(ch.isspace() for ch in path)
-        and "?" not in path
-        and "#" not in path
-        and "://" not in path
-    )
 
 
 def _valid_endpoint_label(value: Any) -> bool:

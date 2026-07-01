@@ -96,8 +96,9 @@ Packages should declare `[card]` metadata and `[docs.readme]` when a
 `README.md` exists; missing card/readme metadata produces validation warnings
 so generated human and agent cards stay discoverable.
 Endpoint metadata must declare one of `GET`, `POST`, `PUT`, `PATCH`, or
-`DELETE`, use a `/`-prefixed path, and use known SSSN scopes when a `scope` is
-provided.
+`DELETE`, use a `/`-prefixed path without empty or dot segments, backslashes,
+colons, semicolon path params, queries, fragments, URLs, network-path prefixes, or
+percent escapes, and use known SSSN scopes when a `scope` is provided.
 Service resources must declare either an importable `entry` or a declared
 `tactic`, so package cards and config templates do not advertise unbound
 services.

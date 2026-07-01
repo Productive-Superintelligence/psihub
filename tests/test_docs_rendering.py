@@ -82,7 +82,8 @@ def test_docs_site_builds_core_pages(tmp_path):
     assert "URL schemes" in manifest_html
     assert "symlinks" in manifest_html
     assert "Custom endpoint metadata uses plain route paths" in manifest_html
-    assert "percent escapes in those fields" in manifest_html
+    assert "empty or dot segments" in manifest_html
+    assert "params" in manifest_html
     assert "network-path prefixes" in manifest_html
     assert "Downloaded Package Contracts" in refs_html
     assert "Ref segments must be non-empty path segments without whitespace" in refs_html
