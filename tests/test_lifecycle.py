@@ -513,6 +513,7 @@ def test_record_from_manifest_preserves_canonical_resource_metadata(tmp_path):
 
     service = resources[("service", "api")]
     assert service.metadata["tactic"] == "echo"
+    assert service.metadata["tactics"] == []
     assert service.metadata["transport"] == "fastapi"
     assert service.metadata["subscribes"] == ["events"]
     assert service.metadata["publishes"] == ["analysis"]
@@ -550,6 +551,7 @@ def test_record_from_manifest_preserves_canonical_resource_metadata(tmp_path):
         lambda: TacticResource(entry=b"demo.tactics:Echo"),
         lambda: TacticResource(entry="demo.tactics:Echo", input=b"demo.schemas:In"),
         lambda: ServiceResource(entry=b"demo.service:app"),
+        lambda: ServiceResource(tactics=(b"echo",)),
         lambda: ServiceResource(subscribes=(b"events",)),
         lambda: ChannelResource(schema=b"demo.schemas:Event"),
         lambda: SnapshotResource(channel=b"state"),
@@ -943,6 +945,20 @@ def test_validate_catches_missing_service_tactic(tmp_path):
     assert any(issue.code == "service_tactic_missing" for issue in report.issues)
 
 
+def test_validate_catches_missing_multi_tactic_service_refs(tmp_path):
+    package = make_lifecycle_package(tmp_path)
+    text = (package / "psi.toml").read_text(encoding="utf-8")
+    (package / "psi.toml").write_text(
+        text.replace('tactic = "echo"', 'tactic = "echo"\ntactics = ["missing"]'),
+        encoding="utf-8",
+    )
+
+    report = validate_package(package)
+
+    assert not report.ok
+    assert any(issue.code == "service_tactic_missing" for issue in report.issues)
+
+
 @pytest.mark.parametrize(
     "value",
     ("", "bad tactic", "bad/tactic", "bad%2Ftactic", "bad:tactic"),
@@ -952,6 +968,25 @@ def test_validate_catches_malformed_service_tactic_refs(tmp_path, value):
     text = (package / "psi.toml").read_text(encoding="utf-8")
     (package / "psi.toml").write_text(
         text.replace('tactic = "echo"', f'tactic = "{value}"'),
+        encoding="utf-8",
+    )
+
+    report = validate_package(package)
+
+    assert not report.ok
+    assert any(issue.code == "service_tactic_invalid" for issue in report.issues)
+    assert not any(issue.code == "service_tactic_missing" for issue in report.issues)
+
+
+@pytest.mark.parametrize(
+    "value",
+    ("", "bad tactic", "bad/tactic", "bad%2Ftactic", "bad:tactic"),
+)
+def test_validate_catches_malformed_multi_tactic_service_refs(tmp_path, value):
+    package = make_lifecycle_package(tmp_path)
+    text = (package / "psi.toml").read_text(encoding="utf-8")
+    (package / "psi.toml").write_text(
+        text.replace('tactic = "echo"', f'tactic = "echo"\ntactics = ["{value}"]'),
         encoding="utf-8",
     )
 
@@ -3047,6 +3082,47 @@ def test_lifecycle_covers_tactic_channel_and_combined_packages(tmp_path):
     assert resolver.service("analyzer") == {"port": 8000}
     assert resolver.service("monitor") == {"port": 8001}
     assert resolver.store("default") == {"path": ".sssn"}
+
+
+def test_config_template_maps_multi_tactic_service_refs_to_one_service(tmp_path):
+    package = make_combined_package(tmp_path)
+    manifest = package / "psi.toml"
+    text = manifest.read_text(encoding="utf-8")
+    text = text.replace(
+        'tactic = "analyze"\nsubscribes = ["events"]',
+        'tactic = "analyze"\ntactics = ["analyze", "monitor"]\nsubscribes = ["events"]',
+        1,
+    )
+    text = text.replace(
+        """
+[services.monitor]
+entry = "combo.services:create_monitor"
+tactic = "monitor"
+transport = "fastapi"
+subscribes = ["events"]
+
+""".lstrip(),
+        "",
+        1,
+    )
+    text = text.replace('services = ["analyzer", "monitor"]', 'services = ["analyzer"]')
+    manifest.write_text(text, encoding="utf-8")
+
+    hub = LocalHub(tmp_path / "hub")
+    record = hub.publish(package)
+    config = hub.config_template("demo/combo")
+    resolver = LocalConfigResolver.from_text(config, root=tmp_path / "workspace")
+
+    assert record.validation.ok
+    assert '[refs."psi://demo/combo/tactics/analyze"]' in config
+    assert '[refs."psi://demo/combo/tactics/monitor"]' in config
+    assert resolver.resolve("psi://demo/combo/tactics/analyze").url == (
+        "http://127.0.0.1:8000/tactics/analyze"
+    )
+    assert resolver.resolve("psi://demo/combo/tactics/monitor").url == (
+        "http://127.0.0.1:8000/tactics/monitor"
+    )
+    assert resolver.service("analyzer") == {"port": 8000}
 
 
 def test_downloaded_packages_can_seed_downstream_composition_package(tmp_path):

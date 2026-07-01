@@ -136,6 +136,7 @@ class ServiceResource(_MetadataModel):
 
     entry: StrictStr | None = None
     tactic: StrictStr | None = None
+    tactics: tuple[StrictStr, ...] = Field(default_factory=tuple)
     transport: StrictStr = "fastapi"
     description: StrictStr = ""
     subscribes: tuple[StrictStr, ...] = Field(default_factory=tuple)
@@ -143,7 +144,7 @@ class ServiceResource(_MetadataModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
     def model_post_init(self, __context: Any) -> None:
-        _isolate_fields(self, "subscribes", "publishes", "metadata")
+        _isolate_fields(self, "tactics", "subscribes", "publishes", "metadata")
 
     @model_validator(mode="after")
     def _validate_metadata_tokens(self) -> "ServiceResource":

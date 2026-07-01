@@ -25,6 +25,7 @@ output = "echo_output"
 
 [services.api]
 tactic = "echo"
+tactics = ["echo"]
 transport = "fastapi"
 
 [runs.local]
@@ -51,12 +52,16 @@ prefixes, backslashes, colon separators, or symlinks.
 Validation catches malformed refs, missing same-package resources, invalid
 entrypoints, unbound services, duplicate package records, and run metadata that
 names missing resources.
-Same-package references such as `service.tactic`, `service.subscribes`,
-`snapshot.channel`, and `runs.*` resource lists must use local resource names
-that are non-empty path segments without whitespace, percent escapes, path
-separators, or semicolon params.
+Same-package references such as `service.tactic`, `service.tactics`,
+`service.subscribes`, `snapshot.channel`, and `runs.*` resource lists must use
+local resource names that are non-empty path segments without whitespace,
+percent escapes, path separators, or semicolon params.
 
 Custom endpoint metadata uses plain route paths, names, and tags. Route paths
 must be `/`-prefixed and avoid empty or dot segments, backslashes, colons, path
 params, queries, fragments, URLs, network-path prefixes, whitespace, and
 percent escapes.
+
+Use `service.tactic` for the primary tactic exposed by a service. Use
+`service.tactics` when one service exposes multiple same-package tactics; config
+templates will bind each listed tactic ref to that service's local port.

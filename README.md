@@ -30,6 +30,7 @@ output = "echo_output"
 
 [services.api]
 tactic = "echo"
+tactics = ["echo"]
 transport = "fastapi"
 
 [snapshots.latest]

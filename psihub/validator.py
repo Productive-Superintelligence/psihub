@@ -326,7 +326,7 @@ def _validate_services(manifest: PackageManifest) -> list[ValidationIssue]:
         if _invalid_segment(name):
             continue
         ref = manifest.ref("service", name)
-        if not service.entry and not service.tactic:
+        if not service.entry and not service.tactic and not service.tactics:
             issues.append(
                 ValidationIssue(
                     level="error",
@@ -341,25 +341,29 @@ def _validate_services(manifest: PackageManifest) -> list[ValidationIssue]:
             issues.extend(_validate_import(service.entry, manifest, ref))
         issues.extend(_validate_endpoint_metadata(service, ref))
         issues.extend(_validate_service_port_metadata(service, ref))
-        if service.tactic is not None and _invalid_segment(service.tactic):
-            issues.append(
-                _invalid_local_ref(
-                    ref,
-                    "service_tactic_invalid",
-                    f"Service {name!r}",
-                    "tactic",
-                    service.tactic,
+        for tactic in _service_tactic_refs(service):
+            if _invalid_segment(tactic):
+                issues.append(
+                    _invalid_local_ref(
+                        ref,
+                        "service_tactic_invalid",
+                        f"Service {name!r}",
+                        "tactic",
+                        tactic,
+                    )
                 )
-            )
-        elif service.tactic and service.tactic not in manifest.tactics:
-            issues.append(
-                ValidationIssue(
-                    level="error",
-                    code="service_tactic_missing",
-                    message=f"Service {name!r} references missing tactic {service.tactic!r}.",
-                    resource=ref,
+            elif tactic not in manifest.tactics:
+                issues.append(
+                    ValidationIssue(
+                        level="error",
+                        code="service_tactic_missing",
+                        message=(
+                            f"Service {name!r} references missing tactic "
+                            f"{tactic!r}."
+                        ),
+                        resource=ref,
+                    )
                 )
-            )
         for channel in (*service.subscribes, *service.publishes):
             if _invalid_segment(channel):
                 issues.append(
@@ -381,6 +385,14 @@ def _validate_services(manifest: PackageManifest) -> list[ValidationIssue]:
                     )
                 )
     return issues
+
+
+def _service_tactic_refs(service: Any) -> tuple[str, ...]:
+    tactics: list[str] = []
+    if service.tactic is not None:
+        tactics.append(service.tactic)
+    tactics.extend(service.tactics)
+    return tuple(tactics)
 
 
 def _validate_service_port_metadata(service: Any, ref: str) -> list[ValidationIssue]:

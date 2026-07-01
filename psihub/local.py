@@ -298,6 +298,7 @@ def record_from_manifest(
                 metadata=_resource_metadata(
                     service,
                     tactic=service.tactic,
+                    tactics=list(service.tactics),
                     transport=service.transport,
                     subscribes=list(service.subscribes),
                     publishes=list(service.publishes),

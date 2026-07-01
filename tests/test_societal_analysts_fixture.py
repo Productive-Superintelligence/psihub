@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 
-from lllm import TacticResolver, as_tactic
+import httpx
+from lllm import RemoteTactic, TacticResolver, as_tactic
+from lllm.services import create_service_app
 from sssn import Event, LocalStore
 
 from psihub import (
@@ -104,6 +107,12 @@ def test_societal_analysts_fixture_lifecycle_and_local_execution(tmp_path):
     assert resolver.resolve(
         "psi://society/society-sentinel/tactics/aggregate_report"
     ).url == "http://127.0.0.1:8130/tactics/aggregate_report"
+    assert resolver.resolve(
+        "psi://society/society-sentinel/tactics/simulate_decision"
+    ).url == "http://127.0.0.1:8130/tactics/simulate_decision"
+    assert resolver.resolve(
+        "psi://society/society-sentinel/tactics/decision_pipeline"
+    ).url == "http://127.0.0.1:8130/tactics/decision_pipeline"
     assert resolver.resolve(
         "psi://society/society-sentinel/channels/aggregate_reports"
     ).store == ".sssn"
@@ -221,30 +230,74 @@ def run_societal_fixture(
         "society_sentinel.tactics:DecisionSignal",
         base_dir=downloaded_sentinel,
     )
-    tactic_resolver.register(
-        sentinel_manifest.ref("tactic", "aggregate_report"),
-        as_tactic(
-            aggregate_cls().run,
+    pipeline_cls = import_entrypoint(
+        "society_sentinel.tactics:DecisionPipeline",
+        base_dir=downloaded_sentinel,
+    )
+    aggregate_ref = sentinel_manifest.ref("tactic", "aggregate_report")
+    decision_ref = sentinel_manifest.ref("tactic", "simulate_decision")
+    pipeline_ref = sentinel_manifest.ref("tactic", "decision_pipeline")
+    aggregate_tactic = as_tactic(
+        aggregate_cls().run,
+        name="aggregate_report",
+        input_type=dict,
+        output_type=dict,
+        package_ref=aggregate_ref,
+    )
+    decision_tactic = as_tactic(
+        decision_cls().run,
+        name="simulate_decision",
+        input_type=dict,
+        output_type=dict,
+        package_ref=decision_ref,
+    )
+    tactic_resolver.register(aggregate_ref, aggregate_tactic)
+    tactic_resolver.register(decision_ref, decision_tactic)
+    pipeline_tactic = as_tactic(
+        pipeline_cls(tactic_resolver, decision_ref).run,
+        name="decision_pipeline",
+        input_type=dict,
+        output_type=dict,
+        package_ref=pipeline_ref,
+    )
+    tactic_resolver.register(pipeline_ref, pipeline_tactic)
+
+    sentinel_app = create_service_app(
+        {
+            "aggregate_report": aggregate_tactic,
+            "simulate_decision": decision_tactic,
+            "decision_pipeline": pipeline_tactic,
+        },
+        title="Society Sentinel Fixture",
+    )
+    transport = httpx.ASGITransport(app=sentinel_app)
+    service_resolver = TacticResolver()
+    service_resolver.register(
+        aggregate_ref,
+        RemoteTactic(
+            "http://sentinel/tactics/aggregate_report",
             name="aggregate_report",
             input_type=dict,
             output_type=dict,
-            package_ref=sentinel_manifest.ref("tactic", "aggregate_report"),
+            async_transport=transport,
         ),
     )
-    tactic_resolver.register(
-        sentinel_manifest.ref("tactic", "simulate_decision"),
-        as_tactic(
-            decision_cls().run,
-            name="simulate_decision",
+    service_resolver.register(
+        pipeline_ref,
+        RemoteTactic(
+            "http://sentinel/tactics/decision_pipeline",
+            name="decision_pipeline",
             input_type=dict,
             output_type=dict,
-            package_ref=sentinel_manifest.ref("tactic", "simulate_decision"),
+            async_transport=transport,
         ),
     )
 
-    report = tactic_resolver.run(
-        sentinel_manifest.ref("tactic", "aggregate_report"),
-        {"records": [event.payload for event in analysis_events]},
+    report = asyncio.run(
+        service_resolver.arun(
+            aggregate_ref,
+            {"records": [event.payload for event in analysis_events]},
+        )
     )
     report_event = store.append_event(
         Event(
@@ -256,14 +309,16 @@ def run_societal_fixture(
             parent_ids=tuple(event.id for event in analysis_events),
         )
     )
-    decision = tactic_resolver.run(
-        sentinel_manifest.ref("tactic", "simulate_decision"),
-        {"report": report_event.payload},
+    decision = asyncio.run(
+        service_resolver.arun(
+            pipeline_ref,
+            {"report": report_event.payload},
+        )
     )
     decision_event = store.append_event(
         Event(
             channel="decision_signals",
-            source="simulate_decision",
+            source="decision_pipeline",
             kind="decision",
             payload=decision,
             correlation_id="society-run",
@@ -698,6 +753,15 @@ class DecisionSignal:
             "reason": "simulation only",
             "confidence": 0.0,
         }
+
+
+class DecisionPipeline:
+    def __init__(self, resolver, decision_ref):
+        self.resolver = resolver
+        self.decision_ref = decision_ref
+
+    def run(self, input_value, *, context=None):
+        return self.resolver.run(self.decision_ref, input_value)
 """.lstrip(),
         encoding="utf-8",
     )
@@ -752,6 +816,12 @@ method = "POST"
 path = "/decisions/simulate"
 mode = "run"
 
+[tactics.decision_pipeline]
+entry = "society_sentinel.tactics:DecisionPipeline"
+input = "psi://society/source-channels/schemas/aggregate_report"
+output = "psi://society/source-channels/schemas/decision_signal"
+description = "Pipeline tactic that calls simulate_decision through a resolved psi ref."
+
 [channels.analyst_records]
 schema = "psi://society/source-channels/schemas/analyst_record"
 form = "log"
@@ -771,6 +841,7 @@ channel = "aggregate_reports"
 [services.sentinel_api]
 entry = "society_sentinel.services:create_app"
 tactic = "aggregate_report"
+tactics = ["aggregate_report", "simulate_decision", "decision_pipeline"]
 subscribes = ["analyst_records"]
 publishes = ["aggregate_reports", "decision_signals"]
 
@@ -779,7 +850,7 @@ port = 8130
 
 [runs.local]
 services = ["sentinel_api"]
-tactics = ["aggregate_report", "simulate_decision"]
+tactics = ["aggregate_report", "simulate_decision", "decision_pipeline"]
 channels = ["analyst_records", "aggregate_reports", "decision_signals"]
 snapshots = ["latest_report"]
 """.lstrip(),

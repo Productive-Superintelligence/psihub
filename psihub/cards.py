@@ -218,6 +218,11 @@ def _tactic_ports(
         tactic = resource.metadata.get("tactic")
         if isinstance(tactic, str) and tactic:
             ports.setdefault(tactic, service_ports[resource.name])
+        tactics = resource.metadata.get("tactics")
+        if isinstance(tactics, list):
+            for tactic_name in tactics:
+                if isinstance(tactic_name, str) and tactic_name:
+                    ports.setdefault(tactic_name, service_ports[resource.name])
     return ports
 
 
