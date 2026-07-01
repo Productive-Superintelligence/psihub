@@ -82,7 +82,7 @@ custom service routes and concrete calls are visible without opening source
 files. Generated cards, config templates, local hub index records, and local
 hub JSON metadata responses filter raw secret-shaped metadata keys such as
 `api_key`/`apiKey`/`apikey`, tokens, `accessToken`/`accesstoken`, passwords,
-`authorization`, and credentials while preserving local refs such as
+cookies, `authorization`, and credentials while preserving local refs such as
 `api_key_ref`, `apiKeyRef`, and `apikeyref`.
 
 Validation accepts well-formed external `psi://.../schemas/name` refs, rejects
@@ -114,9 +114,9 @@ Use `[refs."psi://...".metadata]` for structured binding metadata. Legacy
 top-level extra keys still work, but the explicit metadata table wins on
 duplicate keys. Ref, service, and store metadata must not include raw
 secret-shaped keys such as `api_key`/`apiKey`/`apikey`, tokens,
-`accessToken`/`accesstoken`, passwords, `authorization`, or credentials; use
-local credential refs such as `api_key_ref`, `apiKeyRef`, or `apikeyref`
-instead.
+`accessToken`/`accesstoken`, passwords, cookies, `authorization`, or
+credentials; use local credential refs such as `api_key_ref`, `apiKeyRef`, or
+`apikeyref` instead.
 
 Local hub storage defaults to:
 

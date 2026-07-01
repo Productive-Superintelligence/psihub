@@ -59,7 +59,8 @@ metadata keys from resource/card metadata while preserving credential refs such
 as `api_key_ref`/`apiKeyRef`/`apikeyref` and schema metadata. Snake_case,
 kebab-case, camelCase, and collapsed lowercase secret keys such as `api_key`,
 `x-api-key`, `apiKey`, `apikey`, `accessToken`, `accesstoken`, `clientSecret`,
-and `clientsecret` are treated consistently.
+`clientsecret`, `cookie`, `set-cookie`, and `sessionCookie` are treated
+consistently.
 
 ## Download
 

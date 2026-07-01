@@ -126,7 +126,12 @@ def test_local_hub_server_filters_secret_metadata_json_responses(tmp_path):
         'apikey = "raw-compact-service-key"\n'
         'api_key_ref = "credentials/policy"\n'
         'apiKeyRef = "credentials/camel-policy"\n'
-        'apikeyref = "credentials/compact-policy"',
+        'apikeyref = "credentials/compact-policy"\n'
+        'cookie = "raw-service-cookie"\n'
+        'sessionCookie = "raw-service-session-cookie"\n'
+        'cookie_ref = "credentials/cookie"\n'
+        'cookieRef = "credentials/camel-cookie"\n'
+        'cookieref = "credentials/compact-cookie"',
     )
     manifest.write_text(
         text
@@ -145,13 +150,19 @@ type = "string"
 api_key = "raw-config-key"
 accessToken = "raw-camel-config-token"
 accesstoken = "raw-compact-config-token"
+sessionCookie = "raw-config-cookie"
 api_key_ref = "credentials/openai"
 apiKeyRef = "credentials/camel-openai"
 apikeyref = "credentials/compact-openai"
+cookie_ref = "credentials/cookie-default"
+cookieRef = "credentials/camel-cookie-default"
+cookieref = "credentials/compact-cookie-default"
 mode = "safe-mode"
 
 [services.api.metadata.headers]
 authorization = "Bearer raw-service-auth"
+"set-cookie" = "raw-service-set-cookie"
+sessionCookie = "raw-service-header-cookie"
 xAuthToken = "raw-camel-service-token"
 xauthtoken = "raw-compact-service-token"
 x_policy = "safe-policy"
@@ -181,18 +192,29 @@ x_policy = "safe-policy"
         assert "raw-service-key" not in text
         assert "raw-camel-service-key" not in text
         assert "raw-compact-service-key" not in text
+        assert "raw-service-cookie" not in text
+        assert "raw-service-session-cookie" not in text
+        assert "raw-service-set-cookie" not in text
+        assert "raw-service-header-cookie" not in text
         assert "raw-service-auth" not in text
         assert "raw-camel-service-token" not in text
         assert "raw-compact-service-token" not in text
         assert "raw-config-key" not in text
         assert "raw-camel-config-token" not in text
         assert "raw-compact-config-token" not in text
+        assert "raw-config-cookie" not in text
         assert "credentials/policy" in text
         assert "credentials/camel-policy" in text
         assert "credentials/compact-policy" in text
+        assert "credentials/cookie" in text
+        assert "credentials/camel-cookie" in text
+        assert "credentials/compact-cookie" in text
         assert "credentials/openai" in text
         assert "credentials/camel-openai" in text
         assert "credentials/compact-openai" in text
+        assert "credentials/cookie-default" in text
+        assert "credentials/camel-cookie-default" in text
+        assert "credentials/compact-cookie-default" in text
         assert "safe-policy" in text
         assert "safe-mode" in text
         assert "password" in text
@@ -206,6 +228,7 @@ x_policy = "safe-policy"
     assert "api_key" not in config_resource["metadata"]["defaults"]
     assert "accessToken" not in config_resource["metadata"]["defaults"]
     assert "accesstoken" not in config_resource["metadata"]["defaults"]
+    assert "sessionCookie" not in config_resource["metadata"]["defaults"]
     assert (
         config_resource["metadata"]["defaults"]["apiKeyRef"]
         == "credentials/camel-openai"
@@ -213,6 +236,14 @@ x_policy = "safe-policy"
     assert (
         config_resource["metadata"]["defaults"]["apikeyref"]
         == "credentials/compact-openai"
+    )
+    assert (
+        config_resource["metadata"]["defaults"]["cookieRef"]
+        == "credentials/camel-cookie-default"
+    )
+    assert (
+        config_resource["metadata"]["defaults"]["cookieref"]
+        == "credentials/compact-cookie-default"
     )
     assert (
         config_resource["metadata"]["schema"]["properties"]["password"]["type"]

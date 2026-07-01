@@ -1868,10 +1868,14 @@ def test_cards_and_config_templates_skip_raw_secret_metadata(tmp_path):
                     "githubtoken": "raw-compact-token",
                     "clientSecret": "raw-camel-secret",
                     "clientsecret": "raw-compact-secret",
+                    "cookie": "raw-cookie",
+                    "sessionCookie": "raw-session-cookie",
                     "password": "raw-password",
                     "authorization": "Bearer raw-auth",
                     "headers": {
                         "authorization": "Bearer nested-auth",
+                        "set-cookie": "nested-cookie",
+                        "sessionCookie": "nested-session-cookie",
                         "x-api-key": "nested-api-key",
                         "xAuthToken": "nested-camel-token",
                         "xauthtoken": "nested-compact-token",
@@ -1883,6 +1887,9 @@ def test_cards_and_config_templates_skip_raw_secret_metadata(tmp_path):
                     "apikeyref": "credentials/compact-openai",
                     "clientSecretRef": "credentials/camel-secret",
                     "clientsecretref": "credentials/compact-secret",
+                    "cookie_ref": "credentials/cookie",
+                    "cookieRef": "credentials/camel-cookie",
+                    "cookieref": "credentials/compact-cookie",
                 },
             ),
             HubResource(
@@ -1895,10 +1902,14 @@ def test_cards_and_config_templates_skip_raw_secret_metadata(tmp_path):
                         "access_token": "raw-setting-token",
                         "accessToken": "raw-camel-setting-token",
                         "accesstoken": "raw-compact-setting-token",
+                        "sessionCookie": "raw-setting-cookie",
                         "model": "demo-model",
                         "api_key_ref": "credentials/openai",
                         "apiKeyRef": "credentials/camel-openai",
                         "apikeyref": "credentials/compact-openai",
+                        "cookie_ref": "credentials/cookie",
+                        "cookieRef": "credentials/camel-cookie",
+                        "cookieref": "credentials/compact-cookie",
                     }
                 },
             ),
@@ -1919,9 +1930,13 @@ def test_cards_and_config_templates_skip_raw_secret_metadata(tmp_path):
         assert "raw-compact-token" not in text
         assert "raw-camel-secret" not in text
         assert "raw-compact-secret" not in text
+        assert "raw-cookie" not in text
+        assert "raw-session-cookie" not in text
         assert "raw-password" not in text
         assert "raw-auth" not in text
         assert "nested-auth" not in text
+        assert "nested-cookie" not in text
+        assert "nested-session-cookie" not in text
         assert "nested-api-key" not in text
         assert "nested-camel-token" not in text
         assert "nested-compact-token" not in text
@@ -1929,6 +1944,7 @@ def test_cards_and_config_templates_skip_raw_secret_metadata(tmp_path):
         assert "raw-setting-token" not in text
         assert "raw-camel-setting-token" not in text
         assert "raw-compact-setting-token" not in text
+        assert "raw-setting-cookie" not in text
         assert "safe-label" in text
         assert "safe-policy" in text
         assert "credentials/openai" in text
@@ -1936,16 +1952,23 @@ def test_cards_and_config_templates_skip_raw_secret_metadata(tmp_path):
         assert "credentials/camel-secret" in text
         assert "credentials/compact-openai" in text
         assert "credentials/compact-secret" in text
+        assert "credentials/cookie" in text
+        assert "credentials/camel-cookie" in text
+        assert "credentials/compact-cookie" in text
     assert 'model = "demo-model"' in config
     assert 'api_key_ref = "credentials/openai"' in config
     assert 'apiKeyRef = "credentials/camel-openai"' in config
     assert 'apikeyref = "credentials/compact-openai"' in config
+    assert 'cookie_ref = "credentials/cookie"' in config
+    assert 'cookieRef = "credentials/camel-cookie"' in config
+    assert 'cookieref = "credentials/compact-cookie"' in config
     assert "api_key =" not in config
     assert "apiKey =" not in config
     assert "apikey =" not in config
     assert "access_token =" not in config
     assert "accessToken =" not in config
     assert "accesstoken =" not in config
+    assert "sessionCookie =" not in config
 
 
 def test_local_publish_filters_secret_metadata_from_index_records(tmp_path):
@@ -1960,7 +1983,12 @@ def test_local_publish_filters_secret_metadata_from_index_records(tmp_path):
         'apikey = "raw-compact-service-key"\n'
         'api_key_ref = "credentials/policy"\n'
         'apiKeyRef = "credentials/camel-policy"\n'
-        'apikeyref = "credentials/compact-policy"',
+        'apikeyref = "credentials/compact-policy"\n'
+        'cookie = "raw-service-cookie"\n'
+        'sessionCookie = "raw-service-session-cookie"\n'
+        'cookie_ref = "credentials/cookie"\n'
+        'cookieRef = "credentials/camel-cookie"\n'
+        'cookieref = "credentials/compact-cookie"',
     )
     manifest.write_text(
         text
@@ -1979,13 +2007,19 @@ type = "string"
 api_key = "raw-config-key"
 accessToken = "raw-camel-config-token"
 accesstoken = "raw-compact-config-token"
+sessionCookie = "raw-config-cookie"
 api_key_ref = "credentials/openai"
 apiKeyRef = "credentials/camel-openai"
 apikeyref = "credentials/compact-openai"
+cookie_ref = "credentials/cookie-default"
+cookieRef = "credentials/camel-cookie-default"
+cookieref = "credentials/compact-cookie-default"
 mode = "safe-mode"
 
 [services.api.metadata.headers]
 authorization = "Bearer raw-service-auth"
+"set-cookie" = "raw-service-set-cookie"
+sessionCookie = "raw-service-header-cookie"
 xAuthToken = "raw-camel-service-token"
 xauthtoken = "raw-compact-service-token"
 x_policy = "safe-policy"
@@ -2001,18 +2035,29 @@ x_policy = "safe-policy"
         assert "raw-service-key" not in text_value
         assert "raw-camel-service-key" not in text_value
         assert "raw-compact-service-key" not in text_value
+        assert "raw-service-cookie" not in text_value
+        assert "raw-service-session-cookie" not in text_value
+        assert "raw-service-set-cookie" not in text_value
+        assert "raw-service-header-cookie" not in text_value
         assert "raw-service-auth" not in text_value
         assert "raw-camel-service-token" not in text_value
         assert "raw-compact-service-token" not in text_value
         assert "raw-config-key" not in text_value
         assert "raw-camel-config-token" not in text_value
         assert "raw-compact-config-token" not in text_value
+        assert "raw-config-cookie" not in text_value
         assert "credentials/policy" in text_value
         assert "credentials/camel-policy" in text_value
         assert "credentials/compact-policy" in text_value
+        assert "credentials/cookie" in text_value
+        assert "credentials/camel-cookie" in text_value
+        assert "credentials/compact-cookie" in text_value
         assert "credentials/openai" in text_value
         assert "credentials/camel-openai" in text_value
         assert "credentials/compact-openai" in text_value
+        assert "credentials/cookie-default" in text_value
+        assert "credentials/camel-cookie-default" in text_value
+        assert "credentials/compact-cookie-default" in text_value
         assert "safe-policy" in text_value
         assert "safe-mode" in text_value
         assert "password" in text_value
@@ -2024,13 +2069,25 @@ x_policy = "safe-policy"
     assert "api_key" not in service.metadata
     assert "apiKey" not in service.metadata
     assert "apikey" not in service.metadata
+    assert "cookie" not in service.metadata
+    assert "sessionCookie" not in service.metadata
     assert service.metadata["headers"] == {"x_policy": "safe-policy"}
     assert "api_key" not in config.metadata["defaults"]
     assert "accessToken" not in config.metadata["defaults"]
     assert "accesstoken" not in config.metadata["defaults"]
+    assert "sessionCookie" not in config.metadata["defaults"]
     assert config.metadata["defaults"]["api_key_ref"] == "credentials/openai"
     assert config.metadata["defaults"]["apiKeyRef"] == "credentials/camel-openai"
     assert config.metadata["defaults"]["apikeyref"] == "credentials/compact-openai"
+    assert config.metadata["defaults"]["cookie_ref"] == "credentials/cookie-default"
+    assert (
+        config.metadata["defaults"]["cookieRef"]
+        == "credentials/camel-cookie-default"
+    )
+    assert (
+        config.metadata["defaults"]["cookieref"]
+        == "credentials/compact-cookie-default"
+    )
     assert config.metadata["schema"]["properties"]["password"]["type"] == "string"
     assert config.metadata["schema"]["properties"]["accessToken"]["type"] == "string"
 
@@ -3106,6 +3163,9 @@ def test_local_config_resolver_rejects_secret_ref_metadata_keys():
             "api_key_ref": "credentials/openai",
             "apiKeyRef": "credentials/camel-openai",
             "apikeyref": "credentials/compact-openai",
+            "cookie_ref": "credentials/cookie",
+            "cookieRef": "credentials/camel-cookie",
+            "cookieref": "credentials/compact-cookie",
             "clientSecretRef": "credentials/camel-secret",
             "clientsecretref": "credentials/compact-secret",
         },
@@ -3114,6 +3174,9 @@ def test_local_config_resolver_rejects_secret_ref_metadata_keys():
         "api_key_ref": "credentials/openai",
         "apiKeyRef": "credentials/camel-openai",
         "apikeyref": "credentials/compact-openai",
+        "cookie_ref": "credentials/cookie",
+        "cookieRef": "credentials/camel-cookie",
+        "cookieref": "credentials/compact-cookie",
         "clientSecretRef": "credentials/camel-secret",
         "clientsecretref": "credentials/compact-secret",
     }
@@ -3124,7 +3187,10 @@ def test_local_config_resolver_rejects_secret_ref_metadata_keys():
             url="http://service",
             metadata={
                 "api_key_ref": "credentials/openai",
-                "headers": {"xauthtoken": "Bearer raw-token"},
+                "headers": {
+                    "set-cookie": "session=raw",
+                    "xauthtoken": "Bearer raw-token",
+                },
             },
         )
 
@@ -3151,7 +3217,7 @@ apikey = "raw-config-key"
 
 [refs."psi://demo/pkg/tactics/local".metadata]
 api_key_ref = "credentials/openai"
-headers = { xauthtoken = "Bearer raw-config-token" }
+headers = { "set-cookie" = "session=raw", xauthtoken = "Bearer raw-config-token" }
 """.lstrip(),
             root=tmp_path / "workspace",
         )

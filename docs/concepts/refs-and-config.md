@@ -39,9 +39,9 @@ For structured metadata, prefer an explicit nested
 as metadata, and explicit metadata table values win when the same key appears
 in both places. Ref, service, and store metadata must not include raw
 secret-shaped keys such as `api_key`/`apiKey`/`apikey`, tokens,
-`accessToken`/`accesstoken`, passwords, `authorization`, or credentials; use
-local credential refs such as `api_key_ref`, `apiKeyRef`, or `apikeyref`
-instead.
+`accessToken`/`accesstoken`, passwords, cookies, `authorization`, or
+credentials; use local credential refs such as `api_key_ref`, `apiKeyRef`, or
+`apikeyref` instead.
 In-process `object` bindings are available through
 `LocalConfigResolver.bind(..., object=...)`; they are not serialized into
 `.psi/config.toml`.
