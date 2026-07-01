@@ -11,12 +11,18 @@ from pydantic import (
     Field,
     StrictBool,
     StrictStr,
+    ValidationInfo,
     computed_field,
     field_validator,
     model_validator,
 )
 
-from ._copy import copy_boundary_value, metadata_field_value
+from ._copy import (
+    copy_boundary_value,
+    mapping_field_value,
+    mapping_sequence_field_value,
+    metadata_field_value,
+)
 from .refs import parse_psi_ref
 
 PackageKind = Literal["tactic", "channel", "service", "app", "library", "mixed"]
@@ -97,6 +103,11 @@ class TacticResource(_MetadataModel):
 
     def model_post_init(self, __context: Any) -> None:
         _isolate_fields(self, "examples", "metadata")
+
+    @field_validator("examples", mode="before")
+    @classmethod
+    def _validate_examples(cls, value: Any) -> Any:
+        return mapping_sequence_field_value("examples", value)
 
     @model_validator(mode="after")
     def _validate_metadata_tokens(self) -> "TacticResource":
@@ -196,6 +207,11 @@ class ConfigResource(_MetadataModel):
 
     def model_post_init(self, __context: Any) -> None:
         _isolate_fields(self, "config_schema", "defaults", "metadata")
+
+    @field_validator("config_schema", "defaults", mode="before")
+    @classmethod
+    def _validate_public_maps(cls, value: Any, info: ValidationInfo) -> Any:
+        return mapping_field_value(info.field_name, value)
 
 
 class DocResource(_MetadataModel):

@@ -619,6 +619,26 @@ def test_package_metadata_models_reject_non_string_keys(factory, metadata):
 @pytest.mark.parametrize(
     "factory",
     [
+        lambda: TacticResource(
+            entry="demo.tactics:Echo",
+            examples=({b"input": {"text": "hello"}},),
+        ),
+        lambda: TacticResource(
+            entry="demo.tactics:Echo",
+            examples=({"input": {b"text": "hello"}},),
+        ),
+        lambda: ConfigResource(schema={b"type": "object"}),
+        lambda: ConfigResource(defaults={"service": {b"port": 8000}}),
+    ],
+)
+def test_package_public_maps_reject_non_string_keys(factory):
+    with pytest.raises(ValidationError):
+        factory()
+
+
+@pytest.mark.parametrize(
+    "factory",
+    [
         lambda: PackageInfo(org="demo", name="   "),
         lambda: PackageInfo(org="   ", name="pkg"),
         lambda: PackageInfo(org="demo", name="pkg", version="   "),
