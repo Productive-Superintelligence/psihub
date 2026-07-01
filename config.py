@@ -217,7 +217,7 @@ def _validate_table_name(value: str, label: str) -> None:
         or not value.strip()
         or value in {".", ".."}
         or any(ch.isspace() for ch in value)
-        or any(ch in value for ch in "/:\\%")
+        or any(ch in value for ch in "/:\\;%")
     ):
         raise ValueError(f"[{label}] must use a non-empty path-segment name.")
 

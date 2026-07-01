@@ -53,7 +53,8 @@ entrypoints, unbound services, duplicate package records, and run metadata that
 names missing resources.
 Same-package references such as `service.tactic`, `service.subscribes`,
 `snapshot.channel`, and `runs.*` resource lists must use local resource names
-that are non-empty path segments.
+that are non-empty path segments without whitespace, percent escapes, path
+separators, or semicolon params.
 
 Custom endpoint metadata uses plain route paths, names, and tags. Route paths
 must be `/`-prefixed and avoid empty or dot segments, backslashes, colons, path

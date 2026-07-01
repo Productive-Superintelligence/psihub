@@ -644,12 +644,16 @@ def test_package_public_maps_reject_non_string_keys(factory):
         lambda: PackageInfo(org="demo", name="pkg", version="   "),
         lambda: PackageInfo(org="demo org", name="pkg"),
         lambda: PackageInfo(org="demo%2Forg", name="pkg"),
+        lambda: PackageInfo(org="demo;org", name="pkg"),
         lambda: PackageInfo(org="demo", name="bad pkg"),
         lambda: PackageInfo(org="demo", name="bad%2Fpkg"),
+        lambda: PackageInfo(org="demo", name="bad;pkg"),
         lambda: PackageInfo(org="demo", name="pkg", version="0.1.0 beta"),
         lambda: PackageInfo(org="demo", name="pkg", version="0.1.0%20beta"),
+        lambda: PackageInfo(org="demo", name="pkg", version="0.1.0;beta"),
         lambda: PackageInfo(org="demo", name="pkg", primary="tactics.bad tactic"),
         lambda: PackageInfo(org="demo", name="pkg", primary="tactics.bad%2Ftactic"),
+        lambda: PackageInfo(org="demo", name="pkg", primary="tactics.bad;tactic"),
         lambda: HubResource(
             kind="tactic",
             name="bad tactic",
@@ -659,6 +663,11 @@ def test_package_public_maps_reject_non_string_keys(factory):
             kind="tactic",
             name="bad%2Ftactic",
             ref="psi://demo/pkg/tactics/bad%2Ftactic",
+        ),
+        lambda: HubResource(
+            kind="tactic",
+            name="bad;tactic",
+            ref="psi://demo/pkg/tactics/bad;tactic",
         ),
         lambda: PackageRecord(
             org="demo",
@@ -687,6 +696,15 @@ def test_package_public_maps_reject_non_string_keys(factory):
             manifest_path=Path("psi.toml"),
             validation=ValidationReport(ok=True),
         ),
+        lambda: PackageRecord(
+            org="demo",
+            name="bad;pkg",
+            version="0.1.0",
+            kind="mixed",
+            root=Path("."),
+            manifest_path=Path("psi.toml"),
+            validation=ValidationReport(ok=True),
+        ),
         lambda: PackageManifest(package=PackageInfo(org="demo", name="pkg")).ref(
             "tactic",
             "   ",
@@ -698,6 +716,10 @@ def test_package_public_maps_reject_non_string_keys(factory):
         lambda: PackageManifest(package=PackageInfo(org="demo", name="pkg")).ref(
             "tactic",
             "bad%2Ftactic",
+        ),
+        lambda: PackageManifest(package=PackageInfo(org="demo", name="pkg")).ref(
+            "tactic",
+            "bad;tactic",
         ),
     ],
 )
@@ -761,6 +783,7 @@ def test_package_record_rejects_cross_package_resource_refs(resource):
         "bad:token",
         "bad\\token",
         "bad%2Ftoken",
+        "bad;token",
     ),
 )
 def test_package_resource_metadata_rejects_malformed_tokens(value):
@@ -1482,6 +1505,9 @@ def test_validate_rejects_path_control_package_identity_segments(tmp_path):
         ("org", 'org = "demo"', 'org = ".."'),
         ("name", 'name = "echo"', 'name = "."'),
         ("version", 'version = "0.1.0"', 'version = ".."'),
+        ("semicolon-org", 'org = "demo"', 'org = "demo;org"'),
+        ("semicolon-name", 'name = "echo"', 'name = "echo;pkg"'),
+        ("semicolon-version", 'version = "0.1.0"', 'version = "0.1.0;beta"'),
     ]
     for field, original, replacement in replacements:
         package = make_lifecycle_package(tmp_path / field)
@@ -1548,8 +1574,9 @@ def test_load_manifest_rejects_symlinked_manifest_file(tmp_path):
         load_manifest(package)
 
 
-def test_validate_rejects_path_control_resource_names(tmp_path):
-    package = tmp_path / "invalid-resource"
+@pytest.mark.parametrize("resource_name", ["bad/name", "bad;name"])
+def test_validate_rejects_path_control_resource_names(tmp_path, resource_name):
+    package = tmp_path / f"invalid-resource-{resource_name.replace('/', '-')}"
     package.mkdir()
     (package / "README.md").write_text("# Invalid resource\n", encoding="utf-8")
     (package / "demo.py").write_text(
@@ -1565,9 +1592,9 @@ name = "invalid-resource"
 version = "0.1.0"
 kind = "library"
 
-[tactics."bad/name"]
+[tactics."{resource_name}"]
 entry = "demo:Echo"
-""".lstrip(),
+""".lstrip().format(resource_name=resource_name),
         encoding="utf-8",
     )
 
@@ -2811,6 +2838,8 @@ def test_local_hub_rejects_invalid_package_identifiers(tmp_path):
         "demo/bad pkg",
         "demo%2Forg/pkg",
         "demo/bad%2Fpkg",
+        "demo;org/pkg",
+        "demo/bad;pkg",
     ):
         with pytest.raises(ValueError, match="path segment|org/name"):
             hub.get(identifier)
@@ -3195,6 +3224,9 @@ store = ".sssn"
         "psi://../pkg/tactics/local",
         "psi://demo/./tactics/local",
         "psi://demo/pkg/tactics/..",
+        "psi://demo;org/pkg/tactics/local",
+        "psi://demo/pkg;name/tactics/local",
+        "psi://demo/pkg/tactics/local;name",
     ):
         with pytest.raises(ValueError, match="invalid segment"):
             resolver.bind(ref, url="http://service")
@@ -3607,7 +3639,17 @@ path = ".sssn"
     with pytest.raises(KeyError):
         resolver.store("missing")
 
-    for invalid_name in (None, 123, "", "   ", ".", "..", "bad/name", "bad name"):
+    for invalid_name in (
+        None,
+        123,
+        "",
+        "   ",
+        ".",
+        "..",
+        "bad/name",
+        "bad name",
+        "bad;name",
+    ):
         with pytest.raises(ValueError, match="path-segment"):
             resolver.service(invalid_name)  # type: ignore[arg-type]
         with pytest.raises(ValueError, match="path-segment"):
@@ -3709,10 +3751,12 @@ default = ".sssn"
         ("services", "."),
         ("services", "bad api"),
         ("services", "api%2Fhidden"),
+        ("services", "api;hidden"),
         ("stores", "bad/name"),
         ("stores", ".."),
         ("stores", "bad store"),
         ("stores", "default%20bad"),
+        ("stores", "default;bad"),
     ):
         with pytest.raises(ValueError, match="path-segment"):
             LocalConfigResolver.from_text(

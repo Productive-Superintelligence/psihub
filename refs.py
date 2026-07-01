@@ -59,7 +59,7 @@ def parse_psi_ref(ref: str) -> PsiRef:
         decoded_segment = unquote(segment)
         if (
             decoded_segment in {".", ".."}
-            or any(ch in decoded_segment for ch in "/:\\")
+            or any(ch in decoded_segment for ch in "/:\\;")
             or "%" in segment
         ):
             raise ValueError(f"Ref contains an invalid segment: {ref}")

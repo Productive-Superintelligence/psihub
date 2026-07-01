@@ -87,7 +87,9 @@ cookies, `authorization`, and credentials while preserving local refs such as
 
 Validation accepts well-formed external `psi://.../schemas/name` refs, rejects
 malformed schema refs, and catches same-package schema refs that point at
-missing declared schemas.
+missing declared schemas. Ref, package, and resource-name segments must be
+plain path segments without whitespace, percent escapes, path separators, or
+semicolon params.
 Doc, example, and asset package-file paths must stay portable and must not use
 symlinks, because local publish and download copies skip symlinks.
 Tactic examples should include an `input`, `output`, or `command`; empty
