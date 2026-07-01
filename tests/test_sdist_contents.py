@@ -33,6 +33,7 @@ def test_sdist_includes_repo_materials(tmp_path):
         "SECURITY.md",
         "mkdocs.yml",
         "psihub/__init__.py",
+        "psihub/endpoints.py",
         "psihub/py.typed",
         "psihub/refs.py",
         "psihub/server.py",

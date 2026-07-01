@@ -10,13 +10,13 @@ from typing import Any
 from ._metadata import (
     is_public_sensitive_metadata_key as _is_sensitive_metadata_key,
 )
-from .models import PackageRecord
-from .validator import (
+from .endpoints import (
     ENDPOINT_MODES,
     ENDPOINT_SCOPES,
     HTTP_METHODS,
     valid_endpoint_path,
 )
+from .models import PackageRecord
 
 
 def render_agent_card(record: PackageRecord) -> str:
