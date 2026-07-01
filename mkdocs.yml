@@ -1,34 +1,46 @@
 site_name: PsiHub
 site_description: Local-first package hub for PSI packages.
+site_url: https://github.com/Productive-Superintelligence/psihub/
 repo_name: Productive-Superintelligence/psihub
 repo_url: https://github.com/Productive-Superintelligence/psihub
 edit_uri: edit/main/docs/
-copyright: "PsiHub"
+copyright: '<a class="psi-footer-brand" href="https://github.com/Productive-Superintelligence/psihub"><span class="psi-footer-wordmark" aria-hidden="true"></span><span class="psi-footer-text">PsiHub</span></a>'
 
 theme:
   name: material
   custom_dir: docs/overrides
   logo: assets/logo.svg
   favicon: assets/logo.svg
+  font:
+    text: Roboto
+    code: Roboto Mono
   palette:
     - scheme: default
       primary: white
       accent: black
   features:
     - navigation.sections
+    - navigation.indexes
     - navigation.instant
     - navigation.top
+    - navigation.tracking
     - toc.follow
     - content.code.copy
     - content.tabs.link
+    - search.suggest
+    - search.highlight
 
 nav:
   - Overview:
       - Overview: index.md
       - Getting Started: getting-started.md
+  - Protocol:
+      - Protocol: protocol/index.md
       - Concepts:
           - Packages: concepts/packages.md
           - Refs And Config: concepts/refs-and-config.md
+  - Client:
+      - Client: client/index.md
       - Guides:
           - Local Hub: guides/local-hub.md
           - Cards And Agent Cards: guides/cards.md
@@ -47,7 +59,11 @@ extra:
       link: https://github.com/Productive-Superintelligence/psihub
 
 extra_css:
-  - stylesheets/custom.css
+  - stylesheets/custom.20260629.css
+
+extra_javascript:
+  - javascripts/vendor/mermaid.min.js
+  - javascripts/mermaid-init.20260629.js
 
 markdown_extensions:
   - admonition
@@ -56,4 +72,8 @@ markdown_extensions:
   - pymdownx.highlight
   - pymdownx.tabbed:
       alternate_style: true
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_div_format

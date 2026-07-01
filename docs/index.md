@@ -1,5 +1,12 @@
 # PsiHub
 
+<p class="psi-brand">
+  <img src="assets/psihub-logo-text-dark.png#only-light" alt="PsiHub" />
+  <img src="assets/psihub-logo-text-white.png#only-dark" alt="PsiHub" />
+</p>
+
+[Productive-Superintelligence/psihub](https://github.com/Productive-Superintelligence/psihub){ .psi-domain }
+
 PsiHub is the local-first package hub for PSI packages. It owns `psi.toml`,
 validation, local publish/download, package cards, agent cards, and local
 config templates.
@@ -34,7 +41,7 @@ resources so agents can inspect packages without guessing.
 ## Short Path
 
 ```bash
-python -m pip install -e ".[dev,docs]"
+python -m pip install --pre psihub
 psihub init demo-package --org demo --name echo --kind tactic
 psihub validate demo-package
 psihub --hub .psihub publish demo-package --local
@@ -71,6 +78,6 @@ requiring PsiHub to start the service or own the store.
 ## Next
 
 - Start with [Getting Started](getting-started.md).
-- Learn package shape in [Packages](concepts/packages.md).
-- Learn refs and local config in [Refs And Config](concepts/refs-and-config.md).
+- Learn package shape in [Protocol](protocol/index.md).
+- Learn local workflows in [Client](client/index.md).
 - Follow the [Local Package Lifecycle](tutorials/local-package-lifecycle.md).

@@ -63,13 +63,19 @@ def test_docs_site_builds_core_pages(tmp_path):
     refs_html = (
         site_dir / "concepts" / "refs-and-config" / "index.html"
     ).read_text(encoding="utf-8")
-    custom_css = (site_dir / "stylesheets" / "custom.css").read_text(
-        encoding="utf-8"
-    )
+    custom_css = (
+        site_dir / "stylesheets" / "custom.20260629.css"
+    ).read_text(encoding="utf-8")
+    mermaid_js = (
+        site_dir / "javascripts" / "mermaid-init.20260629.js"
+    ).read_text(encoding="utf-8")
 
     assert "PsiHub is the local-first package hub" in index_html
     assert "does not launch services" in index_html
     assert "assets/logo.svg" in index_html
+    assert "assets/psihub-logo-text-dark.png#only-light" in index_html
+    assert "assets/psihub-logo-text-white.png#only-dark" in index_html
+    assert "psi-footer-wordmark" in index_html
     assert "serve" in cli_html
     assert "8787" in cli_html
     assert "outside the selected local hub root" in cli_html
@@ -115,11 +121,19 @@ def test_docs_site_builds_core_pages(tmp_path):
     assert "psi://demo/events/schemas/event_payload" in refs_html
     assert "psi://demo/echo/schemas/echo_output" in refs_html
     assert ".md-header," in custom_css
+    assert "--md-text-font: \"Roboto\";" in custom_css
+    assert "--md-code-font: \"Roboto Mono\";" in custom_css
     assert "background-color: #ffffff;" in custom_css
     assert ".psi-header-nav" in custom_css
     assert ".psi-header-nav__link" in custom_css
     assert ".psi-drawer-sections" in custom_css
     assert ".psi-drawer-sections__link" in custom_css
+    assert ".psi-footer-wordmark" in custom_css
+    assert 'background-image: url("../assets/psihub-logo-text-dark.png");' in custom_css
+    assert ".md-typeset .mermaid svg" in custom_css
+    assert "window.mermaid.startOnLoad = false" in mermaid_js
+    assert "window.mermaid.render" in mermaid_js
+    assert "data-mermaid-source" in mermaid_js
     assert "overflow-x: auto;" in custom_css
     assert "psi-header-nav" in index_html
     assert 'class="md-tabs"' not in index_html
@@ -143,6 +157,74 @@ def test_docs_sidebar_scopes_to_active_top_nav_section(tmp_path):
         )
         page = browser.new_page(viewport={"width": 1280, "height": 900})
         page.goto(
+            (site_dir / "index.html").as_uri(), wait_until="domcontentloaded"
+        )
+        page.wait_for_selector(
+            ".md-header__button.md-logo img, .md-header__button.md-logo svg"
+        )
+        metrics = page.evaluate(
+            """
+            () => {
+              const inspect = (selector) => {
+                const element = document.querySelector(selector);
+                if (!element) {
+                  return null;
+                }
+                const style = getComputedStyle(element);
+                const rect = element.getBoundingClientRect();
+                return {
+                  backgroundColor: style.backgroundColor,
+                  boxShadow: style.boxShadow,
+                  color: style.color,
+                  display: style.display,
+                  fontFamily: style.fontFamily,
+                  fontWeight: style.fontWeight,
+                  height: rect.height,
+                  src: element.getAttribute("src") || "",
+                  width: rect.width,
+                };
+              };
+              const brandImages = [...document.querySelectorAll(".psi-brand img")]
+                .map((element) => {
+                  const style = getComputedStyle(element);
+                  const rect = element.getBoundingClientRect();
+                  return {
+                    display: style.display,
+                    height: rect.height,
+                    src: element.getAttribute("src") || "",
+                    width: rect.width,
+                  };
+                });
+              return {
+                bodyFont: getComputedStyle(document.body)
+                  .getPropertyValue("--md-text-font-family")
+                  .trim(),
+                codeFont: getComputedStyle(document.body)
+                  .getPropertyValue("--md-code-font-family")
+                  .trim(),
+                footer: inspect(".md-footer-meta"),
+                footerMark: inspect(".psi-footer-wordmark"),
+                header: inspect(".md-header"),
+                headerLogo: inspect(
+                  ".md-header__button.md-logo img, .md-header__button.md-logo svg"
+                ),
+                headerNav: inspect(".psi-header-nav"),
+                headerNavLinks: [...document.querySelectorAll(".psi-header-nav__link")]
+                  .map((element) => element.textContent.trim().replace(/\\s+/g, " ")),
+                sidebarText: document
+                  .querySelector(".md-sidebar--primary .md-nav--primary > .md-nav__list")
+                  ?.innerText.trim().replace(/\\s+/g, " ") || "",
+                sourceRepository: document
+                  .querySelector(".md-header__source .md-source__repository")
+                  ?.textContent.trim().replace(/\\s+/g, " ") || "",
+                tabs: inspect(".md-tabs"),
+                title: inspect(".md-header__title"),
+                brandImages,
+              };
+            }
+            """
+        )
+        page.goto(
             (site_dir / "reference" / "manifest" / "index.html").as_uri(),
             wait_until="domcontentloaded",
         )
@@ -159,10 +241,54 @@ def test_docs_sidebar_scopes_to_active_top_nav_section(tmp_path):
         page.close()
         browser.close()
 
+    assert metrics["header"]["backgroundColor"] == "rgb(255, 255, 255)"
+    assert metrics["tabs"] is None
+    assert metrics["footer"]["backgroundColor"] == "rgb(255, 255, 255)"
+    assert metrics["header"]["color"] == "rgb(5, 5, 5)"
+    assert metrics["footer"]["color"] == "rgb(5, 5, 5)"
+    assert metrics["header"]["boxShadow"] == "none"
+    assert metrics["title"]["fontWeight"] == "700"
+    assert metrics["headerLogo"]["width"] == pytest.approx(24, abs=1)
+    assert metrics["headerLogo"]["height"] == pytest.approx(24, abs=1)
+    assert metrics["headerNav"]["display"] == "flex"
+    assert metrics["headerNavLinks"] == [
+        "Overview",
+        "Protocol",
+        "Client",
+        "Tutorials",
+        "Reference",
+    ]
+    assert "Overview" in metrics["sidebarText"]
+    assert "Getting Started" in metrics["sidebarText"]
+    assert "Protocol" not in metrics["sidebarText"]
+    assert "Client" not in metrics["sidebarText"]
+    assert "Tutorials" not in metrics["sidebarText"]
+    assert "Reference" not in metrics["sidebarText"]
+    assert metrics["sourceRepository"].startswith("Productive-Superintelligence/psihub")
+    assert metrics["footer"]["height"] == pytest.approx(44, abs=1)
+    assert metrics["footerMark"]["width"] == pytest.approx(100, abs=2)
+    assert metrics["footerMark"]["height"] == pytest.approx(27, abs=2)
+    assert "Roboto" in metrics["bodyFont"]
+    assert "Roboto Mono" in metrics["codeFont"]
+    visible_brands = [
+        image for image in metrics["brandImages"] if image["display"] == "block"
+    ]
+    hidden_brands = [
+        image for image in metrics["brandImages"] if image["display"] == "none"
+    ]
+    assert len(visible_brands) == 1
+    assert visible_brands[0]["src"] == "assets/psihub-logo-text-dark.png#only-light"
+    assert visible_brands[0]["width"] == pytest.approx(320, abs=3)
+    assert visible_brands[0]["height"] == pytest.approx(82, abs=3)
+    assert any(
+        image["src"] == "assets/psihub-logo-text-white.png#only-dark"
+        for image in hidden_brands
+    )
     assert "Manifest" in reference_sidebar
     assert "CLI" in reference_sidebar
     assert "Local Hub API" in reference_sidebar
     assert "Packages" not in reference_sidebar
+    assert "Client" in guide_sidebar
     assert "Local Hub" in guide_sidebar
     assert "Cards And Agent Cards" in guide_sidebar
     assert "Manifest" not in guide_sidebar

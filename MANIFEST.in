@@ -4,6 +4,7 @@ include LICENSE
 include README.md
 include SECURITY.md
 include mkdocs.yml
+recursive-include assets *
 recursive-include docs *
 recursive-include examples *
 prune build
