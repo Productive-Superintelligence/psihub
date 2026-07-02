@@ -70,7 +70,7 @@ def test_docs_site_builds_core_pages(tmp_path):
         site_dir / "javascripts" / "mermaid-init.20260629.js"
     ).read_text(encoding="utf-8")
 
-    assert "PsiHub is the local-first package hub" in index_html
+    assert "PsiHub is the local-first Python package hub" in index_html
     assert "does not launch services" in index_html
     assert "assets/logo.svg" in index_html
     assert "assets/psihub-logo-text-dark.png#only-light" in index_html
@@ -121,8 +121,8 @@ def test_docs_site_builds_core_pages(tmp_path):
     assert "psi://demo/events/schemas/event_payload" in refs_html
     assert "psi://demo/echo/schemas/echo_output" in refs_html
     assert ".md-header," in custom_css
-    assert "--md-text-font: \"Roboto\";" in custom_css
-    assert "--md-code-font: \"Roboto Mono\";" in custom_css
+    assert "--md-text-font: \"Newsreader\";" in custom_css
+    assert "--md-code-font: \"Space Mono\";" in custom_css
     assert "background-color: #ffffff;" in custom_css
     assert ".psi-header-nav" in custom_css
     assert ".psi-header-nav__link" in custom_css
@@ -268,8 +268,8 @@ def test_docs_sidebar_scopes_to_active_top_nav_section(tmp_path):
     assert metrics["footer"]["height"] == pytest.approx(44, abs=1)
     assert metrics["footerMark"]["width"] == pytest.approx(100, abs=2)
     assert metrics["footerMark"]["height"] == pytest.approx(27, abs=2)
-    assert "Roboto" in metrics["bodyFont"]
-    assert "Roboto Mono" in metrics["codeFont"]
+    assert "Newsreader" in metrics["bodyFont"]
+    assert "Space Mono" in metrics["codeFont"]
     visible_brands = [
         image for image in metrics["brandImages"] if image["display"] == "block"
     ]
