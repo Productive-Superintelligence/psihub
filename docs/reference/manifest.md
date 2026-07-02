@@ -28,6 +28,10 @@ tactic = "echo"
 tactics = ["echo"]
 transport = "fastapi"
 
+[requirements.api_keys]
+OPENAI_API_KEY = "OpenAI-compatible model access."
+ANTHROPIC_API_KEY = "Claude model access."
+
 [runs.local]
 services = ["api"]
 
@@ -65,3 +69,26 @@ percent escapes.
 Use `service.tactic` for the primary tactic exposed by a service. Use
 `service.tactics` when one service exposes multiple same-package tactics; config
 templates will bind each listed tactic ref to that service's local port.
+
+## Required API Keys
+
+Use `[requirements.api_keys]` for credentials a package needs at launch time.
+Keys are conventional environment variable names and values are short public
+descriptions:
+
+```toml
+[requirements.api_keys]
+OPENAI_API_KEY = "OpenAI-compatible model access."
+TOGETHER_API_KEY = "Together AI fallback model access."
+```
+
+Resource metadata can narrow the same idea to a specific resource:
+
+```toml
+[tactics.analyze.metadata.required_api_keys]
+ANTHROPIC_API_KEY = "Claude model access for analysis."
+```
+
+Manifests never store raw secret values. The `psi` CLI checks these names before
+launch, then reads values from the process environment, OS keyring, or a local
+env file configured by `psi init`.

@@ -41,6 +41,7 @@ def render_agent_card(record: PackageRecord) -> str:
         "- Prefer declared refs and resource metadata over guessing paths or URLs.",
         "",
     ]
+    lines.extend(_requirements_lines(record))
     if card is not None:
         if card.safety:
             lines.append(f"- Safety: {card.safety}")
@@ -91,6 +92,7 @@ def render_package_card(record: PackageRecord) -> str:
         "",
     ]
     lines.extend(_card_metadata_lines(record))
+    lines.extend(_requirements_lines(record))
     lines.extend([
         "## Resources",
         "",
@@ -243,6 +245,19 @@ def _card_metadata_lines(record: PackageRecord) -> list[str]:
             lines.append(f"- `{command}`")
     if lines and lines[-1] != "":
         lines.append("")
+    return lines
+
+
+def _requirements_lines(record: PackageRecord) -> list[str]:
+    requirements = getattr(record, "requirements", None)
+    api_keys = getattr(requirements, "api_keys", None)
+    if not isinstance(api_keys, dict) or not api_keys:
+        return []
+    lines = ["## Required API Keys", ""]
+    for key, description in sorted(api_keys.items()):
+        suffix = f": {description}" if description else ""
+        lines.append(f"- `{key}`{suffix}")
+    lines.append("")
     return lines
 
 

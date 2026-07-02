@@ -32,6 +32,7 @@ from psihub.models import (
     PackageInfo,
     PackageManifest,
     PackageRecord,
+    RequirementResource,
     RunResource,
     SchemaResource,
     ServiceResource,
@@ -75,6 +76,46 @@ def test_init_creates_manifest_and_readme(tmp_path):
     assert manifest.package.kind == "tactic"
     assert manifest.card is not None
     assert "readme" in manifest.docs
+
+
+def test_manifest_declares_required_api_keys(tmp_path):
+    package = tmp_path / "required-keys"
+    package.mkdir()
+    manifest_path = package / "psi.toml"
+    manifest_path.write_text(
+        """
+[package]
+psi_version = "0.1"
+org = "demo"
+name = "required-keys"
+version = "0.1.0"
+kind = "tactic"
+
+[requirements.api_keys]
+OPENAI_API_KEY = "OpenAI-compatible model access."
+ANTHROPIC_API_KEY = "Claude model access."
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    manifest = load_manifest(package)
+    record = record_from_manifest(manifest)
+    card = render_package_card(record)
+    agent_card = render_agent_card(record)
+
+    assert manifest.requirements.api_keys == {
+        "OPENAI_API_KEY": "OpenAI-compatible model access.",
+        "ANTHROPIC_API_KEY": "Claude model access.",
+    }
+    assert record.requirements.api_keys == manifest.requirements.api_keys
+    assert "## Required API Keys" in card
+    assert "`OPENAI_API_KEY`: OpenAI-compatible model access." in card
+    assert "`ANTHROPIC_API_KEY`: Claude model access." in agent_card
+
+
+def test_manifest_rejects_invalid_api_key_requirement_names():
+    with pytest.raises(ValueError, match="uppercase environment names"):
+        RequirementResource(api_keys={"openai_api_key": "bad"})
 
 
 def test_init_escapes_manifest_identity_strings(tmp_path):

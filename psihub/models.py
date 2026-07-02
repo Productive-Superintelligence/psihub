@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any, Literal, get_args
 
@@ -281,6 +282,28 @@ class CardResource(_MetadataModel):
         _isolate_fields(self, "tags", "suggested_commands", "metadata")
 
 
+class RequirementResource(BaseModel):
+    """Package-level launch requirements."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    api_keys: dict[StrictStr, StrictStr] = Field(default_factory=dict)
+
+    def model_post_init(self, __context: Any) -> None:
+        _isolate_fields(self, "api_keys")
+
+    @field_validator("api_keys", mode="before")
+    @classmethod
+    def _validate_api_keys(cls, value: Any) -> Any:
+        return mapping_field_value("requirements.api_keys", value)
+
+    @model_validator(mode="after")
+    def _validate_key_names(self) -> "RequirementResource":
+        for key in self.api_keys:
+            _validate_env_key(key, "requirements.api_keys")
+        return self
+
+
 class PackageManifest(BaseModel):
     """Machine-readable `psi.toml` package contract."""
 
@@ -297,6 +320,7 @@ class PackageManifest(BaseModel):
     docs: dict[StrictStr, DocResource] = Field(default_factory=dict)
     examples: dict[StrictStr, ExampleResource] = Field(default_factory=dict)
     assets: dict[StrictStr, AssetResource] = Field(default_factory=dict)
+    requirements: RequirementResource = Field(default_factory=RequirementResource)
     card: CardResource | None = None
     base_dir: Path | None = None
 
@@ -317,6 +341,7 @@ class PackageManifest(BaseModel):
             "docs",
             "examples",
             "assets",
+            "requirements",
             "card",
         )
 
@@ -389,13 +414,14 @@ class PackageRecord(BaseModel):
     root: Path
     manifest_path: Path
     resources: tuple[HubResource, ...] = Field(default_factory=tuple)
+    requirements: RequirementResource = Field(default_factory=RequirementResource)
     validation: ValidationReport = Field(
         default_factory=lambda: ValidationReport(ok=False)
     )
     card: CardResource | None = None
 
     def model_post_init(self, __context: Any) -> None:
-        _isolate_fields(self, "resources", "validation", "card")
+        _isolate_fields(self, "resources", "requirements", "validation", "card")
 
     @model_validator(mode="after")
     def _validate_identity(self) -> "PackageRecord":
@@ -457,6 +483,11 @@ def _validate_token(value: str, field_name: str) -> None:
         or any(ch in value for ch in "/:\\;%")
     ):
         raise ValueError(f"{field_name} must be a non-empty token.")
+
+
+def _validate_env_key(value: str, field_name: str) -> None:
+    if not isinstance(value, str) or re.match(r"^[A-Z][A-Z0-9_]*$", value) is None:
+        raise ValueError(f"{field_name} keys must be uppercase environment names.")
 
 
 def _validate_resource_kind(value: str) -> None:

@@ -16,6 +16,7 @@ from .models import (
     PackageInfo,
     PackageManifest,
     PackageRecord,
+    RequirementResource,
     RunResource,
     SchemaResource,
     ServiceResource,
@@ -27,7 +28,7 @@ from .models import (
 from .validator import validate_package
 from .server import create_app
 
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 
 __all__ = [
     "AssetResource",
@@ -43,6 +44,7 @@ __all__ = [
     "PackageManifest",
     "PackageRecord",
     "PublishValidationError",
+    "RequirementResource",
     "ResolvedRef",
     "RunResource",
     "SchemaResource",

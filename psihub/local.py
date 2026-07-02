@@ -424,6 +424,7 @@ def record_from_manifest(
         root=manifest.base_dir or Path.cwd(),
         manifest_path=(manifest.base_dir or Path.cwd()) / "psi.toml",
         resources=tuple(resources),
+        requirements=manifest.requirements,
         validation=validation or ValidationReport(ok=False),
         card=manifest.card,
     )

@@ -38,6 +38,9 @@ output = "echo_output"
 tactic = "echo"
 transport = "fastapi"
 
+[requirements.api_keys]
+OPENAI_API_KEY = "OpenAI-compatible model access."
+
 [runs.local]
 services = ["api"]
 
@@ -108,3 +111,14 @@ Good packages include:
 
 Do not store raw secrets in metadata. Use local credential refs such as
 `api_key_ref`, `apiKeyRef`, or `apikeyref`.
+
+Declare launch-time provider keys as public requirements instead:
+
+```toml
+[requirements.api_keys]
+OPENAI_API_KEY = "OpenAI-compatible model access."
+ANTHROPIC_API_KEY = "Claude model access."
+```
+
+`psi init` and `psi launch` use these names to guide local setup while keeping
+secret values in the user's process environment, OS keyring, or local env file.

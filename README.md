@@ -19,7 +19,7 @@ python -m pip install psihub
 For a reproducible install:
 
 ```bash
-python -m pip install psihub==0.0.1
+python -m pip install psihub==0.0.2
 ```
 
 ## Package Shape
@@ -48,6 +48,9 @@ output = "echo_output"
 tactic = "echo"
 tactics = ["echo"]
 transport = "fastapi"
+
+[requirements.api_keys]
+OPENAI_API_KEY = "OpenAI-compatible model access."
 
 [snapshots.latest]
 schema = "echo_output"
@@ -111,6 +114,12 @@ Doc, example, and asset package-file paths must stay portable and must not use
 symlinks, because local publish and download copies skip symlinks.
 Tactic examples should include an `input`, `output`, or `command`; empty
 examples produce a validation warning so cards stay useful.
+Packages that need provider credentials should declare public requirements in
+`[requirements.api_keys]`, mapping conventional environment names such as
+`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `TOGETHER_API_KEY` to short
+descriptions. Package manifests describe required names only; raw secret
+values stay in the user's environment, OS keyring, or local env file managed by
+`psi init`.
 Packages should declare `[card]` metadata and `[docs.readme]` when a
 `README.md` exists; missing card/readme metadata produces validation warnings
 so generated human and agent cards stay discoverable.
