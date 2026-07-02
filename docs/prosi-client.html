@@ -1,52 +1,64 @@
 <section class="page-section" aria-labelledby="hub-docs-title">
     <p class="label">PsiHub</p>
-    <h1 id="hub-docs-title">Package hub client.</h1>
+    <h1 id="hub-docs-title">Python package hub.</h1>
     <hr />
     <p class="section-copy">
-        <code>psihub</code> is the local-first client for validating PSI
-        package metadata, publishing packages to a local hub, downloading them,
-        and rendering cards for humans and agents.
+        <code>psihub</code> is the Python package for PSI package metadata,
+        validation, local hub storage, cards, config templates, and optional
+        local hub APIs.
     </p>
     <p class="section-copy muted">
-        It does not launch services. It keeps packages inspectable and
-        portable so <code>psi</code>, AAAX, scripts, or agents can decide how
-        to run them.
+        It is not the user-facing command line. <code>psi</code> owns local
+        launch and credential setup; PsiHub keeps package metadata inspectable
+        and portable for Python code, apps, scripts, AAAX, and agents.
     </p>
 
     <div class="page-list">
         <div>
             <span class="item-title">Install</span>
-            <span class="item-copy">Install the package hub client.</span>
+            <span class="item-copy">Install the Python package.</span>
             <pre><code>python -m pip install psihub</code></pre>
         </div>
         <div>
-            <span class="item-title">Initialize And Validate</span>
-            <span class="item-copy">Create package metadata and check package shape before sharing.</span>
-            <pre><code>psihub init demo-package --org demo --name echo --kind tactic
-psihub validate demo-package</code></pre>
+            <span class="item-title">Create Package Metadata</span>
+            <span class="item-copy">Initialize a regular package folder with <code>psi.toml</code>.</span>
+            <pre><code>from psihub import init_package
+
+init_package("demo-package", org="demo", name="echo", kind="tactic")</code></pre>
         </div>
         <div>
-            <span class="item-title">Publish Locally</span>
-            <span class="item-copy">Publish copies a normal package folder into deterministic local hub storage.</span>
-            <pre><code>psihub --hub .psihub publish demo-package --local
-psihub --hub .psihub list</code></pre>
+            <span class="item-title">Validate</span>
+            <span class="item-copy">Check refs, resources, package-file paths, card metadata, and API key declarations.</span>
+            <pre><code>from psihub import validate_package
+
+report = validate_package("demo-package")
+if not report.ok:
+    for issue in report.issues:
+        print(issue.level, issue.code, issue.message)</code></pre>
         </div>
         <div>
-            <span class="item-title">Download</span>
-            <span class="item-copy">Download returns another ordinary package folder with docs, examples, assets, and <code>psi.toml</code>.</span>
-            <pre><code>psihub --hub .psihub get demo/echo --dest ./downloaded</code></pre>
+            <span class="item-title">Publish And Resolve</span>
+            <span class="item-copy">Use <code>LocalHub</code> as an embeddable local package registry.</span>
+            <pre><code>from psihub import LocalHub
+
+hub = LocalHub(".psihub")
+record = hub.publish("demo-package")
+latest = hub.get("demo/echo")
+downloaded = hub.download("demo/echo", "./downloaded")</code></pre>
         </div>
         <div>
-            <span class="item-title">Explain</span>
+            <span class="item-title">Render Cards</span>
             <span class="item-copy">Cards expose package resources and launch hints without printing secret values.</span>
-            <pre><code>psihub --hub .psihub card demo/echo
-psihub --hub .psihub agent-card demo/echo
-psihub --hub .psihub config-template demo/echo</code></pre>
+            <pre><code>package_card = hub.card("demo/echo")
+agent_card = hub.agent_card("demo/echo")
+config = hub.config_template("demo/echo")</code></pre>
         </div>
         <div>
-            <span class="item-title">Serve A Local API</span>
-            <span class="item-copy">Expose the local hub to apps or development tools when needed.</span>
-            <pre><code>psihub --hub .psihub serve --host 127.0.0.1 --port 8787</code></pre>
+            <span class="item-title">Embed The API</span>
+            <span class="item-copy">Expose the same local hub to apps or development tools when needed.</span>
+            <pre><code>from psihub import LocalHub, create_app
+
+app = create_app(hub=LocalHub(".psihub"))</code></pre>
         </div>
     </div>
 </section>

@@ -4,10 +4,11 @@
   <img src="assets/psihub-logo-text-dark.png" alt="PsiHub" width="420">
 </p>
 
-PsiHub is the local-first package hub for PSI packages.
+PsiHub is the local-first Python package hub for PSI packages.
 
 It owns the package protocol: `psi.toml`, validation, local publish/download,
-package cards, and local config templates. It does not launch services.
+package cards, local config templates, and optional local hub APIs. It does not
+launch services.
 `psi.toml` must be a regular package file rather than a symlink.
 
 ## Install
@@ -77,24 +78,34 @@ Focused package kinds should declare a matching `package.primary`: tactic
 packages point at `tactics.*`, channel packages at `channels.*`, service
 packages at `services.*`, and app packages at `services.*` or `runs.*`.
 
-## Local Lifecycle
+## Python Lifecycle
 
-```bash
-psihub init . --org demo --name echo --kind tactic
-psihub validate .
-psihub publish . --local
-psihub list
-psihub get demo/echo --dest ./downloaded
-psihub card demo/echo
-psihub agent-card demo/echo
-psihub config-template demo/echo
+```python
+from psihub import LocalHub, init_package, validate_package
+
+init_package(".", org="demo", name="echo", kind="tactic")
+
+report = validate_package(".")
+if not report.ok:
+    for issue in report.issues:
+        print(issue.level, issue.code, issue.message)
+
+hub = LocalHub(".psihub")
+record = hub.publish(".")
+downloaded = hub.download("demo/echo", "./downloaded")
+package_card = hub.card("demo/echo")
+agent_card = hub.agent_card("demo/echo")
+config = hub.config_template("demo/echo")
 ```
 
 For a step-by-step local package walkthrough, see
 `docs/tutorials/local-package-lifecycle.md`.
 
+The `psihub` console command is a developer convenience over the Python API.
+The unified user CLI for local launch and credential setup is `psi`.
+
 Local publish validates by default and rejects packages with validation errors.
-Use `psihub publish --local --no-validate` only when intentionally indexing an
+Use `hub.publish(path, validate=False)` only when intentionally indexing an
 incomplete local package.
 
 Package and agent cards render declared endpoint and tactic example metadata so

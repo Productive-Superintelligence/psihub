@@ -39,8 +39,8 @@ nav:
       - Concepts:
           - Packages: concepts/packages.md
           - Refs And Config: concepts/refs-and-config.md
-  - Client:
-      - Client: client/index.md
+  - Python Package:
+      - Python Package: client/index.md
       - Guides:
           - Local Hub: guides/local-hub.md
           - Cards And Agent Cards: guides/cards.md

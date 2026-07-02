@@ -1,8 +1,11 @@
-# Client
+# Python Package
 
-PsiHub is a local-first package client. It validates `psi.toml`, publishes
-packages into a local hub, downloads them, and renders cards for humans and
-agents. It does not launch services.
+PsiHub is a Python package for PSI package metadata, validation, local hub
+storage, cards, config templates, and optional local hub APIs.
+
+It is not the user-facing command line. `psi` owns local launch and credential
+setup. PsiHub keeps package metadata inspectable and portable for Python code,
+apps, scripts, AAAX, and agents.
 
 ## Install
 
@@ -10,46 +13,63 @@ agents. It does not launch services.
 python -m pip install psihub
 ```
 
-## Initialize And Validate
+## Create Package Metadata
 
-```bash
-psihub init demo-package --org demo --name echo --kind tactic
-psihub validate demo-package
+```python
+from psihub import init_package
+
+init_package("demo-package", org="demo", name="echo", kind="tactic")
 ```
 
-## Publish And List
+## Validate
 
-```bash
-psihub --hub .psihub publish demo-package --local
-psihub --hub .psihub list
+```python
+from psihub import validate_package
+
+report = validate_package("demo-package")
+if not report.ok:
+    for issue in report.issues:
+        print(issue.level, issue.code, issue.message)
 ```
 
-Local publish copies the package into deterministic `.psihub/packages` and
-`.psihub/index` storage. Package source remains ordinary files.
+Validation checks refs, resources, package-file paths, card metadata, endpoint
+metadata, and API key requirement declarations.
 
-## Download
+## Publish And Resolve
 
-```bash
-psihub --hub .psihub get demo/echo --dest ./downloaded
+```python
+from psihub import LocalHub
+
+hub = LocalHub(".psihub")
+record = hub.publish("demo-package")
+latest = hub.get("demo/echo")
+downloaded = hub.download("demo/echo", "./downloaded")
 ```
 
-The downloaded folder keeps `psi.toml`, docs, examples, and assets intact.
+`LocalHub` stores packages under deterministic `.psihub/packages` and
+`.psihub/index` paths. Download returns another ordinary package folder with
+`psi.toml`, docs, examples, and assets intact.
 
-## Explain
+## Render Cards
 
-```bash
-psihub --hub .psihub card demo/echo
-psihub --hub .psihub agent-card demo/echo
-psihub --hub .psihub config-template demo/echo
+```python
+package_card = hub.card("demo/echo")
+agent_card = hub.agent_card("demo/echo")
+config = hub.config_template("demo/echo")
 ```
 
 Cards expose resources, endpoint hints, package docs, and required API key
 names without printing secret values.
 
-## Serve A Local API
+## Embed The API
 
-```bash
-psihub --hub .psihub serve --host 127.0.0.1 --port 8787
+```python
+from psihub import LocalHub, create_app
+
+app = create_app(hub=LocalHub(".psihub"))
 ```
 
 Use the API when an app or development tool needs to browse the same local hub.
+
+The `psihub` console command remains a developer convenience over these Python
+APIs. The unified user CLI is `psi`.

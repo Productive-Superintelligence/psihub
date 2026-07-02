@@ -7,9 +7,9 @@
 
 [Productive-Superintelligence/psihub](https://github.com/Productive-Superintelligence/psihub){ .psi-domain }
 
-PsiHub is the local-first package hub for PSI packages. It owns `psi.toml`,
-validation, local publish/download, package cards, agent cards, and local
-config templates.
+PsiHub is the local-first Python package hub for PSI packages. It owns
+`psi.toml`, validation, local publish/download, package cards, agent cards,
+config templates, and optional local hub APIs.
 
 PsiHub does not launch services. It makes packages understandable and
 composable so humans, scripts, runners, and coding agents can decide how to run
@@ -38,15 +38,18 @@ resources so agents can inspect packages without guessing.
 </div>
 </div>
 
-## Short Path
+## Python Path
 
-```bash
-python -m pip install --pre psihub
-psihub init demo-package --org demo --name echo --kind tactic
-psihub validate demo-package
-psihub --hub .psihub publish demo-package --local
-psihub --hub .psihub card demo/echo
-psihub --hub .psihub agent-card demo/echo
+```python
+from psihub import LocalHub, init_package, validate_package
+
+init_package("demo-package", org="demo", name="echo", kind="tactic")
+report = validate_package("demo-package")
+
+hub = LocalHub(".psihub")
+record = hub.publish("demo-package")
+package_card = hub.card("demo/echo")
+agent_card = hub.agent_card("demo/echo")
 ```
 
 ## Shape
@@ -79,5 +82,5 @@ requiring PsiHub to start the service or own the store.
 
 - Start with [Getting Started](getting-started.md).
 - Learn package shape in [Protocol](protocol/index.md).
-- Learn local workflows in [Client](client/index.md).
+- Use the Python package API in [Python Package](client/index.md).
 - Follow the [Local Package Lifecycle](tutorials/local-package-lifecycle.md).
