@@ -1,70 +1,55 @@
 # Client
 
-PsiHub's client surface is local-first: commands and Python APIs validate
-packages, publish them to a local hub, download them, and render explanation
-artifacts for humans and agents.
+PsiHub is a local-first package client. It validates `psi.toml`, publishes
+packages into a local hub, downloads them, and renders cards for humans and
+agents. It does not launch services.
 
-<div class="psi-tiles">
-  <div class="psi-tile">
-    <strong>CLI</strong>
-    Initialize, validate, publish, list, fetch, and explain local packages.
-  </div>
-  <div class="psi-tile">
-    <strong>Local Hub</strong>
-    Deterministic `.psihub/packages` and `.psihub/index` storage.
-  </div>
-  <div class="psi-tile">
-    <strong>Cards</strong>
-    Human and agent-readable summaries generated from declared resources.
-  </div>
-  <div class="psi-tile">
-    <strong>Config</strong>
-    Local `.psi/config.toml` templates for services, tactics, channels, and
-    stores.
-  </div>
-</div>
+## Install
 
-## Client Flow
-
-```mermaid
-sequenceDiagram
-  participant Dev
-  participant CLI
-  participant Hub
-  participant Agent
-
-  Dev->>CLI: psihub validate package
-  CLI->>CLI: check manifest and package files
-  Dev->>CLI: psihub publish package --local
-  CLI->>Hub: copy source and index metadata
-  Agent->>CLI: psihub agent-card org/name
-  CLI->>Hub: read indexed package
-  CLI-->>Agent: card and config hints
+```bash
+python -m pip install psihub
 ```
 
-## Typical Commands
+## Initialize And Validate
 
 ```bash
 psihub init demo-package --org demo --name echo --kind tactic
 psihub validate demo-package
+```
+
+## Publish And List
+
+```bash
 psihub --hub .psihub publish demo-package --local
+psihub --hub .psihub list
+```
+
+Local publish copies the package into deterministic `.psihub/packages` and
+`.psihub/index` storage. Package source remains ordinary files.
+
+## Download
+
+```bash
+psihub --hub .psihub get demo/echo --dest ./downloaded
+```
+
+The downloaded folder keeps `psi.toml`, docs, examples, and assets intact.
+
+## Explain
+
+```bash
 psihub --hub .psihub card demo/echo
 psihub --hub .psihub agent-card demo/echo
 psihub --hub .psihub config-template demo/echo
 ```
 
-## Runtime Boundary
+Cards expose resources, endpoint hints, package docs, and required API key
+names without printing secret values.
 
-PsiHub is not a runner. A card can name a FastAPI service entrypoint, preferred
-port, tactic ref, channel store, or config key, but the user, script, AAAX, or
-another runner decides what to start.
+## Serve A Local API
 
-That boundary keeps the client predictable: package metadata remains passive,
-portable, and safe to inspect.
+```bash
+psihub --hub .psihub serve --host 127.0.0.1 --port 8787
+```
 
-## Next
-
-- Use [Local Hub](../guides/local-hub.md) for storage behavior.
-- Use [Cards And Agent Cards](../guides/cards.md) for explanation artifacts.
-- Follow [Local Package Lifecycle](../tutorials/local-package-lifecycle.md)
-  for a complete local workflow.
+Use the API when an app or development tool needs to browse the same local hub.

@@ -1,0 +1,52 @@
+<section class="page-section" aria-labelledby="hub-docs-title">
+    <p class="label">PsiHub</p>
+    <h1 id="hub-docs-title">Package hub client.</h1>
+    <hr />
+    <p class="section-copy">
+        <code>psihub</code> is the local-first client for validating PSI
+        package metadata, publishing packages to a local hub, downloading them,
+        and rendering cards for humans and agents.
+    </p>
+    <p class="section-copy muted">
+        It does not launch services. It keeps packages inspectable and
+        portable so <code>psi</code>, AAAX, scripts, or agents can decide how
+        to run them.
+    </p>
+
+    <div class="page-list">
+        <div>
+            <span class="item-title">Install</span>
+            <span class="item-copy">Install the package hub client.</span>
+            <pre><code>python -m pip install psihub</code></pre>
+        </div>
+        <div>
+            <span class="item-title">Initialize And Validate</span>
+            <span class="item-copy">Create package metadata and check package shape before sharing.</span>
+            <pre><code>psihub init demo-package --org demo --name echo --kind tactic
+psihub validate demo-package</code></pre>
+        </div>
+        <div>
+            <span class="item-title">Publish Locally</span>
+            <span class="item-copy">Publish copies a normal package folder into deterministic local hub storage.</span>
+            <pre><code>psihub --hub .psihub publish demo-package --local
+psihub --hub .psihub list</code></pre>
+        </div>
+        <div>
+            <span class="item-title">Download</span>
+            <span class="item-copy">Download returns another ordinary package folder with docs, examples, assets, and <code>psi.toml</code>.</span>
+            <pre><code>psihub --hub .psihub get demo/echo --dest ./downloaded</code></pre>
+        </div>
+        <div>
+            <span class="item-title">Explain</span>
+            <span class="item-copy">Cards expose package resources and launch hints without printing secret values.</span>
+            <pre><code>psihub --hub .psihub card demo/echo
+psihub --hub .psihub agent-card demo/echo
+psihub --hub .psihub config-template demo/echo</code></pre>
+        </div>
+        <div>
+            <span class="item-title">Serve A Local API</span>
+            <span class="item-copy">Expose the local hub to apps or development tools when needed.</span>
+            <pre><code>psihub --hub .psihub serve --host 127.0.0.1 --port 8787</code></pre>
+        </div>
+    </div>
+</section>
